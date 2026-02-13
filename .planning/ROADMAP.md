@@ -33,12 +33,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. SQLite database is created automatically on first run with schema migrations applied
   4. Application logs are structured JSON output via Pino, visible in docker logs
   5. Health check endpoint responds with 200 OK and basic status information
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 01-01: Project scaffolding and build pipeline
-- [ ] 01-02: Configuration, database, and logging
-- [ ] 01-03: Docker packaging and health check
+- [ ] 01-01-PLAN.md -- Project scaffolding, tooling, config module, and Fastify server factory
+- [ ] 01-02-PLAN.md -- SQLite database with Drizzle ORM, schema, migrations, and Fastify plugin
+- [ ] 01-03-PLAN.md -- Health check endpoint, Docker multi-stage build, and docker-compose
 
 ### Phase 2: Messaging Gateway
 **Goal**: The application can receive text messages from Twilio via webhook and send responses back, with proper security and text-first formatting
@@ -159,7 +159,7 @@ Phases execute in numeric order. Note: Phases 4 and 5 can proceed in parallel af
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/3 | Not started | - |
+| 1. Foundation | 0/3 | Planning complete | - |
 | 2. Messaging Gateway | 0/2 | Not started | - |
 | 3. User Management | 0/2 | Not started | - |
 | 4. Media Server Clients | 0/3 | Not started | - |
