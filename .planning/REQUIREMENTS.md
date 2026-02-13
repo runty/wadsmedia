@@ -1,0 +1,155 @@
+# Requirements: WadsMedia
+
+**Defined:** 2026-02-13
+**Core Value:** Users can manage their media libraries through natural conversation — text a message, get things done, no UI to learn.
+
+## v1 Requirements
+
+Requirements for initial release. Each maps to roadmap phases.
+
+### Search & Discovery
+
+- [ ] **SRCH-01**: User can search for movies by title via natural language
+- [ ] **SRCH-02**: User can search for TV shows by title via natural language
+- [ ] **SRCH-03**: User can see if media is already in library when searching
+- [ ] **SRCH-04**: App auto-picks best match when confident, asks user to choose when ambiguous
+- [ ] **SRCH-05**: User can ask for upcoming air dates for shows and movies
+
+### Library Management
+
+- [ ] **LIB-01**: User can add a movie to wanted list with sensible defaults
+- [ ] **LIB-02**: User can add a TV show to wanted list with sensible defaults
+- [ ] **LIB-03**: User can remove/unmonitor media via natural language
+- [ ] **LIB-04**: User can reference previous conversation context ("add that one too", "actually the second one")
+
+### Status & Monitoring
+
+- [ ] **STAT-01**: User can check download progress and queue status
+- [ ] **STAT-02**: User can view upcoming episode/movie schedule
+- [ ] **STAT-03**: App proactively notifies users when downloads complete or new episodes are available
+
+### Conversation & LLM
+
+- [ ] **CONV-01**: App interprets natural language via configurable OpenAI-compatible LLM
+- [ ] **CONV-02**: Full conversation history persisted per user with sliding context window for LLM calls
+- [ ] **CONV-03**: LLM uses tool/function calling for structured Sonarr/Radarr actions
+- [ ] **CONV-04**: Confirmation required before destructive actions (remove/delete)
+
+### User Management
+
+- [ ] **USER-01**: Admin user designated via environment variable
+- [ ] **USER-02**: Known users identified by phone number whitelist
+- [ ] **USER-03**: Unknown numbers prompted for their name, then admin texted for approval
+- [ ] **USER-04**: Each user has a display name stored with their profile
+- [ ] **USER-05**: Per-user conversation isolation (users only see their own history)
+
+### Messaging
+
+- [ ] **MSG-01**: Modular messaging provider interface with Twilio RCS/SMS as initial implementation
+- [ ] **MSG-02**: Incoming messages received via webhook with signature validation
+- [ ] **MSG-03**: Outgoing messages sent via provider API
+- [ ] **MSG-04**: Responses designed text-first (readable as plain SMS with RCS enhancement)
+
+### Media Server Integration
+
+- [ ] **API-01**: Sonarr API client with typed HTTP wrapper and Zod validation
+- [ ] **API-02**: Radarr API client with typed HTTP wrapper and Zod validation
+- [ ] **API-03**: Quality profiles and root folders fetched dynamically on startup
+- [ ] **API-04**: Graceful handling when Sonarr or Radarr is unreachable
+
+### Infrastructure
+
+- [ ] **INFRA-01**: Single Docker container deployment via Dockerfile + docker-compose.yml
+- [ ] **INFRA-02**: All configuration via environment variables
+- [ ] **INFRA-03**: SQLite database with Docker volume persistence
+- [ ] **INFRA-04**: Structured logging (JSON) via Pino
+- [ ] **INFRA-05**: Health check endpoint
+
+## v2 Requirements
+
+Deferred to future release. Tracked but not in current roadmap.
+
+### Additional Media Services
+
+- **MEDIA-01**: Lidarr integration for music management
+- **MEDIA-02**: Readarr integration for book management
+
+### Additional Messaging Providers
+
+- **MSGV2-01**: Telegram messaging provider
+- **MSGV2-02**: Discord messaging provider
+- **MSGV2-03**: Signal messaging provider
+
+### Intelligence
+
+- **INTEL-01**: Contextual suggestions ("People who like X also watch Y")
+- **INTEL-02**: Usage analytics (what do users ask for most, what fails)
+- **INTEL-03**: RCS rich cards/carousels for search results on supported devices
+
+### Advanced Library
+
+- **ADVL-01**: Season-level granularity (request specific seasons only)
+- **ADVL-02**: Multiple Sonarr/Radarr instance support (4K + 1080p)
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Web dashboard / admin UI | Contradicts messaging-first value. Overseerr does this better. |
+| Approval workflow / request system | Over-engineering for personal/household servers. Whitelist IS the approval. |
+| Media playback control | Different domain (Plex/Jellyfin/Kodi APIs). Massive scope expansion. |
+| Voice interface | Requires speech-to-text, different UX concerns. Text messaging is the sweet spot. |
+| Self-serve user registration | Security risk. Admin controls access via conversational onboarding. |
+| Per-user request quotas | Over-engineering. Whitelisted users are trusted. Remove if abuse occurs. |
+| Direct torrent/usenet management | Sonarr/Radarr abstract this. Exposing internals creates fragile interface. |
+| Rich media previews (posters) | SMS has limited support. Text descriptions sufficient. Include links for browsers. |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| SRCH-01 | — | Pending |
+| SRCH-02 | — | Pending |
+| SRCH-03 | — | Pending |
+| SRCH-04 | — | Pending |
+| SRCH-05 | — | Pending |
+| LIB-01 | — | Pending |
+| LIB-02 | — | Pending |
+| LIB-03 | — | Pending |
+| LIB-04 | — | Pending |
+| STAT-01 | — | Pending |
+| STAT-02 | — | Pending |
+| STAT-03 | — | Pending |
+| CONV-01 | — | Pending |
+| CONV-02 | — | Pending |
+| CONV-03 | — | Pending |
+| CONV-04 | — | Pending |
+| USER-01 | — | Pending |
+| USER-02 | — | Pending |
+| USER-03 | — | Pending |
+| USER-04 | — | Pending |
+| USER-05 | — | Pending |
+| MSG-01 | — | Pending |
+| MSG-02 | — | Pending |
+| MSG-03 | — | Pending |
+| MSG-04 | — | Pending |
+| API-01 | — | Pending |
+| API-02 | — | Pending |
+| API-03 | — | Pending |
+| API-04 | — | Pending |
+| INFRA-01 | — | Pending |
+| INFRA-02 | — | Pending |
+| INFRA-03 | — | Pending |
+| INFRA-04 | — | Pending |
+| INFRA-05 | — | Pending |
+
+**Coverage:**
+- v1 requirements: 34 total
+- Mapped to phases: 0
+- Unmapped: 34 ⚠️
+
+---
+*Requirements defined: 2026-02-13*
+*Last updated: 2026-02-13 after initial definition*
