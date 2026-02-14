@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-13)
 
 ## Current Position
 
-Phase: 7 of 8 (Library Management) -- COMPLETE
-Plan: 2 of 2 in current phase
-Status: Phase Complete
-Last activity: 2026-02-14 -- Plan 07-02 complete (system prompt and tool registration)
+Phase: 8 of 8 (Status and Notifications)
+Plan: 1 of 2 in current phase
+Status: In Progress
+Last activity: 2026-02-14 -- Plan 08-01 complete (download queue tool)
 
-Progress: [█████████░] 89%
+Progress: [█████████░] 95%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17
+- Total plans completed: 18
 - Average duration: 3min
-- Total execution time: 0.75 hours
+- Total execution time: 0.78 hours
 
 **By Phase:**
 
@@ -34,9 +34,10 @@ Progress: [█████████░] 89%
 | 05-conversation-engine | 3 | 9min | 3min |
 | 06-search-and-discovery | 2 | 3min | 2min |
 | 07-library-management | 2 | 3min | 2min |
+| 08-status-and-notifications | 1 | 2min | 2min |
 
 **Recent Trend:**
-- Last 5 plans: 05-03 (3min), 06-01 (2min), 06-02 (1min), 07-01 (2min), 07-02 (1min)
+- Last 5 plans: 06-01 (2min), 06-02 (1min), 07-01 (2min), 07-02 (1min), 08-01 (2min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -102,6 +103,9 @@ Recent decisions affecting current work:
 - [07-01]: Sonarr uses addImportListExclusion (not addImportExclusion like Radarr) per API differences
 - [07-02]: Context reference resolution (LIB-04) handled entirely through system prompt guidance, not custom code
 - [07-02]: System prompt instructs LLM to use tmdbId/tvdbId for add operations, libraryId for remove operations
+- [08-01]: No parameters on get_download_queue -- fetches everything, LLM filters in response
+- [08-01]: Sonarr queue enriched with series titles via separate getSeries() call; Radarr uses record.title directly
+- [08-01]: Independent try/catch per server so one failure does not block reporting the other
 
 ### Pending Todos
 
@@ -115,5 +119,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Completed 07-02-PLAN.md (system prompt and tool registration) -- Phase 7 complete, ready for Phase 8
+Stopped at: Completed 08-01-PLAN.md (download queue tool) -- ready for 08-02
 Resume file: None
