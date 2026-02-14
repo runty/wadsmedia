@@ -128,12 +128,11 @@ Plans:
   2. User can text to add a TV show to the wanted list with sensible quality and path defaults applied automatically
   3. User can text to remove or unmonitor media and the app executes after confirmation
   4. User can reference previous conversation context naturally ("add that one too", "actually the second one") and the app resolves the reference correctly
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 07-01: Add movie and add show tools
-- [ ] 07-02: Remove/unmonitor tools with confirmation
-- [ ] 07-03: Conversational context reference resolution
+- [ ] 07-01-PLAN.md -- Add/remove tool definitions, search tool libraryId extension, and barrel index
+- [ ] 07-02-PLAN.md -- System prompt library management guidance and tool registration in conversation plugin
 
 ### Phase 8: Status and Notifications
 **Goal**: Users can check on their downloads and receive proactive notifications when media events occur, completing the full media management experience
@@ -163,5 +162,5 @@ Phases execute in numeric order. Note: Phases 4 and 5 can proceed in parallel af
 | 4. Media Server Clients | 3/3 | Complete | 2026-02-14 |
 | 5. Conversation Engine | 3/3 | Complete | 2026-02-14 |
 | 6. Search and Discovery | 2/2 | Complete | 2026-02-14 |
-| 7. Library Management | 0/3 | Not started | - |
+| 7. Library Management | 0/2 | Not started | - |
 | 8. Status and Notifications | 0/3 | Not started | - |
