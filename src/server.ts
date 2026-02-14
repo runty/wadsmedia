@@ -4,6 +4,8 @@ import type { AppConfig } from "./config.js";
 import databasePlugin from "./plugins/database.js";
 import healthPlugin from "./plugins/health.js";
 import messagingPlugin from "./plugins/messaging.js";
+import radarrPlugin from "./plugins/radarr.js";
+import sonarrPlugin from "./plugins/sonarr.js";
 import userResolverPlugin from "./plugins/user-resolver.js";
 import webhookPlugin from "./plugins/webhook.js";
 
@@ -34,6 +36,8 @@ export async function buildServer(config: AppConfig) {
   // Register plugins
   await fastify.register(databasePlugin);
   await fastify.register(healthPlugin);
+  await fastify.register(sonarrPlugin);
+  await fastify.register(radarrPlugin);
   await fastify.register(formbody);
   await fastify.register(messagingPlugin);
   await fastify.register(userResolverPlugin);
