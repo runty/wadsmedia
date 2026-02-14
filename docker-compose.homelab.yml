@@ -1,0 +1,26 @@
+services:
+  wadsmedia:
+    build: .
+    container_name: wadsmedia
+    ports:
+      - "3000:3000"
+    volumes:
+      - wadsmedia-data:/data
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_PATH: /data/wadsmedia.db
+    restart: unless-stopped
+    # If Sonarr/Radarr run in the same Docker network, uncomment:
+    # networks:
+    #   - media
+
+# If Sonarr/Radarr are in an existing Docker network, connect to it:
+# networks:
+#   media:
+#     external: true
+#     name: your-media-network-name  # e.g., media_default
+
+volumes:
+  wadsmedia-data:
