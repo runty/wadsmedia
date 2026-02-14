@@ -49,11 +49,11 @@ Plans:
   2. Application can send outbound text messages via Twilio API
   3. Messaging provider is behind a modular interface that could be swapped for another provider without changing core logic
   4. Responses are readable as plain SMS text with RCS enhancement when available (no RCS-only formatting)
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 02-01: Messaging provider interface and Twilio adapter
-- [ ] 02-02: Webhook endpoint and outbound messaging
+- [ ] 02-01-PLAN.md -- Messaging provider interface and Twilio adapter class
+- [ ] 02-02-PLAN.md -- Webhook endpoint, signature validation, and Fastify plugin wiring
 
 ### Phase 3: User Management
 **Goal**: The system knows who is texting, authorizes known users, onboards unknown users through conversation, and keeps each user's data isolated
