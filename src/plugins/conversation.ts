@@ -5,6 +5,7 @@ import { createLLMClient } from "../conversation/llm.js";
 import {
   addMovieTool,
   addSeriesTool,
+  getDownloadQueueTool,
   getUpcomingEpisodesTool,
   getUpcomingMoviesTool,
   removeMovieTool,
@@ -43,6 +44,7 @@ export default fp(
     registry.register(addSeriesTool);
     registry.register(removeMovieTool);
     registry.register(removeSeriesTool);
+    registry.register(getDownloadQueueTool);
 
     fastify.decorate("llm", client);
     fastify.decorate("toolRegistry", registry);

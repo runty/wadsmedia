@@ -37,7 +37,14 @@ Library management:
 Conversational context:
 - If the user refers to a previous search result ("add that one", "add it", "the second one", "number 3"), use the corresponding tmdbId or tvdbId from those results.
 - If the user says "remove that" or "delete the first one" after a search, use the libraryId from the in-library result.
-- When context is ambiguous, ask the user to clarify which result they mean.`;
+- When context is ambiguous, ask the user to clarify which result they mean.
+
+Download status:
+- Use get_download_queue to check what is currently downloading when the user asks about downloads, queue, progress, or status.
+- Show download progress as a percentage when available.
+- Include estimated time remaining when the data is available.
+- If the queue is empty, tell the user nothing is currently downloading.
+- Keep queue status responses concise -- list active items with progress, skip completed ones.`;
 
 export function buildSystemPrompt(displayName?: string | null): string {
   if (displayName && displayName.trim().length > 0) {
