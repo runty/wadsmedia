@@ -12,9 +12,9 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 Phase: 9 of 13 (TMDB Discovery + Library Routing)
 Plan: 2 of 3 in current phase
 Status: Executing
-Last activity: 2026-02-14 -- 09-02 complete (Brave Search + web_search tool)
+Last activity: 2026-02-14 -- 09-01 complete (TMDB client + discover_media tool)
 
-Progress: [#####################.........] 21/30 plans
+Progress: [######################........] 22/30 plans
 
 ## Performance Metrics
 
@@ -35,7 +35,7 @@ Progress: [#####################.........] 21/30 plans
 | 06-search-and-discovery | 2 | 3min | 2min |
 | 07-library-management | 2 | 3min | 2min |
 | 08-status-and-notifications | 2 | 4min | 2min |
-| 09-tmdb-discovery-library-routing | 1 | 3min | 3min |
+| 09-tmdb-discovery-library-routing | 2 | 9min | 5min |
 
 ## Accumulated Context
 
@@ -50,6 +50,8 @@ Recent decisions affecting v2.0:
 - RCS brand onboarding: start early (4-6 week approval timeline)
 - Brave Search client uses native fetch with X-Subscription-Token auth, 10s timeout, Zod validation
 - web_search tool returns raw title/url/description; LLM uses results to identify media titles
+- TMDB HTTP helper uses Bearer auth (separate from Sonarr/Radarr X-Api-Key helper)
+- Single discover_media tool covers movie + TV discovery (compound tool pattern keeps tool count low)
 
 ### Pending Todos
 
@@ -63,5 +65,5 @@ Recent decisions affecting v2.0:
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Completed 09-02-PLAN.md (Brave Search + web_search tool)
+Stopped at: Completed 09-01-PLAN.md (TMDB client + discover_media tool)
 Resume file: None
