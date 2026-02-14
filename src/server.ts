@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import type { AppConfig } from "./config.js";
+import databasePlugin from "./plugins/database.js";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -24,6 +25,9 @@ export async function buildServer(config: AppConfig) {
   });
 
   fastify.decorate("config", config);
+
+  // Register plugins
+  await fastify.register(databasePlugin);
 
   return fastify;
 }
