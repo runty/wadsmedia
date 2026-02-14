@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 
 ## Current Position
 
-Phase: 9 of 13 (TMDB Discovery + Library Routing)
-Plan: 2 of 3 in current phase
-Status: Executing
-Last activity: 2026-02-14 -- 09-01 complete (TMDB client + discover_media tool)
+Phase: 9 of 13 (TMDB Discovery + Library Routing) -- COMPLETE
+Plan: 3 of 3 in current phase
+Status: Phase Complete
+Last activity: 2026-02-14 -- 09-03 complete (library routing with TDD)
 
-Progress: [######################........] 22/30 plans
+Progress: [#######################.......] 23/30 plans
 
 ## Performance Metrics
 
 **v1.0 Velocity:**
-- Total plans completed: 19
+- Total plans completed: 23
 - Average duration: 3min
-- Total execution time: 0.81 hours
+- Total execution time: 0.89 hours
 
 **By Phase:**
 
@@ -35,7 +35,7 @@ Progress: [######################........] 22/30 plans
 | 06-search-and-discovery | 2 | 3min | 2min |
 | 07-library-management | 2 | 3min | 2min |
 | 08-status-and-notifications | 2 | 4min | 2min |
-| 09-tmdb-discovery-library-routing | 2 | 9min | 5min |
+| 09-tmdb-discovery-library-routing | 3 | 14min | 5min |
 
 ## Accumulated Context
 
@@ -52,6 +52,9 @@ Recent decisions affecting v2.0:
 - web_search tool returns raw title/url/description; LLM uses results to identify media titles
 - TMDB HTTP helper uses Bearer auth (separate from Sonarr/Radarr X-Api-Key helper)
 - Single discover_media tool covers movie + TV discovery (compound tool pattern keeps tool count low)
+- Pure routing functions for library routing (no API calls, maximizes testability)
+- Dual-format language matching (ISO codes + full names) for TMDB/Radarr compatibility
+- Config added to ToolContext (not imported directly) for routing hint access
 
 ### Pending Todos
 
@@ -65,5 +68,5 @@ Recent decisions affecting v2.0:
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Completed 09-01-PLAN.md (TMDB client + discover_media tool)
+Stopped at: Completed 09-03-PLAN.md (library routing with TDD -- Phase 9 complete)
 Resume file: None
