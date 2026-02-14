@@ -35,6 +35,11 @@ const envSchema = z.object({
   // Notifications (optional, for webhook security)
   NOTIFICATION_SECRET: z.string().min(1).optional(),
 
+  // Library routing hints
+  SONARR_ANIME_ROOT_FOLDER_HINT: z.string().default("anime"),
+  RADARR_CMOVIES_ROOT_FOLDER_HINT: z.string().default("cmovies"),
+  DEFAULT_QUALITY_PROFILE_HINT: z.string().default("1080"),
+
   // Users (required starting Phase 3)
   ADMIN_PHONE: z.string().min(1),
   PHONE_WHITELIST: z

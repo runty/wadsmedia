@@ -30,6 +30,7 @@ export const MovieLookupSchema = z
     inCinemas: z.string().nullable().optional(),
     physicalRelease: z.string().nullable().optional(),
     digitalRelease: z.string().nullable().optional(),
+    originalLanguage: z.object({ id: z.number(), name: z.string() }).optional(),
     id: z.number().optional(),
   })
   .passthrough();

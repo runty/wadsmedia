@@ -92,7 +92,14 @@ export async function processConversation(params: ProcessConversationParams): Pr
 
           let resultText: string;
           try {
-            const result = await tool.execute(parsedArgs, { sonarr, radarr, tmdb, brave, userId });
+            const result = await tool.execute(parsedArgs, {
+              sonarr,
+              radarr,
+              tmdb,
+              brave,
+              config,
+              userId,
+            });
             resultText = `Done! ${typeof result === "object" ? JSON.stringify(result) : String(result)}`;
           } catch (err) {
             const errorMsg = err instanceof Error ? err.message : "Unknown error";
@@ -158,7 +165,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
       model: config.LLM_MODEL,
       messages: llmMessages,
       registry,
-      context: { sonarr, radarr, tmdb, brave, userId },
+      context: { sonarr, radarr, tmdb, brave, config, userId },
       log,
     });
 
