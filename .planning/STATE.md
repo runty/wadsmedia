@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-13)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** Phase 5: Conversation Engine (Plan 01 complete, Plans 02-03 remaining)
+**Current focus:** Phase 5: Conversation Engine (Plans 01-02 complete, Plan 03 remaining)
 
 ## Current Position
 
 Phase: 5 of 8 (Conversation Engine)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In Progress
-Last activity: 2026-02-14 -- Plan 05-01 complete (conversation data layer, LLM client, history)
+Last activity: 2026-02-14 -- Plan 05-02 complete (tool registry and tool call loop)
 
-Progress: [██████░░░░] 58%
+Progress: [██████░░░░] 63%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
+- Total plans completed: 12
 - Average duration: 3min
-- Total execution time: 0.5 hours
+- Total execution time: 0.6 hours
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: [██████░░░░] 58%
 | 02-messaging-gateway | 2 | 4min | 2min |
 | 03-user-management | 2 | 4min | 2min |
 | 04-media-server-clients | 3 | 5min | 2min |
-| 05-conversation-engine | 1 | 3min | 3min |
+| 05-conversation-engine | 2 | 6min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (2min), 04-01 (3min), 04-02 (1min), 04-03 (1min), 05-01 (3min)
+- Last 5 plans: 04-01 (3min), 04-02 (1min), 04-03 (1min), 05-01 (3min), 05-02 (3min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -80,6 +80,10 @@ Recent decisions affecting current work:
 - [05-01]: OpenAI SDK used directly (no wrapper class) -- factory function returns raw OpenAI client
 - [05-01]: Sliding window works backward from most recent messages, pulling in full tool call groups atomically
 - [05-01]: getHistory fetches all rows then slices last N (simple for SQLite scale, avoids subquery complexity)
+- [05-02]: ToolDefinition.definition narrowed to ChatCompletionFunctionTool (not union) since we only create function tools
+- [05-02]: z.toJSONSchema() with draft-7 target used for Zod-to-JSON-Schema (not zodFunction from OpenAI SDK helpers)
+- [05-02]: Tool call loop filters to function-type tool calls to handle OpenAI SDK v6 union type safely
+- [05-02]: Zod import in tool-loop.ts is type-only since paramSchema cast only needs the type at compile time
 
 ### Pending Todos
 
@@ -93,5 +97,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Completed 05-01-PLAN.md (conversation data layer) -- ready for 05-02 (tool call loop)
+Stopped at: Completed 05-02-PLAN.md (tool registry and tool call loop) -- ready for 05-03 (conversation plugin integration)
 Resume file: None
