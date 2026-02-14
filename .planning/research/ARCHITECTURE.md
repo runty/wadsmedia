@@ -1,560 +1,1008 @@
-# Architecture Research
+# Architecture Research: v2.0 Integrations & Web Dashboard
 
-**Domain:** Conversational gateway -- messaging-to-API bridge via LLM
-**Researched:** 2026-02-13
-**Confidence:** MEDIUM (based on training data for established patterns; WebSearch/WebFetch unavailable for latest verification)
+**Domain:** Extending conversational media gateway with TMDB/Plex/Tautulli integrations, web admin dashboard, RCS rich messaging, permissions, smart routing, and user media tracking
+**Researched:** 2026-02-14
+**Confidence:** HIGH (existing codebase analyzed directly; external APIs verified via official documentation)
 
-## Standard Architecture
+## Existing Architecture (v1.0 Baseline)
 
-### System Overview
+The v2.0 features integrate into a well-structured existing system. Understanding the current architecture is critical for identifying clean integration points.
 
-```
-                            EXTERNAL SERVICES
- ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
- │   Twilio /   │    │  OpenAI-     │    │  Sonarr /    │
- │  Messaging   │    │  Compatible  │    │  Radarr      │
- │  Provider    │    │  LLM API     │    │  Servers     │
- └──────┬───────┘    └──────┬───────┘    └──────┬───────┘
-        │                   │                   │
-========│===================│===================│==========
-        │         WADSMEDIA CONTAINER           │
-        │                   │                   │
- ┌──────▼───────┐    ┌──────▼───────┐    ┌──────▼───────┐
- │  Messaging   │    │     LLM      │    │ Media Server │
- │  Provider    │    │   Service    │    │   Client     │
- │  Adapter     │    │              │    │   Layer      │
- └──────┬───────┘    └──────┬───────┘    └──────┬───────┘
-        │                   │                   │
- ┌──────▼───────────────────▼───────────────────▼───────┐
- │                   MESSAGE ROUTER                      │
- │          (orchestrates the request lifecycle)          │
- └──────────────────────┬───────────────────────────────┘
-                        │
-        ┌───────────────┼───────────────┐
-        │               │               │
- ┌──────▼───────┐ ┌─────▼──────┐ ┌─────▼──────┐
- │ Conversation │ │   User     │ │Notification│
- │   Store      │ │  Manager   │ │  Service   │
- └──────────────┘ └────────────┘ └────────────┘
-        │               │               │
- ┌──────▼───────────────▼───────────────▼───────┐
- │                  DATA LAYER                   │
- │              (SQLite via file)                 │
- └───────────────────────────────────────────────┘
-```
-
-### Component Responsibilities
-
-| Component | Responsibility | Typical Implementation |
-|-----------|----------------|------------------------|
-| **Messaging Provider Adapter** | Receives webhooks from messaging services, normalizes inbound messages to internal format, sends outbound messages via provider API. One adapter per provider. | Express route handler + provider SDK. Interface defines `receiveMessage()` and `sendMessage()`. |
-| **Message Router** | Central orchestrator. Receives normalized messages, verifies user authorization, loads conversation history, calls LLM service, dispatches tool calls to media client, returns final response via messaging adapter. | Single async function that sequences the pipeline. No business logic -- only coordination. |
-| **LLM Service** | Manages LLM interaction. Builds system prompt, formats conversation history, defines tool/function schemas, sends completion requests, parses tool calls from responses, handles multi-turn tool call loops. | OpenAI SDK with function calling. Stateless -- receives context, returns structured response. |
-| **Media Server Client Layer** | Typed API clients for Sonarr and Radarr. Translates tool call parameters into API requests. Returns structured results for LLM consumption. | HTTP client (fetch/axios) wrapping REST endpoints. Separate client class per service (SonarrClient, RadarrClient). |
-| **Conversation Store** | Persists per-user message history. Stores user messages, assistant responses, and tool call/result records. Provides history retrieval with configurable depth. | SQLite table with user_id, role, content, tool metadata, timestamp. |
-| **User Manager** | Phone number whitelist verification. Maps phone numbers to internal user IDs. Simple authorization gate. | Whitelist loaded from environment variable. Lookup function returns user or rejects. |
-| **Notification Service** | Polls Sonarr/Radarr for events (completed downloads, new episodes) or receives webhooks from them. Formats event data into natural language. Pushes messages to users via messaging adapter. | Polling interval or webhook endpoint. Outbound-only -- no LLM involvement needed. |
-
-## Recommended Project Structure
+### Current System Diagram
 
 ```
-src/
-├── index.ts                    # App entry point, server startup
-├── config.ts                   # Environment variable loading + validation
-├── server.ts                   # Express app setup, route mounting
-├── router/
-│   └── messageRouter.ts        # Central orchestration pipeline
-├── messaging/
-│   ├── types.ts                # Provider-agnostic message interfaces
-│   ├── providerFactory.ts      # Instantiates configured provider adapter
-│   └── providers/
-│       └── twilio/
-│           ├── twilioAdapter.ts    # Twilio-specific webhook + send logic
-│           └── twilioWebhook.ts    # Express route for Twilio webhook
-├── llm/
-│   ├── types.ts                # LLM request/response interfaces
-│   ├── llmService.ts           # OpenAI-compatible completion calls
-│   ├── systemPrompt.ts         # System prompt construction
-│   └── tools/
-│       ├── toolRegistry.ts     # Central registry of available tools
-│       ├── sonarrTools.ts      # Tool definitions for Sonarr actions
-│       └── radarrTools.ts      # Tool definitions for Radarr actions
-├── media/
-│   ├── types.ts                # Media server response types
-│   ├── sonarrClient.ts         # Sonarr API wrapper
-│   └── radarrClient.ts         # Radarr API wrapper
-├── notifications/
-│   ├── notificationService.ts  # Event polling + message dispatch
-│   └── formatters.ts           # Event-to-natural-language templates
-├── users/
-│   └── userManager.ts          # Whitelist, user lookup
-├── conversation/
-│   ├── conversationStore.ts    # SQLite conversation persistence
-│   └── historyBuilder.ts       # Formats history for LLM context window
-└── db/
-    ├── database.ts             # SQLite connection management
-    └── migrations/             # Schema versioning
-        └── 001_initial.ts
+                          EXTERNAL SERVICES
+ +-------------+    +-------------+    +-------------+
+ |   Twilio    |    | OpenAI-     |    | Sonarr /    |
+ |   SMS/RCS   |    | Compatible  |    | Radarr      |
+ +------+------+    +------+------+    +------+------+
+        |                  |                  |
+========|==================|==================|=========
+        |        WADSMEDIA CONTAINER          |
+        |                  |                  |
+ +------v------+    +------v------+    +------v------+
+ | Twilio      |    |   OpenAI    |    | Sonarr/     |
+ | Provider    |    |   Client    |    | Radarr      |
+ | (messaging/)|    | (conversa-  |    | Clients     |
+ |             |    |  tion/llm)  |    | (media/)    |
+ +------+------+    +------+------+    +------+------+
+        |                  |                  |
+ +------v------------------v------------------v------+
+ |            FASTIFY PLUGIN ARCHITECTURE            |
+ |  webhook.ts -> user-resolver -> conversation.ts   |
+ +---+----------+----------+----------+----------+--+
+     |          |          |          |          |
+ +---v---+ +---v---+ +----v---+ +---v---+ +---v----+
+ |webhook| | user  | |conver- | |notifi-| |health  |
+ |plugin | |resolve| |sation  | |cation | |plugin  |
+ |       | |plugin | |plugin  | |plugin | |        |
+ +---+---+ +---+---+ +----+---+ +---+---+ +--------+
+     |          |          |          |
+ +---v----------v----------v----------v---------+
+ |        SQLite (better-sqlite3 + Drizzle)     |
+ |  users | messages | pending_actions | meta   |
+ +-----------------------------------------------+
 ```
 
-### Structure Rationale
+### Key Extension Points Identified
 
-- **`messaging/providers/`:** Each messaging provider lives in its own directory. The adapter interface is defined once in `messaging/types.ts`. Adding a new provider means adding a new directory (e.g., `telegram/`) without touching existing code. The factory pattern in `providerFactory.ts` selects the active adapter from config.
-- **`llm/tools/`:** Tool definitions (function schemas + execution handlers) are separated from the LLM service itself. The tool registry aggregates all tools and provides them to the LLM service. This makes adding new *arr service tools trivial.
-- **`media/`:** Pure API clients with no LLM awareness. They accept typed parameters and return typed responses. The LLM layer handles translation between natural language and these typed interfaces.
-- **`router/`:** The message router is the heart of the system but contains no domain logic. It sequences: authenticate -> load history -> call LLM -> execute tools -> respond. Keeping this thin makes the pipeline easy to test and modify.
-- **`conversation/` and `db/`:** Separated from business logic. The conversation store is a thin wrapper over SQLite with methods like `getHistory(userId, limit)` and `addMessage(userId, message)`.
+1. **`ToolContext` interface** (`src/conversation/types.ts` line 34-38) -- currently passes `sonarr?`, `radarr?`, `userId`. New clients (TMDB, Plex, Tautulli) add here.
+2. **`ToolRegistry`** (`src/conversation/tools.ts`) -- new tools register without modifying existing code. Just call `registry.register()`.
+3. **`ProcessConversationParams`** (`src/conversation/engine.ts` line 25-37) -- new clients thread through here.
+4. **Fastify plugin pattern** (`src/server.ts`) -- new plugins register via `fastify.register()` with dependency declarations.
+5. **`MessagingProvider` interface** (`src/messaging/types.ts`) -- `OutboundMessage` needs extension for RCS content.
+6. **DB schema** (`src/db/schema.ts`) -- new tables via Drizzle migrations.
+7. **Config** (`src/config.ts`) -- new env vars via Zod schema extension.
 
-## Architectural Patterns
+## v2.0 Architecture: Integrated System
 
-### Pattern 1: Provider Adapter Pattern (Messaging Layer)
+### Updated System Diagram
 
-**What:** Define a provider-agnostic interface for messaging. Each concrete provider implements this interface. A factory instantiates the correct adapter at startup.
+```
+                              EXTERNAL SERVICES
+ +----------+ +----------+ +----------+ +----------+ +----------+
+ |  Twilio  | | OpenAI-  | | Sonarr / | |   TMDB   | |  Plex /  |
+ |  SMS/RCS | | Compat.  | | Radarr   | |   API    | | Tautulli |
+ +----+-----+ +----+-----+ +----+-----+ +----+-----+ +----+-----+
+      |             |            |            |            |
+======|=============|============|============|============|=====
+      |           WADSMEDIA CONTAINER (v2.0)               |
+      |             |            |            |            |
+ +----v----+  +-----v----+ +----v----+ +-----v----+ +-----v----+
+ | Twilio  |  |  OpenAI  | | Sonarr/ | |   TMDB   | |  Plex/   |
+ | Provider|  |  Client  | | Radarr  | |  Client  | | Tautulli |
+ | (RCS+   |  |          | | Clients | |  (NEW)   | | Clients  |
+ |  SMS)   |  |          | |         | |          | |  (NEW)   |
+ +----+----+  +-----+----+ +----+----+ +-----+----+ +-----+----+
+      |             |            |            |            |
+ +----v-------------v------------v------------v------------v----+
+ |              FASTIFY PLUGIN ARCHITECTURE                     |
+ |                                                              |
+ |  MESSAGING LAYER    CONVERSATION LAYER    INTEGRATION LAYER  |
+ |  +-----------+      +--------------+      +---------------+  |
+ |  | webhook   |      | engine +     |      | tmdb plugin   |  |
+ |  | plugin    |      | tool-loop    |      | plex plugin   |  |
+ |  | (RCS-     |      | (permissions |      | tautulli      |  |
+ |  |  aware)   |      |  -aware)     |      |   plugin      |  |
+ |  +-----------+      +--------------+      +---------------+  |
+ |                                                              |
+ |  USER LAYER         ADMIN LAYER           ROUTING LAYER      |
+ |  +-----------+      +--------------+      +---------------+  |
+ |  | user-     |      | dashboard    |      | library-      |  |
+ |  | resolver  |      | API routes   |      |   router      |  |
+ |  | (role-    |      | + static     |      | (anime/lang   |  |
+ |  |  aware)   |      |   files      |      |  detection)   |  |
+ |  +-----------+      +--------------+      +---------------+  |
+ +---+----------+----------+----------+----------+--------------+
+     |          |          |          |          |
+ +---v----------v----------v----------v----------v-----------+
+ |               SQLite (better-sqlite3 + Drizzle)           |
+ |  users (+ role) | messages | pending_actions | meta       |
+ |  media_tracking | user_plex_links                         |
+ +-------------------------------------------------------+
+```
 
-**When to use:** Always -- this is the core modularity mechanism for supporting multiple messaging services.
+### Component Boundaries
 
-**Trade-offs:** Slight indirection cost, but the entire value proposition of "swap providers" depends on it. The interface is small (2-3 methods), so the abstraction cost is negligible.
+| Component | Responsibility | New/Modified | Communicates With |
+|-----------|---------------|--------------|-------------------|
+| **TMDB Client** | Search movies/TV by structured criteria (actor, genre, network, year, language). Provides metadata enrichment (original language, genres, keywords) for smart routing. | NEW | Tool executors, Library Router |
+| **Plex Client** | Check if media exists in Plex library. Get library sections. Verify availability by season/episode for TV. | NEW | Tool executors, Dashboard API |
+| **Tautulli Client** | Get watch history per Plex user. Get user watch time stats. Check recently watched/added. | NEW | Tool executors, Dashboard API |
+| **Library Router** | Auto-detect anime (via TMDB genre IDs, keywords). Auto-detect Asian-language media (via `original_language`). Route to correct Sonarr/Radarr root folder and quality profile. | NEW | TMDB Client, Sonarr/Radarr Clients |
+| **Permission Guard** | Check user role before tool execution. Block destructive tools for non-admins. Emit admin notifications on non-admin adds. | NEW | Tool loop, User service, Messaging |
+| **Media Tracker** | Record which user added which media. Query history per user. | NEW | Tool executors (add tools), Dashboard API |
+| **Dashboard API** | REST endpoints for user management, chat history, stats, Plex user linking. Serves static SPA files. | NEW | DB, Plex Client, Tautulli Client |
+| **Dashboard Frontend** | SPA for admin interface. User list, chat viewer, stats, Plex linking. | NEW | Dashboard API |
+| **RCS Messaging** | Extend outbound messages to support rich cards (poster image, title, year) and suggested reply buttons ("Add this", "Next result"). Falls back to plain text for SMS. | MODIFIED | Twilio Content API |
+| **Conversation Engine** | Extended to pass new clients to tool context. Permission checks injected into tool loop. | MODIFIED | All clients, Permission Guard |
+| **User Service** | Extended with `role` field. Admin vs member distinction replaces boolean `isAdmin`. | MODIFIED | Permission Guard, Dashboard API |
+| **Config** | Extended with TMDB, Plex, Tautulli, dashboard env vars. | MODIFIED | All new plugins |
+| **System Prompt** | Updated to describe new capabilities (TMDB discovery, Plex checks, permissions). | MODIFIED | Conversation Engine |
 
-**Example:**
+## New Components: Detailed Architecture
+
+### 1. TMDB Client (`src/media/tmdb/`)
+
+**Purpose:** Direct TMDB API v3 access for structured discovery that Sonarr/Radarr search cannot do (filter by actor, genre, network, year, original language).
+
+**Architecture decision:** Build a custom thin client using the existing `apiRequest` pattern from `src/media/http.ts` rather than using a third-party library. Rationale: The existing codebase already has a battle-tested HTTP+Zod validation pattern. TMDB's API is simple REST with bearer token auth. A third-party library adds a dependency for no meaningful benefit when you only need 6-8 endpoints.
+
+**Authentication:** Bearer token in `Authorization` header. TMDB API key configured via `TMDB_API_KEY` env var, which TMDB also provides as an access token for bearer auth.
+
+**Rate limits:** ~40-50 requests/second per IP. Not a concern for this use case.
+
+**Key endpoints needed:**
+
+| Endpoint | Purpose | Parameters |
+|----------|---------|------------|
+| `GET /3/search/movie` | Text search for movies | `query`, `year`, `language` |
+| `GET /3/search/tv` | Text search for TV shows | `query`, `first_air_date_year`, `language` |
+| `GET /3/search/person` | Find actor/director IDs | `query` |
+| `GET /3/discover/movie` | Structured discovery | `with_genres`, `with_cast`, `with_original_language`, `primary_release_year`, `sort_by` |
+| `GET /3/discover/tv` | Structured TV discovery | `with_genres`, `with_networks`, `with_original_language`, `first_air_date_year` |
+| `GET /3/movie/{id}` | Full movie details | `append_to_response=keywords,credits` |
+| `GET /3/tv/{id}` | Full TV details | `append_to_response=keywords,credits` |
+| `GET /3/genre/movie/list` | Genre ID mapping | `language` |
+| `GET /3/genre/tv/list` | TV genre ID mapping | `language` |
+| `GET /3/configuration` | Image base URL | none |
+
+**Adaptation needed for `src/media/http.ts`:** The existing `apiRequest` function hardcodes the `X-Api-Key` header and `/api/v3/` path prefix (Sonarr/Radarr convention). TMDB uses `Authorization: Bearer <token>` and `/3/` prefix. Two options:
+
+- **Option A (recommended):** Create a separate `tmdbRequest` helper in `src/media/tmdb/tmdb.http.ts` that follows the same pattern but with TMDB-specific auth and URL structure. Keep the existing `apiRequest` unchanged.
+- **Option B:** Generalize `apiRequest` to accept auth strategy as a parameter. More elegant but risks breaking existing Sonarr/Radarr clients.
+
+**File structure:**
+```
+src/media/tmdb/
+  tmdb.client.ts      # TmdbClient class (same pattern as RadarrClient)
+  tmdb.http.ts         # TMDB-specific HTTP helper with bearer auth
+  tmdb.schemas.ts      # Zod schemas for TMDB API responses
+  tmdb.types.ts        # TypeScript types inferred from schemas
+```
+
+**Confidence:** HIGH -- TMDB API v3 is stable, well-documented, and uses standard REST patterns.
+
+### 2. Plex Client (`src/media/plex/`)
+
+**Purpose:** Check if media already exists in the user's Plex library. Get library section metadata. Check season/episode availability for TV.
+
+**Architecture decision:** Custom thin client using `fetch` directly (not reusing `apiRequest` because Plex has a completely different API structure -- XML default, different auth header, different URL paths).
+
+**Authentication:** `X-Plex-Token` header. Token configured via `PLEX_URL` and `PLEX_TOKEN` env vars. Must also send `Accept: application/json` to get JSON responses (Plex defaults to XML).
+
+**Key endpoints needed:**
+
+| Endpoint | Purpose | Notes |
+|----------|---------|-------|
+| `GET /library/sections` | List all library sections | Returns section IDs and types |
+| `GET /library/sections/{id}/all` | All items in a section | Filter with `?title=X` or `?year=Y` |
+| `GET /library/metadata/{ratingKey}` | Single item details | Full metadata |
+| `GET /library/metadata/{ratingKey}/children` | Seasons of a show | For TV completeness checks |
+| `GET /library/metadata/{ratingKey}/children` (season) | Episodes of a season | Nested: show -> seasons -> episodes |
+| `GET /search?query=X` | Search across all sections | Quick global search |
+
+**Required headers for all requests:**
 ```typescript
-// messaging/types.ts
-interface InboundMessage {
-  userId: string;          // Provider-specific ID (phone number, chat ID)
-  text: string;
-  timestamp: Date;
-  providerMetadata?: Record<string, unknown>;  // RCS cards, etc.
+{
+  'X-Plex-Token': token,
+  'Accept': 'application/json',
+  'X-Plex-Client-Identifier': 'wadsmedia',
+  'X-Plex-Product': 'WadsMedia',
+  'X-Plex-Version': '2.0.0',
+}
+```
+
+**File structure:**
+```
+src/media/plex/
+  plex.client.ts      # PlexClient class
+  plex.schemas.ts      # Zod schemas for Plex JSON responses
+  plex.types.ts        # TypeScript types
+```
+
+**Important note:** Plex API responses wrap everything in a `MediaContainer` object. The Zod schemas must account for this wrapper structure.
+
+**Confidence:** HIGH -- Plex API is mature and stable. Endpoint paths confirmed via official documentation and community resources.
+
+### 3. Tautulli Client (`src/media/tautulli/`)
+
+**Purpose:** Watch history awareness. User activity tracking. Recently watched data for recommendation context.
+
+**Architecture decision:** Custom thin client. Tautulli uses a simple single-endpoint API where all commands go to `/api/v2` with `cmd` and `apikey` query parameters.
+
+**Authentication:** API key via `apikey` query parameter. All requests go to one endpoint:
+```
+GET http://{host}:{port}/api/v2?apikey={key}&cmd={command}&{params}
+```
+
+**Key commands needed:**
+
+| Command | Purpose | Key Parameters |
+|---------|---------|----------------|
+| `get_history` | Watch history with filtering | `user_id`, `media_type`, `length`, `start_date` |
+| `get_users` | List all Plex users | none |
+| `get_user_watch_time_stats` | User watch statistics | `user_id`, `query_days` |
+| `get_recently_added` | Recently added to Plex | `count`, `media_type`, `section_id` |
+| `get_activity` | Current active streams | none |
+
+**File structure:**
+```
+src/media/tautulli/
+  tautulli.client.ts   # TautulliClient class
+  tautulli.schemas.ts   # Zod schemas for Tautulli responses
+  tautulli.types.ts     # TypeScript types
+```
+
+**Confidence:** HIGH -- Tautulli API is simple and well-documented.
+
+### 4. Library Router (`src/media/routing/`)
+
+**Purpose:** Automatically detect anime content and Asian-language media, routing them to the correct Sonarr/Radarr root folders and quality profiles.
+
+**Architecture decision:** Pure function that takes TMDB metadata and returns routing decisions. No state, no side effects. Called by the `add_movie` and `add_series` tool executors before passing to Sonarr/Radarr.
+
+**Detection logic:**
+
+For anime detection (Sonarr routing):
+```typescript
+interface RoutingDecision {
+  rootFolderPath: string;
+  qualityProfileId: number;
+  reason: string;  // For logging/debugging
 }
 
-interface OutboundMessage {
-  userId: string;
-  text: string;
-  mediaUrl?: string;       // For image/card responses
-}
+function routeSeries(tmdbMetadata: TmdbSeriesDetail, sonarr: SonarrClient): RoutingDecision {
+  const isAnime =
+    tmdbMetadata.genres.some(g => g.id === 16) &&  // Animation genre
+    tmdbMetadata.origin_country.includes('JP');     // Japanese origin
+  // OR: keywords include 'anime'
+  // OR: original_language === 'ja' && genre includes Animation
 
-interface MessagingProvider {
-  // Parse incoming webhook into normalized message
-  parseWebhook(req: Request): Promise<InboundMessage>;
-  // Send a message back to the user
-  sendMessage(message: OutboundMessage): Promise<void>;
-  // Mount webhook route on Express app
-  mountRoutes(app: Express): void;
-}
-
-// messaging/providers/twilio/twilioAdapter.ts
-class TwilioAdapter implements MessagingProvider {
-  async parseWebhook(req: Request): Promise<InboundMessage> {
-    // Twilio sends form-encoded body with Body, From, etc.
+  if (isAnime) {
     return {
-      userId: req.body.From,
-      text: req.body.Body,
-      timestamp: new Date(),
+      rootFolderPath: findFolderByName(sonarr.rootFolders, 'anime'),
+      qualityProfileId: findProfileByName(sonarr.qualityProfiles, 'anime'),
+      reason: 'Detected as anime (Japanese animation)',
     };
   }
 
-  async sendMessage(message: OutboundMessage): Promise<void> {
-    await this.client.messages.create({
-      to: message.userId,
-      from: this.fromNumber,
-      body: message.text,
-    });
-  }
+  return {
+    rootFolderPath: sonarr.rootFolders[0].path,  // Default TV folder
+    qualityProfileId: findDefault1080pProfile(sonarr.qualityProfiles),
+    reason: 'Standard TV series',
+  };
 }
 ```
 
-### Pattern 2: LLM Tool Call Loop (Intent Resolution)
-
-**What:** Send the user message plus conversation history to the LLM with function/tool definitions. The LLM responds with either a text reply or one or more tool calls. If tool calls are returned, execute them, append the results to the conversation, and call the LLM again. Repeat until the LLM returns a final text response.
-
-**When to use:** Every message processing cycle. This is how the LLM "acts" on the media servers.
-
-**Trade-offs:** Multiple LLM round-trips per user message are possible (adds latency and cost). In practice, most requests resolve in 1-2 tool calls. Cap the loop at a maximum iteration count (e.g., 5) to prevent runaway costs.
-
-**Example:**
+For Asian-language movie detection (Radarr routing):
 ```typescript
-// llm/llmService.ts
-async function processMessage(
-  history: ChatMessage[],
-  tools: ToolDefinition[]
-): Promise<{ response: string; toolCalls: ToolCallRecord[] }> {
-  const messages = [
-    { role: 'system', content: buildSystemPrompt() },
-    ...history,
-  ];
+const ASIAN_LANGUAGES = ['zh', 'ja', 'ko', 'th', 'vi', 'id', 'ms', 'tl'];
 
-  const allToolCalls: ToolCallRecord[] = [];
-  let iterations = 0;
-  const MAX_ITERATIONS = 5;
+function routeMovie(tmdbMetadata: TmdbMovieDetail, radarr: RadarrClient): RoutingDecision {
+  const isAsianLanguage = ASIAN_LANGUAGES.includes(tmdbMetadata.original_language);
 
-  while (iterations < MAX_ITERATIONS) {
-    const completion = await openai.chat.completions.create({
-      model: config.llmModel,
-      messages,
-      tools: tools.map(t => t.schema),
-    });
+  if (isAsianLanguage) {
+    return {
+      rootFolderPath: findFolderByName(radarr.rootFolders, 'cmovies'),
+      qualityProfileId: findDefault1080pProfile(radarr.qualityProfiles),
+      reason: `Asian-language film (${tmdbMetadata.original_language})`,
+    };
+  }
 
-    const choice = completion.choices[0];
+  return {
+    rootFolderPath: radarr.rootFolders[0].path,  // Default Movies folder
+    qualityProfileId: findDefault1080pProfile(radarr.qualityProfiles),
+    reason: 'Standard movie',
+  };
+}
+```
 
-    // If LLM returns text, we are done
-    if (choice.finish_reason === 'stop') {
-      return {
-        response: choice.message.content ?? '',
-        toolCalls: allToolCalls,
-      };
+**Key dependency:** Library router REQUIRES TMDB metadata (original_language, genres, origin_country) to make routing decisions. This means the `add_movie` and `add_series` tools must fetch TMDB details before adding to Sonarr/Radarr, even when the user found the content via Sonarr/Radarr search.
+
+**Configuration:** Root folder name matching is fuzzy (case-insensitive, partial match). Quality profile names are configurable via env vars with sensible defaults. If a configured folder/profile is not found, fall back to the first available option and log a warning.
+
+**File structure:**
+```
+src/media/routing/
+  library-router.ts     # Pure routing functions
+  library-router.types.ts  # RoutingDecision type
+```
+
+**Confidence:** HIGH -- straightforward data-driven logic. TMDB genre IDs are stable (Animation = 16).
+
+### 5. Permission Guard (`src/users/permissions.ts`)
+
+**Purpose:** Role-based access control for tool execution. Non-admins can search, view, and add, but cannot remove. Admin gets notified when non-admin adds media.
+
+**Architecture decision:** Inject permission checks into the tool call loop, not into individual tools. This keeps tools simple and ensures consistent enforcement.
+
+**Implementation approach:** Extend `ConfirmationTier` to include a `requiredRole` property on `ToolDefinition`:
+
+```typescript
+// Extended tool definition
+export interface ToolDefinition {
+  definition: ChatCompletionFunctionTool;
+  tier: ConfirmationTier;
+  requiredRole: 'admin' | 'member' | 'any';  // NEW
+  paramSchema: unknown;
+  execute: (args: unknown, context: ToolContext) => Promise<unknown>;
+}
+```
+
+The tool loop checks `requiredRole` before executing:
+```typescript
+// In tool-loop.ts, before execution
+if (tool.requiredRole === 'admin' && !context.userRole.isAdmin) {
+  messages.push({
+    role: 'tool',
+    tool_call_id: toolCall.id,
+    content: JSON.stringify({ error: 'You do not have permission to perform this action.' }),
+  });
+  continue;
+}
+```
+
+**Role assignments:**
+
+| Tool | Required Role | Rationale |
+|------|--------------|-----------|
+| `search_movies`, `search_series` | any | Everyone can search |
+| `check_status` | any | Everyone can check status |
+| `get_upcoming_*` | any | Everyone can view upcoming |
+| `get_download_queue` | any | Everyone can view downloads |
+| `add_movie`, `add_series` | any | Members can add (admin notified) |
+| `remove_movie`, `remove_series` | admin | Only admins can remove |
+| `discover_*` (new TMDB tools) | any | Everyone can discover |
+| `check_plex_library` (new) | any | Everyone can check availability |
+
+**Admin notification on non-admin add:** Hook into the add tool executors. After successful add, if `!context.isAdmin`, send a notification to admin:
+```
+"[User Name] added [Movie/Show Title] (YYYY)"
+```
+
+**Schema change:** The `users` table already has `isAdmin` boolean. This is sufficient. No new `role` column needed -- just use the existing boolean. The `ToolDefinition.requiredRole` maps to this:
+- `'admin'` = `isAdmin === true`
+- `'member'` = `isAdmin === false && status === 'active'`
+- `'any'` = `status === 'active'`
+
+**ToolContext extension:**
+```typescript
+export interface ToolContext {
+  sonarr?: SonarrClient;
+  radarr?: RadarrClient;
+  tmdb?: TmdbClient;       // NEW
+  plex?: PlexClient;        // NEW
+  tautulli?: TautulliClient; // NEW
+  userId: number;
+  isAdmin: boolean;          // NEW
+  userPhone: string;         // NEW (for admin notification)
+  displayName: string | null; // NEW (for admin notification)
+}
+```
+
+**Confidence:** HIGH -- simple boolean-based authorization, no complex RBAC needed.
+
+### 6. Media Tracker (`src/db/` schema + `src/users/`)
+
+**Purpose:** Record which user added which media. Support dashboard queries for "who added what."
+
+**Schema:**
+```typescript
+export const mediaTracking = sqliteTable('media_tracking', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id),
+  mediaType: text('media_type', { enum: ['movie', 'series'] }).notNull(),
+  title: text('title').notNull(),
+  year: integer('year'),
+  externalId: text('external_id').notNull(),  // tmdbId or tvdbId
+  sonarrRadarrId: integer('sonarr_radarr_id'),  // ID in Sonarr/Radarr
+  addedAt: integer('added_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+```
+
+**Integration point:** The `add_movie` and `add_series` tool executors insert a tracking record after successful Sonarr/Radarr add. The context already has `userId`.
+
+**Confidence:** HIGH -- simple insert-after-action pattern.
+
+### 7. Dashboard API (`src/dashboard/`)
+
+**Purpose:** REST API for the web admin dashboard. User management, chat history viewing, stats, Plex user linking.
+
+**Architecture decision:** Register as a Fastify plugin with a `/api/admin/` prefix. Use `@fastify/static` to serve the SPA frontend from the same container.
+
+**Authentication:** Simple token-based auth. Dashboard protected by a `DASHBOARD_SECRET` env var. The admin enters this token in the dashboard login form. Token sent as `Authorization: Bearer <token>` header on all API requests. No sessions, no cookies, no OAuth -- this is a single-admin tool.
+
+**API routes:**
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/api/admin/auth` | Validate dashboard token |
+| `GET` | `/api/admin/users` | List all users with status |
+| `PATCH` | `/api/admin/users/:id` | Update user status/role |
+| `GET` | `/api/admin/users/:id/messages` | Get user's chat history |
+| `GET` | `/api/admin/users/:id/media` | Get user's added media |
+| `GET` | `/api/admin/stats` | Dashboard stats (counts, recent activity) |
+| `GET` | `/api/admin/stats/activity` | Recent activity feed |
+| `POST` | `/api/admin/users/:id/plex-link` | Link Plex user to WadsMedia user |
+| `DELETE` | `/api/admin/users/:id/plex-link` | Unlink Plex user |
+| `GET` | `/api/admin/plex/users` | List available Plex users (from Tautulli) |
+
+**Plex user linking schema:**
+```typescript
+export const userPlexLinks = sqliteTable('user_plex_links', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id).unique(),
+  plexUserId: integer('plex_user_id').notNull(),
+  plexUsername: text('plex_username').notNull(),
+  linkedAt: integer('linked_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+```
+
+**Static file serving:**
+```typescript
+// In dashboard plugin
+await fastify.register(import('@fastify/static'), {
+  root: path.join(__dirname, '../../dashboard/dist'),
+  prefix: '/dashboard/',
+  wildcard: true,  // SPA routing support
+});
+
+// Catch-all for SPA client-side routing
+fastify.setNotFoundHandler((req, reply) => {
+  if (req.url.startsWith('/dashboard')) {
+    return reply.sendFile('index.html');
+  }
+  reply.code(404).send({ error: 'Not found' });
+});
+```
+
+**File structure:**
+```
+src/dashboard/
+  routes.ts           # All API route handlers
+  auth.ts             # Token validation middleware
+  stats.ts            # Stats aggregation queries
+  types.ts            # API request/response types
+```
+
+**Confidence:** HIGH -- standard Fastify REST API patterns. `@fastify/static` is the official plugin for serving static files.
+
+### 8. Dashboard Frontend (`dashboard/`)
+
+**Purpose:** Simple admin SPA for user management, chat viewing, and stats.
+
+**Architecture decision:** Separate directory at project root (`dashboard/`), built with Vite, output goes to `dashboard/dist/`. The Docker build compiles it and copies dist into the container.
+
+**Technology choice:** Keep it minimal. React + Vite + Tailwind CSS. No heavy admin framework (Refine, React Admin) -- the dashboard has maybe 5-6 views and does not justify a framework dependency.
+
+**Views:**
+1. **Login** -- token entry
+2. **Dashboard** -- stats cards (total users, active users, recent requests, media added)
+3. **Users** -- table with status, role, last activity, actions (approve/block/promote)
+4. **User Detail** -- chat history viewer, media added list, Plex link
+5. **Activity** -- recent activity feed (adds, searches, notifications)
+
+**File structure:**
+```
+dashboard/
+  index.html
+  src/
+    main.tsx
+    App.tsx
+    api/
+      client.ts       # fetch wrapper with auth header
+    pages/
+      Login.tsx
+      Dashboard.tsx
+      Users.tsx
+      UserDetail.tsx
+      Activity.tsx
+    components/
+      Layout.tsx
+      StatsCard.tsx
+      ChatHistory.tsx
+      UserTable.tsx
+  vite.config.ts
+  tailwind.config.ts
+  tsconfig.json
+  package.json
+```
+
+**Docker integration:** Multi-stage build adds a dashboard build stage:
+```dockerfile
+# Stage 1: Build dashboard
+FROM node:22-slim AS dashboard-build
+WORKDIR /dashboard
+COPY dashboard/package*.json ./
+RUN npm ci
+COPY dashboard/ ./
+RUN npm run build
+
+# Stage 2: Build backend (existing)
+FROM node:22-slim AS backend-build
+# ... existing build steps ...
+
+# Stage 3: Production
+FROM node:22-slim
+# ... existing copy steps ...
+COPY --from=dashboard-build /dashboard/dist ./dashboard/dist
+```
+
+**Confidence:** MEDIUM -- the dashboard architecture is straightforward, but frontend technology choices have more variability. React + Vite + Tailwind is a well-proven combination.
+
+### 9. RCS Rich Messaging (Modified `src/messaging/`)
+
+**Purpose:** Send search results as rich cards with poster images, and provide suggested reply buttons for quick actions.
+
+**Architecture decision:** Use Twilio's Content Template Builder API to create and send rich cards programmatically. Templates are created at startup or on-demand and cached by content type.
+
+**How Twilio Content API works:**
+1. Create a content template via `POST https://content.twilio.com/v1/Content` with template type `twilio/card`
+2. Get back a `ContentSid` (like `HXXXXXXXXXXX`)
+3. Send messages with `contentSid` instead of `body` parameter
+4. Templates support variables for dynamic content (`ContentVariables`)
+
+**Key challenge:** Templates must be pre-created and approved by Twilio before sending. For dynamic content like search results, you need to use variables in pre-defined templates.
+
+**Template strategy:**
+
+| Template | Type | Variables | When Used |
+|----------|------|-----------|-----------|
+| Movie Result Card | `twilio/card` | `{title}`, `{year}`, `{overview}`, `{posterUrl}` | Search results |
+| TV Result Card | `twilio/card` | `{title}`, `{year}`, `{overview}`, `{posterUrl}`, `{seasons}` | Search results |
+| Quick Reply | `twilio/quick-reply` | `{body}` + actions: "Add this", "More results" | After showing a result |
+
+**Implementation approach:**
+
+```typescript
+// Extended OutboundMessage
+export interface OutboundMessage {
+  to: string;
+  body: string;
+  messagingServiceSid?: string;
+  from?: string;
+  // NEW: RCS rich content
+  contentSid?: string;
+  contentVariables?: Record<string, string>;
+}
+
+// In TwilioMessagingProvider.send():
+async send(message: OutboundMessage): Promise<SendResult> {
+  const createParams: any = {
+    to: message.to,
+    ...(message.messagingServiceSid
+      ? { messagingServiceSid: message.messagingServiceSid }
+      : { from: message.from }),
+  };
+
+  if (message.contentSid) {
+    createParams.contentSid = message.contentSid;
+    if (message.contentVariables) {
+      createParams.contentVariables = JSON.stringify(message.contentVariables);
     }
+    // Do NOT set body when using contentSid
+  } else {
+    createParams.body = message.body;
+  }
 
-    // If LLM wants to call tools, execute them
-    if (choice.message.tool_calls) {
-      messages.push(choice.message);  // Add assistant message with tool calls
+  const result = await this.client.messages.create(createParams);
+  return { sid: result.sid, status: result.status };
+}
+```
 
-      for (const toolCall of choice.message.tool_calls) {
-        const result = await executeToolCall(toolCall);
-        allToolCalls.push({ call: toolCall, result });
-        messages.push({
-          role: 'tool',
-          tool_call_id: toolCall.id,
-          content: JSON.stringify(result),
-        });
-      }
+**Graceful degradation:** When sending to a non-RCS-capable device (SMS only), Twilio automatically falls back to a text-only version of the template. The existing plain text `body` continues to work as-is. The Content API handles this transparently.
+
+**TMDB image URLs for poster images:** TMDB provides poster paths like `/kqjL17yufvn9OVLyXYpvtyrFfak.jpg`. Full URL requires the base URL from `/3/configuration`: `https://image.tmdb.org/t/p/w500{poster_path}`.
+
+**Confidence:** MEDIUM -- Twilio Content API is well-documented, but the template creation/approval workflow needs validation. Templates with variables must be tested end-to-end. The RCS fallback behavior for SMS-only devices needs verification during implementation.
+
+## Data Flow Changes
+
+### New Data Flow: TMDB-Enhanced Search
+
+```
+[User: "find action movies with Tom Cruise"]
+    |
+    v
+[LLM identifies structured criteria via tool call]
+    | discover_movies({ with_cast: "Tom Cruise", with_genres: "action" })
+    v
+[Tool executor: resolve "Tom Cruise" -> TMDB person ID]
+    | tmdb.searchPerson("Tom Cruise") -> personId: 500
+    v
+[Tool executor: discover with structured filters]
+    | tmdb.discoverMovies({ with_cast: 500, with_genres: 28 })
+    v
+[Return results with poster URLs, overview, year]
+    |
+    v
+[LLM formats natural language response]
+    | Includes TMDB poster URLs for RCS cards
+    v
+[Send RCS rich card with poster OR plain text for SMS]
+```
+
+### New Data Flow: Smart Library Routing on Add
+
+```
+[User: "add Demon Slayer"]
+    |
+    v
+[LLM calls add_series({ tvdbId: 345678 })]
+    |
+    v
+[Tool executor: fetch TMDB metadata for routing decision]
+    | tmdb.getTvDetails(tmdbId) -> { original_language: "ja", genres: [Animation], origin_country: ["JP"] }
+    v
+[Library Router: isAnime? YES (Japanese + Animation)]
+    | -> rootFolderPath: "/anime/", qualityProfileId: 3
+    v
+[SonarrClient.addSeries({ rootFolderPath: "/anime/", qualityProfileId: 3, ... })]
+    |
+    v
+[Media Tracker: insert tracking record (userId, "series", "Demon Slayer", tvdbId)]
+    |
+    v
+[If !isAdmin: notify admin "UserName added Demon Slayer (2019)"]
+    |
+    v
+[LLM formats confirmation response]
+```
+
+### New Data Flow: Plex Library Check
+
+```
+[User: "do I have Breaking Bad?"]
+    |
+    v
+[LLM calls check_plex_library({ title: "Breaking Bad", type: "show" })]
+    |
+    v
+[PlexClient.searchLibrary("Breaking Bad")]
+    | -> Found in section "TV Shows", all 5 seasons, 62/62 episodes
+    v
+[Return structured result to LLM]
+    |
+    v
+[LLM: "Yes! Breaking Bad is in your Plex library with all 5 seasons (62 episodes)."]
+```
+
+### New Data Flow: Dashboard API
+
+```
+[Admin opens browser to /dashboard/]
+    |
+    v
+[@fastify/static serves SPA index.html + assets]
+    |
+    v
+[SPA: POST /api/admin/auth { token: "..." }]
+    | Validate DASHBOARD_SECRET
+    v
+[SPA: GET /api/admin/stats]
+    | Query: user counts, media_tracking counts, recent messages
+    v
+[SPA: GET /api/admin/users]
+    | Query: users table with last message timestamps
+    v
+[SPA: GET /api/admin/users/3/messages]
+    | Query: messages table for userId=3, ordered by createdAt
+    v
+[Admin: PATCH /api/admin/users/5 { status: "active" }]
+    | Update user, effective immediately for next message
+```
+
+### Modified Data Flow: Permission-Aware Tool Loop
+
+```
+[Existing tool-loop.ts, lines 104-122]
+    |
+    v
+[BEFORE execution, NEW check:]
+    if (tool.requiredRole === 'admin' && !context.isAdmin) {
+      // Return permission error to LLM
+      // LLM tells user they cannot perform this action
     }
-
-    iterations++;
-  }
-
-  return { response: "I had trouble processing that. Please try again.", toolCalls: allToolCalls };
-}
+    |
+    v
+[AFTER successful add execution, NEW hook:]
+    if (!context.isAdmin && isAddTool(functionName)) {
+      // Insert media_tracking record
+      // Send admin notification
+    }
 ```
 
-### Pattern 3: Thin Router / Fat Services
+## Modified Components: Specific Changes
 
-**What:** The message router is a pure orchestration layer. It knows the *sequence* (auth, history, LLM, respond) but delegates all logic to the services. Each service is independently testable.
+### `src/config.ts` -- New Environment Variables
 
-**When to use:** Always. The router should be < 50 lines of actual logic.
-
-**Trade-offs:** None significant. This is standard pipeline architecture. The only consideration is that error handling lives in the router (catching service failures and returning user-friendly errors).
-
-**Example:**
 ```typescript
-// router/messageRouter.ts
-async function handleMessage(
-  inbound: InboundMessage,
-  provider: MessagingProvider
-): Promise<void> {
-  // 1. Authorize
-  const user = userManager.getUser(inbound.userId);
-  if (!user) {
-    // Silently drop unauthorized messages (do not reveal system exists)
-    return;
-  }
+// TMDB
+TMDB_API_KEY: z.string().min(1).optional(),
+TMDB_IMAGE_BASE_URL: z.string().url().default('https://image.tmdb.org/t/p/w500'),
 
-  // 2. Load conversation history
-  const history = await conversationStore.getHistory(user.id, 50);
+// Plex
+PLEX_URL: z.string().url().optional(),
+PLEX_TOKEN: z.string().min(1).optional(),
 
-  // 3. Add user message to history
-  await conversationStore.addMessage(user.id, {
-    role: 'user',
-    content: inbound.text,
-  });
+// Tautulli
+TAUTULLI_URL: z.string().url().optional(),
+TAUTULLI_API_KEY: z.string().min(1).optional(),
 
-  // 4. Process with LLM
-  const { response, toolCalls } = await llmService.processMessage(
-    [...history, { role: 'user', content: inbound.text }],
-    toolRegistry.getTools()
-  );
+// Dashboard
+DASHBOARD_SECRET: z.string().min(8).optional(),
 
-  // 5. Store assistant response (and tool call records)
-  await conversationStore.addMessage(user.id, {
-    role: 'assistant',
-    content: response,
-    toolCalls,
-  });
+// Library routing (folder name hints, case-insensitive)
+ANIME_ROOT_FOLDER: z.string().default('anime'),
+CMOVIES_ROOT_FOLDER: z.string().default('cmovies'),
+DEFAULT_QUALITY_PROFILE: z.string().default('1080p'),
 
-  // 6. Send response back to user
-  await provider.sendMessage({
-    userId: inbound.userId,
-    text: response,
-  });
-}
+// RCS
+TWILIO_CONTENT_MOVIE_CARD_SID: z.string().optional(),
+TWILIO_CONTENT_TV_CARD_SID: z.string().optional(),
+TWILIO_CONTENT_QUICK_REPLY_SID: z.string().optional(),
 ```
 
-### Pattern 4: Tool Registry (Extensible Actions)
+### `src/conversation/types.ts` -- Extended ToolContext
 
-**What:** A centralized registry where tool definitions (JSON schema for the LLM) and their execution handlers are registered. The LLM service gets tool schemas from the registry. When a tool call comes back, the registry dispatches to the correct handler.
-
-**When to use:** Always. This is how you add Sonarr tools, Radarr tools, and eventually Lidarr/Readarr tools without modifying the LLM service.
-
-**Trade-offs:** Slight indirection. Worth it for extensibility.
-
-**Example:**
 ```typescript
-// llm/tools/toolRegistry.ts
-interface Tool {
-  schema: ChatCompletionTool;  // OpenAI tool definition
-  execute: (args: Record<string, unknown>) => Promise<unknown>;
+export interface ToolContext {
+  sonarr?: SonarrClient;
+  radarr?: RadarrClient;
+  tmdb?: TmdbClient;           // NEW
+  plex?: PlexClient;            // NEW
+  tautulli?: TautulliClient;    // NEW
+  userId: number;
+  isAdmin: boolean;              // NEW
+  userPhone: string;             // NEW
+  displayName: string | null;    // NEW
 }
 
-class ToolRegistry {
-  private tools: Map<string, Tool> = new Map();
-
-  register(name: string, tool: Tool) {
-    this.tools.set(name, tool);
-  }
-
-  getSchemas(): ChatCompletionTool[] {
-    return Array.from(this.tools.values()).map(t => t.schema);
-  }
-
-  async execute(name: string, args: Record<string, unknown>): Promise<unknown> {
-    const tool = this.tools.get(name);
-    if (!tool) throw new Error(`Unknown tool: ${name}`);
-    return tool.execute(args);
-  }
+export interface ToolDefinition {
+  definition: ChatCompletionFunctionTool;
+  tier: ConfirmationTier;
+  requiredRole: 'admin' | 'member' | 'any';  // NEW
+  paramSchema: unknown;
+  execute: (args: unknown, context: ToolContext) => Promise<unknown>;
 }
+```
 
-// llm/tools/sonarrTools.ts
-function registerSonarrTools(registry: ToolRegistry, sonarr: SonarrClient) {
-  registry.register('search_series', {
-    schema: {
-      type: 'function',
-      function: {
-        name: 'search_series',
-        description: 'Search for a TV series by name',
-        parameters: {
-          type: 'object',
-          properties: {
-            query: { type: 'string', description: 'Series name to search for' }
-          },
-          required: ['query'],
-        },
-      },
-    },
-    execute: async (args) => sonarr.searchSeries(args.query as string),
+### `src/conversation/tool-loop.ts` -- Permission Check Injection
+
+Insert between argument validation (line 92-101) and destructive tier check (line 104-121):
+
+```typescript
+// NEW: Permission check
+if (tool.requiredRole === 'admin' && !context.isAdmin) {
+  messages.push({
+    role: 'tool',
+    tool_call_id: toolCall.id,
+    content: JSON.stringify({
+      error: 'Permission denied. Only admins can perform this action.',
+    }),
   });
-  // ... more tools
+  continue;
 }
 ```
 
-## Data Flow
+### `src/server.ts` -- New Plugin Registration
 
-### Inbound Message Flow (User sends a text)
-
-```
-[User sends text message]
-    |
-    v
-[Messaging Provider (Twilio)]
-    | HTTP POST webhook
-    v
-[Express Webhook Route]
-    | req.body parsed
-    v
-[MessagingProvider.parseWebhook()]
-    | InboundMessage { userId, text, timestamp }
-    v
-[Message Router]
-    |
-    ├── [UserManager.getUser(userId)]
-    |       | Whitelist check: authorized? If no, silent drop.
-    |       v
-    ├── [ConversationStore.getHistory(userId)]
-    |       | Last N messages for context
-    |       v
-    ├── [ConversationStore.addMessage(userId, userMsg)]
-    |       |
-    |       v
-    ├── [LLMService.processMessage(history, tools)]
-    |       |
-    |       ├── [LLM API call with tools]
-    |       |       | Response: tool_calls or text
-    |       |       v
-    |       ├── [If tool_calls: ToolRegistry.execute()]
-    |       |       |
-    |       |       ├── [SonarrClient.method()] or [RadarrClient.method()]
-    |       |       |       | HTTP to Sonarr/Radarr API
-    |       |       |       v
-    |       |       |   Tool result JSON
-    |       |       v
-    |       ├── [Append tool result, call LLM again]
-    |       |       | (loop until text response or max iterations)
-    |       |       v
-    |       └── Final text response
-    |       v
-    ├── [ConversationStore.addMessage(userId, assistantMsg)]
-    |       v
-    └── [MessagingProvider.sendMessage(response)]
-            | Twilio API call
-            v
-        [User receives text message]
+```typescript
+// After existing plugins
+await fastify.register(tmdbPlugin);
+await fastify.register(plexPlugin);
+await fastify.register(tautulliPlugin);
+await fastify.register(dashboardPlugin);
 ```
 
-### Proactive Notification Flow (System notifies user)
+### `src/conversation/system-prompt.ts` -- Updated Capabilities
+
+Add sections for:
+- TMDB discovery capabilities (structured search by actor, genre, network, year)
+- Plex library checking (verify media exists, check episode completeness)
+- Permission awareness ("If you lack permission to remove media, explain and suggest asking an admin")
+- Smart routing is transparent to the user (no prompt changes needed, routing is automatic)
+
+## Updated Project Structure (v2.0 additions)
 
 ```
-[Notification Service: polling timer or Sonarr/Radarr webhook]
-    |
-    ├── [Poll: SonarrClient.getQueue() / RadarrClient.getQueue()]
-    |       | Check for completed downloads, new episodes
-    |       v
-    ├── [Compare with last known state]
-    |       | New events detected?
-    |       v
-    ├── [Formatter: event -> natural language string]
-    |       | "Your download of Breaking Bad S01E01 is complete!"
-    |       v
-    ├── [UserManager: which users should be notified?]
-    |       | All whitelisted users, or configurable per-user
-    |       v
-    └── [MessagingProvider.sendMessage()]
-            | Twilio API call (outbound only, no LLM involved)
-            v
-        [User receives notification]
+src/
+  config.ts                          # MODIFIED: new env vars
+  server.ts                          # MODIFIED: new plugin registrations
+  db/
+    schema.ts                        # MODIFIED: new tables
+    index.ts                         # unchanged
+  media/
+    http.ts                          # unchanged (Sonarr/Radarr only)
+    errors.ts                        # unchanged
+    sonarr/                          # unchanged
+    radarr/                          # unchanged
+    tmdb/                            # NEW
+      tmdb.client.ts
+      tmdb.http.ts
+      tmdb.schemas.ts
+      tmdb.types.ts
+    plex/                            # NEW
+      plex.client.ts
+      plex.schemas.ts
+      plex.types.ts
+    tautulli/                        # NEW
+      tautulli.client.ts
+      tautulli.schemas.ts
+      tautulli.types.ts
+    routing/                         # NEW
+      library-router.ts
+      library-router.types.ts
+  conversation/
+    engine.ts                        # MODIFIED: pass new clients + user role
+    tool-loop.ts                     # MODIFIED: permission check injection
+    tools.ts                         # MODIFIED: requiredRole on ToolDefinition
+    types.ts                         # MODIFIED: extended ToolContext
+    system-prompt.ts                 # MODIFIED: new capabilities description
+    tools/
+      index.ts                      # MODIFIED: export new tools
+      search-movies.ts              # MODIFIED: TMDB enrichment + RCS cards
+      search-series.ts              # MODIFIED: TMDB enrichment + RCS cards
+      add-movie.ts                  # MODIFIED: library routing + tracking
+      add-series.ts                 # MODIFIED: library routing + tracking
+      remove-movie.ts               # MODIFIED: requiredRole = 'admin'
+      remove-series.ts              # MODIFIED: requiredRole = 'admin'
+      discover-movies.ts            # NEW: TMDB discover endpoint
+      discover-series.ts            # NEW: TMDB discover endpoint
+      check-plex-library.ts         # NEW: Plex library check
+      get-watch-history.ts          # NEW: Tautulli watch history
+  messaging/
+    types.ts                         # MODIFIED: contentSid, contentVariables
+    twilio-provider.ts               # MODIFIED: Content API support
+  users/
+    user.service.ts                  # unchanged (isAdmin already exists)
+    user.types.ts                    # unchanged
+    permissions.ts                   # NEW: permission helper functions
+  plugins/
+    tmdb.ts                          # NEW
+    plex.ts                          # NEW
+    tautulli.ts                      # NEW
+    dashboard.ts                     # NEW
+    conversation.ts                  # MODIFIED: register new tools + pass context
+    webhook.ts                       # MODIFIED: pass isAdmin to context
+  dashboard/
+    routes.ts                        # NEW: admin API routes
+    auth.ts                          # NEW: token validation
+    stats.ts                         # NEW: stats queries
+    types.ts                         # NEW: API types
+
+dashboard/                           # NEW: SPA frontend (separate package)
+  package.json
+  vite.config.ts
+  src/
+    ...
 ```
 
-### Key Data Flows
-
-1. **Inbound message processing:** Webhook -> normalize -> authorize -> context load -> LLM + tool loop -> persist -> respond. This is the critical path. Latency budget is dominated by LLM API calls (typically 1-5 seconds per call).
-2. **Tool execution within LLM loop:** LLM returns function call -> registry dispatches -> media client makes HTTP request to Sonarr/Radarr -> result returned as JSON string to LLM -> LLM formulates natural language response. Multiple tool calls can happen in sequence within a single user message.
-3. **Proactive notifications:** Timer-driven polling (or webhook-driven) -> detect new events -> format -> send to all relevant users. This path bypasses the LLM entirely -- it uses templates, not generation.
-4. **Conversation history as LLM context:** Each message cycle loads the last N messages from the store and includes them in the LLM prompt. This enables conversational continuity ("add that one" referring to a show mentioned 3 messages ago). History must include tool calls and results so the LLM understands what actions were taken.
-
-## Scaling Considerations
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| 1-10 users (target) | Single container, SQLite, polling-based notifications. This is the expected scale for a personal/household media server manager. No optimization needed. |
-| 10-50 users | Still single container. SQLite handles this easily. Consider rate limiting on LLM calls if multiple users message simultaneously. Polling interval may need tuning. |
-| 50+ users | Would need to swap SQLite for PostgreSQL, add request queuing for LLM calls, and consider separate notification worker. Unlikely scenario for this domain. |
-
-### Scaling Priorities
-
-1. **First bottleneck: LLM API latency and rate limits.** Each inbound message triggers 1-3 LLM API calls. With concurrent users, you hit rate limits. Mitigation: queue messages and process sequentially (acceptable for personal use), or use a local LLM for lower latency.
-2. **Second bottleneck: Twilio rate limits.** Twilio has per-number sending limits. For proactive notifications to many users, batch and respect rate limits. At household scale (1-10 users), this is not a concern.
-3. **SQLite concurrency.** SQLite handles concurrent reads well but serializes writes. For the expected scale, this is a non-issue. WAL mode ensures reads never block.
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Leaking Provider Details Into Core Logic
-
-**What people do:** Pass raw Twilio request objects through the router and LLM service. Reference `req.body.From` deep inside business logic.
-**Why it's wrong:** Makes it impossible to add a second messaging provider without rewriting the core. Every provider has different field names, auth mechanisms, and payload formats.
-**Do this instead:** Normalize to `InboundMessage` at the adapter boundary. Everything downstream only sees the internal type. The adapter is the only code that imports the provider SDK.
-
-### Anti-Pattern 2: Embedding Tool Definitions in the LLM Service
-
-**What people do:** Hardcode Sonarr/Radarr function schemas directly in the LLM service module.
-**Why it's wrong:** Adding Lidarr or Readarr later requires modifying the LLM service. The LLM service should not know what tools exist -- only that tools exist.
-**Do this instead:** Use the tool registry pattern. The LLM service receives tool schemas as input. Tools are registered at startup. Adding new tools means adding a new file in `tools/`, not modifying existing code.
-
-### Anti-Pattern 3: Storing Conversation History as Flat Strings
-
-**What people do:** Store conversation as a single text blob or as simple user/assistant pairs without tool call metadata.
-**Why it's wrong:** The LLM needs tool call history to understand what actions were taken. Without it, the LLM cannot reference previous actions ("you added Breaking Bad earlier"). Also, you lose the ability to replay or debug tool executions.
-**Do this instead:** Store each message as a structured record with role, content, tool_calls array, and tool_call_id. The history builder reconstructs the full OpenAI-format message array from these records.
-
-### Anti-Pattern 4: Using the LLM for Notifications
-
-**What people do:** Run every notification through the LLM to "make it conversational."
-**Why it's wrong:** Notifications are predictable, template-able events. Running them through the LLM wastes money, adds latency, and risks hallucinated content. "Your download of X completed" does not need AI generation.
-**Do this instead:** Use simple template strings for notifications. Reserve LLM calls for interpreting ambiguous user input.
-
-### Anti-Pattern 5: No Iteration Cap on Tool Call Loop
-
-**What people do:** Let the LLM call tools indefinitely in a single processing cycle.
-**Why it's wrong:** A confused LLM can enter infinite loops (call search, get results, call search again with different query, repeat). Each iteration costs money and time.
-**Do this instead:** Cap tool call iterations at 5 (configurable). If exceeded, return a graceful error to the user.
-
-## Integration Points
-
-### External Services
-
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| **Twilio** | Inbound: Twilio POSTs to webhook URL when user sends message. Outbound: REST API call via Twilio SDK to send message. Auth: Account SID + Auth Token. | Webhook must be publicly accessible (ngrok for dev, reverse proxy for prod). Validate webhook signatures to prevent spoofing. Twilio RCS uses same API as SMS but with richer content support. |
-| **OpenAI-compatible LLM** | REST API via OpenAI SDK. Chat completions endpoint with tool/function calling. Auth: API key in header. | Must support tool/function calling. Set `baseURL` to any compatible endpoint (OpenAI, Ollama, LM Studio, OpenRouter, etc.). Model name is configurable. |
-| **Sonarr** | REST API. Auth: API key passed as `X-Api-Key` header or `apikey` query parameter. Base URL configurable. | Key endpoints: `/api/v3/series/lookup` (search), `/api/v3/series` (add/list/delete), `/api/v3/calendar` (upcoming), `/api/v3/queue` (downloads). Returns JSON. |
-| **Radarr** | REST API. Auth: API key passed as `X-Api-Key` header or `apikey` query parameter. Base URL configurable. | Key endpoints: `/api/v3/movie/lookup` (search), `/api/v3/movie` (add/list/delete), `/api/v3/calendar` (upcoming), `/api/v3/queue` (downloads). Nearly identical structure to Sonarr. |
-
-### Internal Boundaries
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Messaging Adapter <-> Message Router | Direct function call. Adapter calls `handleMessage(inboundMessage)`. | The adapter owns the HTTP/Express layer. The router is a pure function. |
-| Message Router <-> LLM Service | Direct function call. Router passes history + tools, gets back response + tool calls. | LLM Service is stateless. All context passed as arguments. |
-| LLM Service <-> Tool Registry | Direct function call. LLM Service gets schemas, dispatches executions. | Tool Registry is injected into LLM Service at construction. |
-| Tool Registry <-> Media Clients | Direct function call. Tool handlers call client methods. | Media clients are injected into tool registration functions. |
-| Message Router <-> Conversation Store | Direct function call. Async read/write to SQLite. | Store exposes simple async methods. No ORM needed at this scale. |
-| Notification Service <-> Media Clients | Direct function call. Polls client methods on interval. | Runs on its own timer, independent of message processing. |
-| Notification Service <-> Messaging Adapter | Direct function call for outbound messages. | Uses same `sendMessage()` as the request pipeline. |
-
-## Build Order (Dependency Graph)
-
-The following represents the dependency chain and therefore the natural build order for implementation phases:
+## Suggested Build Order (Dependency Graph)
 
 ```
-Phase 1: Foundation (no external dependencies)
-├── Config loading + validation
-├── Express server skeleton
-├── SQLite database + migrations
-└── Basic types/interfaces
+Phase 1: TMDB Client + Library Router
+  (no dependencies on other new features)
+  |- TMDB client (search, discover, details, genres)
+  |- TMDB plugin (Fastify registration)
+  |- Library router (anime detection, language detection)
+  |- Modify add_movie/add_series to use routing
+  |- New discover tools (discover_movies, discover_series)
+  |- Update ToolContext with tmdb
 
-Phase 2: Media Server Clients (depends on: config, types)
-├── SonarrClient (HTTP wrapper)
-├── RadarrClient (HTTP wrapper)
-└── Integration tests against real/mock servers
+Phase 2: Permissions + Media Tracking
+  (depends on: Phase 1 for routing in add tools)
+  |- Add requiredRole to ToolDefinition
+  |- Permission check in tool-loop.ts
+  |- media_tracking table + Drizzle migration
+  |- Tracking inserts in add tool executors
+  |- Admin notification on non-admin add
+  |- Update defineTool() to accept requiredRole
 
-Phase 3: LLM Layer (depends on: types, media clients)
-├── Tool definitions (Sonarr tools, Radarr tools)
-├── Tool registry
-├── LLM service (OpenAI SDK, tool call loop)
-└── System prompt design
+Phase 3: Plex + Tautulli Integration
+  (independent of Phases 1-2, but logically after)
+  |- Plex client (library sections, search, metadata)
+  |- Tautulli client (history, users, stats)
+  |- Plex/Tautulli plugins
+  |- check_plex_library tool
+  |- get_watch_history tool
+  |- Update ToolContext with plex, tautulli
 
-Phase 4: Conversation Persistence (depends on: database, types)
-├── Conversation store (CRUD for messages)
-├── History builder (format for LLM context)
-└── Migration for conversation schema
+Phase 4: Web Admin Dashboard
+  (depends on: Phases 1-3 for full data to display)
+  |- Dashboard API routes (users, messages, stats, media tracking)
+  |- Dashboard auth middleware
+  |- user_plex_links table + Drizzle migration
+  |- Plex user linking API
+  |- @fastify/static setup
+  |- Dashboard SPA frontend (React + Vite + Tailwind)
+  |- Docker multi-stage build update
 
-Phase 5: Messaging Provider (depends on: config, types)
-├── Provider interface
-├── Twilio adapter (webhook + send)
-├── Webhook signature validation
-└── Provider factory
+Phase 5: RCS Rich Messaging
+  (depends on: Phase 1 for TMDB poster URLs)
+  |- Twilio Content Template creation
+  |- Extended OutboundMessage with contentSid
+  |- Modified TwilioMessagingProvider.send()
+  |- Rich card sending in search result tools
+  |- Suggested reply integration
+  |- SMS fallback verification
 
-Phase 6: Message Router (depends on: ALL above)
-├── Orchestration pipeline
-├── User manager / whitelist
-├── Error handling + user-friendly errors
-└── End-to-end flow
-
-Phase 7: Notifications (depends on: media clients, messaging provider, user manager)
-├── Notification service (polling loop)
-├── Event formatters
-└── Notification preferences per user
-
-Phase 8: Docker + Deployment (depends on: working application)
-├── Dockerfile
-├── docker-compose.yml
-├── Environment variable documentation
-└── Health check endpoint
+Phase 6: System Prompt + Personality
+  (depends on: all above for complete capability description)
+  |- Updated system prompt with all new capabilities
+  |- Fun/edgy personality tuning
+  |- Edge case testing across all tools
 ```
 
-**Build order rationale:**
-- Media clients first because they are the simplest external integration and can be tested independently against real Sonarr/Radarr instances.
-- LLM layer depends on having tool definitions that wrap media clients, so it comes after.
-- Conversation persistence is independent of LLM and media clients; it can be built in parallel with either, but logically pairs with the LLM layer (history feeds into prompts).
-- Messaging provider is also independent and can be built in parallel, but comes before the router because the router wires everything together.
-- Message router is the last integration point -- it only makes sense once all services exist.
-- Notifications are a separate concern that can be deferred without blocking core functionality.
-- Docker packaging is the final step.
+### Build Order Rationale
+
+1. **TMDB + Library Router first** because it has zero dependencies on other new features and unlocks the highest-value capability (structured discovery + smart routing). The library router is also a prerequisite for correct media organization.
+
+2. **Permissions + Tracking second** because it modifies the tool execution path that Phase 1 already touched (add tools). Better to layer permissions and tracking onto the routing changes while they are fresh.
+
+3. **Plex + Tautulli third** because they are read-only integrations (no writes to external systems) and can be developed independently. They provide the data needed for dashboard views.
+
+4. **Dashboard fourth** because it consumes data from all previous phases (users, messages, media tracking, Plex links). Building it earlier would require mocking data sources.
+
+5. **RCS fifth** because it is a presentation layer enhancement that depends on TMDB poster URLs (Phase 1) and can be tested independently. It also carries the most uncertainty (Twilio template approval workflow) and should not block core functionality.
+
+6. **System prompt last** because it describes the complete set of capabilities and should be written once all features are finalized.
+
+## Anti-Patterns to Avoid
+
+### Anti-Pattern 1: Fat Library Router with External Calls
+
+**What people do:** Make the library router call TMDB directly to fetch metadata.
+**Why it's wrong:** The router should be a pure function that receives metadata and returns a routing decision. Making it call external APIs introduces side effects, makes testing harder, and couples routing logic to API availability.
+**Do instead:** Fetch TMDB metadata in the tool executor, then pass it to the router function.
+
+### Anti-Pattern 2: Dashboard Auth via Cookies/Sessions
+
+**What people do:** Implement session-based auth with cookies for the dashboard.
+**Why it's wrong:** This is a single-admin tool accessed by one person. Session management adds complexity (expiry, refresh, CSRF) for no benefit. The admin already has the secret token.
+**Do instead:** Stateless token auth. Dashboard stores token in localStorage. API validates on every request. Simple, secure enough for admin-only access behind a firewall.
+
+### Anti-Pattern 3: Per-Tool Permission Logic
+
+**What people do:** Add `if (!isAdmin) return error` inside each tool's execute function.
+**Why it's wrong:** Duplicates permission logic across every tool. Easy to forget on new tools. Hard to change policy centrally.
+**Do instead:** Check permissions in the tool loop before dispatching to the tool executor. The tool is unaware of permissions.
+
+### Anti-Pattern 4: Mixing Dashboard Routes with Webhook Routes
+
+**What people do:** Put dashboard API routes in the same plugin as the Twilio webhook.
+**Why it's wrong:** Different auth mechanisms (Twilio signature vs dashboard token), different consumers (browser vs Twilio), different concerns.
+**Do instead:** Separate Fastify plugin for dashboard with its own prefix (`/api/admin/`), its own auth preHandler, and no coupling to the messaging layer.
+
+### Anti-Pattern 5: Creating TMDB Client as a Wrapper Library
+
+**What people do:** Build a full TMDB client covering all 100+ endpoints "for completeness."
+**Why it's wrong:** Only 8-10 endpoints are needed. A full wrapper is maintenance overhead.
+**Do instead:** Build only the endpoints you use. The client is internal -- not a published library.
 
 ## Sources
 
-- Sonarr API v3: Based on training data knowledge of Servarr wiki documentation (MEDIUM confidence -- API structure is well-established and stable, but exact endpoint details should be verified against actual Sonarr instance at implementation time)
-- Radarr API v3: Same pattern as Sonarr, nearly identical endpoint structure (MEDIUM confidence)
-- OpenAI function calling / tool use: Based on training data knowledge of OpenAI API documentation (MEDIUM confidence -- this is a well-documented, stable API pattern, but `tool_choice` and parallel tool call features should be verified against current SDK version)
-- Twilio messaging webhooks: Based on training data knowledge of Twilio docs (MEDIUM confidence -- webhook payload format is stable, but RCS-specific features should be verified against current Twilio RCS documentation)
-- Conversational gateway patterns: Based on training data knowledge of chatbot/assistant architecture (MEDIUM confidence -- these are established architectural patterns used across many production systems)
-
-**Confidence note:** WebSearch and WebFetch were unavailable during this research session. All findings are based on training data for technologies with well-established, stable APIs and patterns. The architectural patterns described (adapter pattern, tool registry, tool call loop, thin router) are industry-standard and unlikely to have changed. However, specific API endpoint paths, SDK method signatures, and RCS-specific Twilio features should be verified against current documentation during implementation phases.
+- TMDB API v3 documentation: https://developer.themoviedb.org/reference/getting-started (HIGH confidence)
+- TMDB rate limiting: https://developer.themoviedb.org/docs/rate-limiting (HIGH confidence)
+- TMDB authentication: https://developer.themoviedb.org/docs/authentication-application (HIGH confidence)
+- TMDB discover endpoint: https://developer.themoviedb.org/reference/discover-movie (HIGH confidence)
+- Plex Media Server API: https://developer.plex.tv/pms/ (HIGH confidence)
+- Plex API documentation: https://www.plexopedia.com/plex-media-server/api/ (MEDIUM confidence)
+- Plex authentication tokens: https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/ (HIGH confidence)
+- Tautulli API reference: https://docs.tautulli.com/extending-tautulli/api-reference (HIGH confidence)
+- Tautulli API wiki: https://github.com/Tautulli/Tautulli/wiki/Tautulli-API-Reference (HIGH confidence)
+- Twilio RCS documentation: https://www.twilio.com/docs/rcs (HIGH confidence)
+- Twilio Content Template Builder: https://www.twilio.com/docs/content (HIGH confidence)
+- Twilio Content API resources: https://www.twilio.com/docs/content/content-api-resources (HIGH confidence)
+- Twilio send templates: https://www.twilio.com/docs/content/send-templates-created-with-the-content-template-builder (HIGH confidence)
+- @fastify/static: https://github.com/fastify/fastify-static (HIGH confidence)
+- Existing codebase analysis: Direct file reads of all 47 source files (HIGH confidence)
 
 ---
-*Architecture research for: WadsMedia -- conversational media server gateway*
-*Researched: 2026-02-13*
+*Architecture research for: WadsMedia v2.0 -- Smart Discovery & Admin*
+*Researched: 2026-02-14*
