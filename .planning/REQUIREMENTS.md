@@ -59,11 +59,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: Single Docker container deployment via Dockerfile + docker-compose.yml
-- [ ] **INFRA-02**: All configuration via environment variables
-- [ ] **INFRA-03**: SQLite database with Docker volume persistence
-- [ ] **INFRA-04**: Structured logging (JSON) via Pino
-- [ ] **INFRA-05**: Health check endpoint
+- [x] **INFRA-01**: Single Docker container deployment via Dockerfile + docker-compose.yml
+- [x] **INFRA-02**: All configuration via environment variables
+- [x] **INFRA-03**: SQLite database with Docker volume persistence
+- [x] **INFRA-04**: Structured logging (JSON) via Pino
+- [x] **INFRA-05**: Health check endpoint
 
 ## v2 Requirements
 
@@ -139,11 +139,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | API-02 | Phase 4 | Pending |
 | API-03 | Phase 4 | Pending |
 | API-04 | Phase 4 | Pending |
-| INFRA-01 | Phase 1 | Pending |
-| INFRA-02 | Phase 1 | Pending |
-| INFRA-03 | Phase 1 | Pending |
-| INFRA-04 | Phase 1 | Pending |
-| INFRA-05 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Done |
+| INFRA-02 | Phase 1 | Done |
+| INFRA-03 | Phase 1 | Done |
+| INFRA-04 | Phase 1 | Done |
+| INFRA-05 | Phase 1 | Done |
 
 **Coverage:**
 - v1 requirements: 34 total

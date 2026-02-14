@@ -12,7 +12,7 @@ WadsMedia delivers a conversational gateway from natural language messaging to S
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Project scaffolding, Docker container, database, config, logging, and health check
+- [x] **Phase 1: Foundation** - Project scaffolding, Docker container, database, config, logging, and health check
 - [ ] **Phase 2: Messaging Gateway** - Twilio adapter with webhook receiving, signature validation, and outbound messaging
 - [ ] **Phase 3: User Management** - Phone whitelist authorization, admin designation, unknown user onboarding, and conversation isolation
 - [ ] **Phase 4: Media Server Clients** - Typed Sonarr and Radarr API wrappers with caching and graceful error handling
@@ -36,9 +36,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- Project scaffolding, tooling, config module, and Fastify server factory
-- [ ] 01-02-PLAN.md -- SQLite database with Drizzle ORM, schema, migrations, and Fastify plugin
-- [ ] 01-03-PLAN.md -- Health check endpoint, Docker multi-stage build, and docker-compose
+- [x] 01-01-PLAN.md -- Project scaffolding, tooling, config module, and Fastify server factory
+- [x] 01-02-PLAN.md -- SQLite database with Drizzle ORM, schema, migrations, and Fastify plugin
+- [x] 01-03-PLAN.md -- Health check endpoint, Docker multi-stage build, and docker-compose
 
 ### Phase 2: Messaging Gateway
 **Goal**: The application can receive text messages from Twilio via webhook and send responses back, with proper security and text-first formatting
@@ -159,7 +159,7 @@ Phases execute in numeric order. Note: Phases 4 and 5 can proceed in parallel af
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/3 | Planning complete | - |
+| 1. Foundation | 3/3 | Complete | 2026-02-14 |
 | 2. Messaging Gateway | 0/2 | Not started | - |
 | 3. User Management | 0/2 | Not started | - |
 | 4. Media Server Clients | 0/3 | Not started | - |
