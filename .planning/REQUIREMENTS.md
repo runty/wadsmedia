@@ -110,11 +110,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SRCH-01 | Phase 6 | Pending |
-| SRCH-02 | Phase 6 | Pending |
-| SRCH-03 | Phase 6 | Pending |
-| SRCH-04 | Phase 6 | Pending |
-| SRCH-05 | Phase 6 | Pending |
+| SRCH-01 | Phase 6 | Done |
+| SRCH-02 | Phase 6 | Done |
+| SRCH-03 | Phase 6 | Done |
+| SRCH-04 | Phase 6 | Done |
+| SRCH-05 | Phase 6 | Done |
 | LIB-01 | Phase 7 | Pending |
 | LIB-02 | Phase 7 | Pending |
 | LIB-03 | Phase 7 | Pending |
