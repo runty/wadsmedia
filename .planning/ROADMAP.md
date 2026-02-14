@@ -142,12 +142,11 @@ Plans:
   1. User can text to check download progress and queue status, receiving current state of active downloads
   2. User can text to view their upcoming episode and movie schedule
   3. App proactively sends notifications when downloads complete or new episodes become available, without the user asking
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 08-01: Download status and queue tools
-- [ ] 08-02: Schedule viewing tool
-- [ ] 08-03: Proactive notification service
+- [ ] 08-01-PLAN.md -- Download queue tool, system prompt update, and tool registration (STAT-01; STAT-02 already done in Phase 6)
+- [ ] 08-02-PLAN.md -- Proactive notification webhook service with Sonarr/Radarr webhook receivers (STAT-03)
 
 ## Progress
 
@@ -163,4 +162,4 @@ Phases execute in numeric order. Note: Phases 4 and 5 can proceed in parallel af
 | 5. Conversation Engine | 3/3 | Complete | 2026-02-14 |
 | 6. Search and Discovery | 2/2 | Complete | 2026-02-14 |
 | 7. Library Management | 2/2 | Complete | 2026-02-13 |
-| 8. Status and Notifications | 0/3 | Not started | - |
+| 8. Status and Notifications | 0/2 | Not started | - |
