@@ -1,5 +1,6 @@
 export { addMovieTool } from "./add-movie.js";
 export { addSeriesTool } from "./add-series.js";
+export { getDownloadQueueTool } from "./get-download-queue.js";
 export {
   getUpcomingEpisodesTool,
   getUpcomingMoviesTool,
