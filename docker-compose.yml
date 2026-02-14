@@ -1,0 +1,16 @@
+services:
+  wadsmedia:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - wadsmedia-data:/data
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_PATH: /data/wadsmedia.db
+    restart: unless-stopped
+
+volumes:
+  wadsmedia-data:
