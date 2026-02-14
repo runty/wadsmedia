@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
+import { handleOnboarding } from "../users/onboarding.js";
 
 export default fp(
   async (fastify: FastifyInstance) => {
@@ -30,16 +31,43 @@ export default fp(
 
     fastify.post(
       "/webhook/twilio",
-      { preHandler: validateTwilioSignature },
+      { preHandler: [validateTwilioSignature, fastify.resolveUser] },
       async (request, reply) => {
         const message = fastify.messaging.parseInbound(request.body as Record<string, string>);
         request.log.info({ from: message.from, body: message.body }, "Incoming message");
 
-        // Phase 2: acknowledge receipt; later phases add conversation logic
-        const twimlResponse = fastify.messaging.formatEmptyReply();
-        reply.type("text/xml").send(twimlResponse);
+        const user = request.user;
+
+        // If user resolution failed (no From field), acknowledge silently
+        if (!user) {
+          return reply.type("text/xml").send(fastify.messaging.formatEmptyReply());
+        }
+
+        // Active users: pass through to normal handling (future phases add conversation logic here)
+        if (user.status === "active") {
+          // Phase 3: acknowledge receipt; Phase 5+ adds conversation engine
+          const replyText = `Message received, ${user.displayName || "friend"}. Conversation features coming soon!`;
+          return reply.type("text/xml").send(fastify.messaging.formatReply(replyText));
+        }
+
+        // Non-active users: route through onboarding
+        const onboardingReply = await handleOnboarding({
+          user,
+          messageBody: message.body,
+          db: fastify.db,
+          messaging: fastify.messaging,
+          config: fastify.config,
+          log: request.log,
+        });
+
+        if (onboardingReply) {
+          return reply.type("text/xml").send(fastify.messaging.formatReply(onboardingReply));
+        }
+
+        // Fallback (should not reach here)
+        return reply.type("text/xml").send(fastify.messaging.formatEmptyReply());
       },
     );
   },
-  { name: "webhook", dependencies: ["messaging"] },
+  { name: "webhook", dependencies: ["messaging", "user-resolver"] },
 );

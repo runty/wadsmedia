@@ -26,13 +26,13 @@ const envSchema = z.object({
   RADARR_URL: z.string().url().optional(),
   RADARR_API_KEY: z.string().min(1).optional(),
 
-  // Users (optional in Phase 1, required starting Phase 3)
+  // Users (required starting Phase 3)
+  ADMIN_PHONE: z.string().min(1),
   PHONE_WHITELIST: z
     .string()
     .transform((val) => val.split(","))
     .pipe(z.array(z.string().min(1)))
     .optional(),
-  ADMIN_PHONE: z.string().min(1).optional(),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;
