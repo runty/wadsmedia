@@ -13,6 +13,7 @@ const envSchema = z.object({
   TWILIO_ACCOUNT_SID: z.string().min(1).optional(),
   TWILIO_AUTH_TOKEN: z.string().min(1).optional(),
   TWILIO_PHONE_NUMBER: z.string().min(1).optional(),
+  TWILIO_MESSAGING_SERVICE_SID: z.string().min(1).optional(),
 
   // LLM (optional in Phase 1, required starting Phase 5)
   LLM_API_KEY: z.string().min(1).optional(),
