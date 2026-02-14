@@ -3,8 +3,12 @@ import fp from "fastify-plugin";
 import type OpenAI from "openai";
 import { createLLMClient } from "../conversation/llm.js";
 import {
+  addMovieTool,
+  addSeriesTool,
   getUpcomingEpisodesTool,
   getUpcomingMoviesTool,
+  removeMovieTool,
+  removeSeriesTool,
   searchMoviesTool,
   searchSeriesTool,
 } from "../conversation/tools/index.js";
@@ -35,6 +39,10 @@ export default fp(
     registry.register(searchSeriesTool);
     registry.register(getUpcomingEpisodesTool);
     registry.register(getUpcomingMoviesTool);
+    registry.register(addMovieTool);
+    registry.register(addSeriesTool);
+    registry.register(removeMovieTool);
+    registry.register(removeSeriesTool);
 
     fastify.decorate("llm", client);
     fastify.decorate("toolRegistry", registry);
