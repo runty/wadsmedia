@@ -9,6 +9,7 @@ import messagingPlugin from "./plugins/messaging.js";
 import notificationsPlugin from "./plugins/notifications.js";
 import radarrPlugin from "./plugins/radarr.js";
 import sonarrPlugin from "./plugins/sonarr.js";
+import tmdbPlugin from "./plugins/tmdb.js";
 import userResolverPlugin from "./plugins/user-resolver.js";
 import webhookPlugin from "./plugins/webhook.js";
 
@@ -41,6 +42,7 @@ export async function buildServer(config: AppConfig) {
   await fastify.register(healthPlugin);
   await fastify.register(sonarrPlugin);
   await fastify.register(radarrPlugin);
+  await fastify.register(tmdbPlugin);
   await fastify.register(bravePlugin);
   await fastify.register(conversationPlugin);
   await fastify.register(formbody);
