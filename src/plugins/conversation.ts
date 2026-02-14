@@ -2,6 +2,12 @@ import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import type OpenAI from "openai";
 import { createLLMClient } from "../conversation/llm.js";
+import {
+  getUpcomingEpisodesTool,
+  getUpcomingMoviesTool,
+  searchMoviesTool,
+  searchSeriesTool,
+} from "../conversation/tools/index.js";
 import { createToolRegistry, type ToolRegistry } from "../conversation/tools.js";
 
 declare module "fastify" {
@@ -25,10 +31,18 @@ export default fp(
     const client = createLLMClient(fastify.config);
     const registry = createToolRegistry();
 
+    registry.register(searchMoviesTool);
+    registry.register(searchSeriesTool);
+    registry.register(getUpcomingEpisodesTool);
+    registry.register(getUpcomingMoviesTool);
+
     fastify.decorate("llm", client);
     fastify.decorate("toolRegistry", registry);
 
-    fastify.log.info({ model: LLM_MODEL }, "Conversation engine initialized");
+    fastify.log.info(
+      { model: LLM_MODEL, tools: registry.getDefinitions().length },
+      "Conversation engine initialized",
+    );
   },
   { name: "conversation", dependencies: ["database"] },
 );
