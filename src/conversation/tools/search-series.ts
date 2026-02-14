@@ -16,25 +16,29 @@ export const searchSeriesTool = defineTool(
       context.sonarr.getSeries(),
     ]);
 
-    const libraryTvdbIds = new Set<number>(librarySeries.map((s) => s.tvdbId));
+    const librarySeriesMap = new Map(librarySeries.map((s) => [s.tvdbId, s]));
 
     if (searchResults.length === 0) {
       return { results: [], message: "No TV shows found" };
     }
 
-    const results = searchResults.slice(0, 10).map((series) => ({
-      title: series.title,
-      year: series.year,
-      tvdbId: series.tvdbId,
-      network: series.network ?? null,
-      seasonCount: series.seasons.length,
-      overview:
-        series.overview && series.overview.length > 150
-          ? `${series.overview.slice(0, 150)}...`
-          : series.overview,
-      inLibrary: libraryTvdbIds.has(series.tvdbId),
-      status: series.status,
-    }));
+    const results = searchResults.slice(0, 10).map((series) => {
+      const librarySerie = librarySeriesMap.get(series.tvdbId);
+      return {
+        title: series.title,
+        year: series.year,
+        tvdbId: series.tvdbId,
+        network: series.network ?? null,
+        seasonCount: series.seasons.length,
+        overview:
+          series.overview && series.overview.length > 150
+            ? `${series.overview.slice(0, 150)}...`
+            : series.overview,
+        inLibrary: !!librarySerie,
+        libraryId: librarySerie?.id ?? null,
+        status: series.status,
+      };
+    });
 
     return { results };
   },

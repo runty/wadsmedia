@@ -1,6 +1,10 @@
+export { addMovieTool } from "./add-movie.js";
+export { addSeriesTool } from "./add-series.js";
 export {
   getUpcomingEpisodesTool,
   getUpcomingMoviesTool,
 } from "./get-upcoming.js";
+export { removeMovieTool } from "./remove-movie.js";
+export { removeSeriesTool } from "./remove-series.js";
 export { searchMoviesTool } from "./search-movies.js";
 export { searchSeriesTool } from "./search-series.js";
