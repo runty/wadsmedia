@@ -9,28 +9,28 @@ See: .planning/PROJECT.md (updated 2026-02-13)
 
 ## Current Position
 
-Phase: 1 of 8 (Foundation)
-Plan: 2 of 3 in current phase
-Status: Executing phase
-Last activity: 2026-02-14 -- Completed 01-02 database layer (SQLite, Drizzle ORM, auto-migration)
+Phase: 1 of 8 (Foundation) -- COMPLETE
+Plan: 3 of 3 in current phase (all plans done)
+Status: Phase complete
+Last activity: 2026-02-13 -- Completed 01-03 Docker packaging and health check
 
-Progress: [██░░░░░░░░] 8%
+Progress: [██░░░░░░░░] 12%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 3.5min
-- Total execution time: 0.12 hours
+- Total plans completed: 3
+- Average duration: 4min
+- Total execution time: 0.2 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 2 | 7min | 3.5min |
+| 01-foundation | 3 | 12min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4min), 01-02 (3min)
+- Last 5 plans: 01-01 (4min), 01-02 (3min), 01-03 (5min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -51,6 +51,9 @@ Recent decisions affecting current work:
 - [01-02]: Exported DatabaseConnection interface to satisfy TypeScript declaration emit with verbatimModuleSyntax
 - [01-02]: Un-ignored drizzle/ from .gitignore -- migration SQL files must be tracked for runtime migrate() and Docker COPY
 - [01-02]: Migration path resolved via import.meta.url for portability between tsx dev and compiled dist/
+- [01-03]: Health check uses SQL SELECT 1 for genuine database connectivity verification
+- [01-03]: Docker HEALTHCHECK uses Node.js fetch (not curl) to avoid installing curl in slim image
+- [01-03]: Named volume wadsmedia-data at /data for SQLite persistence across container restarts
 
 ### Pending Todos
 
@@ -63,6 +66,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-14
-Stopped at: Completed 01-02-PLAN.md (database layer)
-Resume file: .planning/phases/01-foundation/01-02-SUMMARY.md
+Last session: 2026-02-13
+Stopped at: Completed 01-03-PLAN.md (Docker packaging and health check) -- Phase 1 Foundation complete
+Resume file: .planning/phases/01-foundation/01-03-SUMMARY.md
