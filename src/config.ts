@@ -26,6 +26,9 @@ const envSchema = z.object({
   RADARR_URL: z.string().url().optional(),
   RADARR_API_KEY: z.string().min(1).optional(),
 
+  // Notifications (optional, for webhook security)
+  NOTIFICATION_SECRET: z.string().min(1).optional(),
+
   // Users (required starting Phase 3)
   ADMIN_PHONE: z.string().min(1),
   PHONE_WHITELIST: z

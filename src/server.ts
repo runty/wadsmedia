@@ -5,6 +5,7 @@ import conversationPlugin from "./plugins/conversation.js";
 import databasePlugin from "./plugins/database.js";
 import healthPlugin from "./plugins/health.js";
 import messagingPlugin from "./plugins/messaging.js";
+import notificationsPlugin from "./plugins/notifications.js";
 import radarrPlugin from "./plugins/radarr.js";
 import sonarrPlugin from "./plugins/sonarr.js";
 import userResolverPlugin from "./plugins/user-resolver.js";
@@ -44,6 +45,7 @@ export async function buildServer(config: AppConfig) {
   await fastify.register(messagingPlugin);
   await fastify.register(userResolverPlugin);
   await fastify.register(webhookPlugin);
+  await fastify.register(notificationsPlugin);
 
   return fastify;
 }
