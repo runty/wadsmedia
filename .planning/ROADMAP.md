@@ -27,7 +27,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 **Milestone Goal:** Transform WadsMedia from a basic command proxy into an intelligent media assistant with TMDB/Plex awareness, smart library routing, role-based access, a web admin dashboard, and rich RCS messaging.
 
-- [ ] **Phase 9: TMDB Discovery + Library Routing** - Intelligent media search and automatic library organization
+- [x] **Phase 9: TMDB Discovery + Library Routing** - Intelligent media search and automatic library organization -- completed 2026-02-14
 - [ ] **Phase 10: Permissions + User Tracking** - Role-based access control and per-user request accountability
 - [ ] **Phase 11: Plex + Tautulli Integration** - Library awareness and watch history
 - [ ] **Phase 12: Web Admin Dashboard** - Visual management interface for admins
@@ -124,7 +124,7 @@ Phases execute in numeric order: 9 -> 10 -> 11 -> 12 -> 13
 | 6. Search and Discovery | v1.0 | 2/2 | Complete | 2026-02-14 |
 | 7. Library Management | v1.0 | 2/2 | Complete | 2026-02-13 |
 | 8. Status and Notifications | v1.0 | 2/2 | Complete | 2026-02-14 |
-| 9. TMDB Discovery + Library Routing | v2.0 | 0/3 | Not started | - |
+| 9. TMDB Discovery + Library Routing | v2.0 | 3/3 | Complete | 2026-02-14 |
 | 10. Permissions + User Tracking | v2.0 | 0/1 | Not started | - |
 | 11. Plex + Tautulli Integration | v2.0 | 0/2 | Not started | - |
 | 12. Web Admin Dashboard | v2.0 | 0/3 | Not started | - |

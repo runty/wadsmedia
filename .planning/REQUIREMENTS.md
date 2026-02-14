@@ -79,9 +79,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DISC-01 | Phase 9 | Pending |
-| DISC-02 | Phase 9 | Pending |
-| DISC-03 | Phase 9 | Pending |
+| DISC-01 | Phase 9 | Done |
+| DISC-02 | Phase 9 | Done |
+| DISC-03 | Phase 9 | Done |
 | PLEX-01 | Phase 11 | Pending |
 | PLEX-02 | Phase 11 | Pending |
 | PLEX-03 | Phase 11 | Pending |
@@ -92,10 +92,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ADMN-04 | Phase 12 | Pending |
 | ADMN-05 | Phase 12 | Pending |
 | ADMN-06 | Phase 12 | Pending |
-| ROUT-01 | Phase 9 | Pending |
-| ROUT-02 | Phase 9 | Pending |
-| ROUT-03 | Phase 9 | Pending |
-| ROUT-04 | Phase 9 | Pending |
+| ROUT-01 | Phase 9 | Done |
+| ROUT-02 | Phase 9 | Done |
+| ROUT-03 | Phase 9 | Done |
+| ROUT-04 | Phase 9 | Done |
 | MSG-01 | Phase 13 | Pending |
 | MSG-02 | Phase 13 | Pending |
 | MSG-03 | Phase 13 | Pending |
