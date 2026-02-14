@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - Project scaffolding, Docker container, database, config, logging, and health check
 - [x] **Phase 2: Messaging Gateway** - Twilio adapter with webhook receiving, signature validation, and outbound messaging
 - [x] **Phase 3: User Management** - Phone whitelist authorization, admin designation, unknown user onboarding, and conversation isolation
-- [ ] **Phase 4: Media Server Clients** - Typed Sonarr and Radarr API wrappers with caching and graceful error handling
+- [x] **Phase 4: Media Server Clients** - Typed Sonarr and Radarr API wrappers with caching and graceful error handling
 - [ ] **Phase 5: Conversation Engine** - LLM integration with tool calling framework, conversation history, and confirmation system
 - [ ] **Phase 6: Search and Discovery** - Message router and LLM tools for searching movies/shows, ambiguity resolution, and schedule viewing
 - [ ] **Phase 7: Library Management** - LLM tools for adding, removing, and managing media with conversational context
@@ -83,9 +83,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 04-01-PLAN.md -- Shared HTTP utility, error classes, and Sonarr API client with Zod-validated responses
-- [ ] 04-02-PLAN.md -- Radarr API client with Zod-validated responses
-- [ ] 04-03-PLAN.md -- Fastify plugins for startup caching, graceful degradation, and server wiring
+- [x] 04-01-PLAN.md -- Shared HTTP utility, error classes, and Sonarr API client with Zod-validated responses
+- [x] 04-02-PLAN.md -- Radarr API client with Zod-validated responses
+- [x] 04-03-PLAN.md -- Fastify plugins for startup caching, graceful degradation, and server wiring
 
 ### Phase 5: Conversation Engine
 **Goal**: Natural language messages are interpreted by a configurable LLM that can call tools, maintain conversation context, and require confirmation before destructive actions
@@ -96,13 +96,12 @@ Plans:
   2. Full conversation history is persisted per user, with a sliding context window sent to the LLM to manage token costs
   3. LLM uses structured tool/function calling to request Sonarr/Radarr actions, with a tool call loop that executes and re-prompts until a final text response
   4. Destructive actions (remove, delete) require explicit user confirmation before execution
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 05-01: LLM service and OpenAI SDK integration
-- [ ] 05-02: Conversation history store and sliding window
-- [ ] 05-03: Tool registry and tool call loop
-- [ ] 05-04: Confirmation tier system
+- [ ] 05-01-PLAN.md -- Database schema, LLM client, conversation history with sliding window, and system prompt
+- [ ] 05-02-PLAN.md -- Tool registry with Zod-to-JSON-Schema and tool call loop with confirmation interception
+- [ ] 05-03-PLAN.md -- Confirmation tier, conversation engine orchestrator, Fastify plugin, and webhook integration
 
 ### Phase 6: Search and Discovery
 **Goal**: Users can text the app to search for movies and shows, see if media is already in their library, handle ambiguous results, and check upcoming schedules -- the first complete end-to-end conversational flow
@@ -163,7 +162,7 @@ Phases execute in numeric order. Note: Phases 4 and 5 can proceed in parallel af
 | 2. Messaging Gateway | 2/2 | Complete | 2026-02-14 |
 | 3. User Management | 2/2 | Complete | 2026-02-14 |
 | 4. Media Server Clients | 3/3 | Complete | 2026-02-14 |
-| 5. Conversation Engine | 0/4 | Not started | - |
+| 5. Conversation Engine | 0/3 | Not started | - |
 | 6. Search and Discovery | 0/3 | Not started | - |
 | 7. Library Management | 0/3 | Not started | - |
 | 8. Status and Notifications | 0/3 | Not started | - |
