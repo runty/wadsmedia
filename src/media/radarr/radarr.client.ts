@@ -20,9 +20,24 @@ export class RadarrClient {
   private readonly baseUrl: string;
   private readonly apiKey: string;
 
+  /** Cached quality profiles, populated by loadCachedData(). */
+  qualityProfiles: QualityProfile[] = [];
+  /** Cached root folders, populated by loadCachedData(). */
+  rootFolders: RootFolder[] = [];
+
   constructor(baseUrl: string, apiKey: string) {
     this.baseUrl = baseUrl;
     this.apiKey = apiKey;
+  }
+
+  /** Fetch quality profiles and root folders and cache them on this instance. */
+  async loadCachedData(): Promise<void> {
+    const [profiles, folders] = await Promise.all([
+      this.getQualityProfiles(),
+      this.getRootFolders(),
+    ]);
+    this.qualityProfiles = profiles;
+    this.rootFolders = folders;
   }
 
   private request<T>(
