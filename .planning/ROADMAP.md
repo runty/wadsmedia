@@ -145,8 +145,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 08-01-PLAN.md -- Download queue tool, system prompt update, and tool registration (STAT-01; STAT-02 already done in Phase 6)
-- [ ] 08-02-PLAN.md -- Proactive notification webhook service with Sonarr/Radarr webhook receivers (STAT-03)
+- [x] 08-01-PLAN.md -- Download queue tool, system prompt update, and tool registration (STAT-01; STAT-02 already done in Phase 6)
+- [x] 08-02-PLAN.md -- Proactive notification webhook service with Sonarr/Radarr webhook receivers (STAT-03)
 
 ## Progress
 
@@ -162,4 +162,4 @@ Phases execute in numeric order. Note: Phases 4 and 5 can proceed in parallel af
 | 5. Conversation Engine | 3/3 | Complete | 2026-02-14 |
 | 6. Search and Discovery | 2/2 | Complete | 2026-02-14 |
 | 7. Library Management | 2/2 | Complete | 2026-02-13 |
-| 8. Status and Notifications | 0/2 | Not started | - |
+| 8. Status and Notifications | 2/2 | Complete | 2026-02-14 |

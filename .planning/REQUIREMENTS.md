@@ -119,9 +119,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LIB-02 | Phase 7 | Done |
 | LIB-03 | Phase 7 | Done |
 | LIB-04 | Phase 7 | Done |
-| STAT-01 | Phase 8 | Pending |
-| STAT-02 | Phase 8 | Pending |
-| STAT-03 | Phase 8 | Pending |
+| STAT-01 | Phase 8 | Done |
+| STAT-02 | Phase 8 | Done |
+| STAT-03 | Phase 8 | Done |
 | CONV-01 | Phase 5 | Done |
 | CONV-02 | Phase 5 | Done |
 | CONV-03 | Phase 5 | Done |
