@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
+import { processConversation } from "../conversation/engine.js";
 import { handleOnboarding } from "../users/onboarding.js";
 
 export default fp(
@@ -43,11 +44,53 @@ export default fp(
           return reply.type("text/xml").send(fastify.messaging.formatEmptyReply());
         }
 
-        // Active users: pass through to normal handling (future phases add conversation logic here)
+        // Active users: respond immediately with empty TwiML, then process async
         if (user.status === "active") {
-          // Phase 3: acknowledge receipt; Phase 5+ adds conversation engine
-          const replyText = `Message received, ${user.displayName || "friend"}. Conversation features coming soon!`;
-          return reply.type("text/xml").send(fastify.messaging.formatReply(replyText));
+          // Respond immediately to Twilio to avoid 15-second timeout
+          reply.type("text/xml").send(fastify.messaging.formatEmptyReply());
+
+          // Process conversation asynchronously (fire-and-forget from Twilio's perspective)
+          // Only if conversation engine is configured
+          if (fastify.llm && fastify.toolRegistry) {
+            processConversation({
+              userId: user.id,
+              userPhone: user.phone,
+              displayName: user.displayName,
+              messageBody: message.body,
+              db: fastify.db,
+              llmClient: fastify.llm,
+              registry: fastify.toolRegistry,
+              sonarr: fastify.sonarr,
+              radarr: fastify.radarr,
+              messaging: fastify.messaging,
+              config: fastify.config,
+              log: request.log,
+            }).catch((err) => {
+              request.log.error({ err }, "Conversation processing failed");
+              fastify.messaging
+                .send({
+                  to: user.phone,
+                  body: "Sorry, something went wrong. Please try again.",
+                  from: fastify.config.TWILIO_PHONE_NUMBER,
+                })
+                .catch((sendErr) => {
+                  request.log.error({ err: sendErr }, "Failed to send error message");
+                });
+            });
+          } else {
+            // LLM not configured -- send a helpful message
+            fastify.messaging
+              .send({
+                to: user.phone,
+                body: "The conversation engine is not configured yet. Please set LLM_API_KEY and LLM_MODEL environment variables.",
+                from: fastify.config.TWILIO_PHONE_NUMBER,
+              })
+              .catch((sendErr) => {
+                request.log.error({ err: sendErr }, "Failed to send config message");
+              });
+          }
+
+          return;
         }
 
         // Non-active users: route through onboarding
