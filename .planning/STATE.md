@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-13)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** Phase 5: Conversation Engine (COMPLETE -- all 3 plans executed)
+**Current focus:** Phase 6: Search & Discovery (Plan 1 of 2 complete)
 
 ## Current Position
 
-Phase: 5 of 8 (Conversation Engine)
-Plan: 3 of 3 in current phase
-Status: Phase Complete
-Last activity: 2026-02-14 -- Plan 05-03 complete (conversation engine integration)
+Phase: 6 of 8 (Search & Discovery)
+Plan: 1 of 2 in current phase
+Status: In Progress
+Last activity: 2026-02-14 -- Plan 06-01 complete (search & discovery tool definitions)
 
-Progress: [██████░░░░] 68%
+Progress: [███████░░░] 73%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: 3min
-- Total execution time: 0.65 hours
+- Total execution time: 0.68 hours
 
 **By Phase:**
 
@@ -32,9 +32,10 @@ Progress: [██████░░░░] 68%
 | 03-user-management | 2 | 4min | 2min |
 | 04-media-server-clients | 3 | 5min | 2min |
 | 05-conversation-engine | 3 | 9min | 3min |
+| 06-search-and-discovery | 1 | 2min | 2min |
 
 **Recent Trend:**
-- Last 5 plans: 04-02 (1min), 04-03 (1min), 05-01 (3min), 05-02 (3min), 05-03 (3min)
+- Last 5 plans: 04-03 (1min), 05-01 (3min), 05-02 (3min), 05-03 (3min), 06-01 (2min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -88,6 +89,9 @@ Recent decisions affecting current work:
 - [05-03]: Conversation plugin uses same graceful-skip pattern as sonarr/radarr when LLM unconfigured
 - [05-03]: Pending action upsert via onConflictDoUpdate on userId unique constraint (one per user)
 - [05-03]: Unrelated messages clear stale pending actions and fall through to normal LLM processing
+- [06-01]: Used .optional() instead of .default() for days parameter to avoid JSON Schema ambiguity with LLM providers
+- [06-01]: Series title resolution via separate getSeries() Map lookup rather than relying on includeSeries passthrough
+- [06-01]: Overview truncation at 150 chars for search tools, 100 chars for upcoming movies
 
 ### Pending Todos
 
@@ -101,5 +105,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Completed 05-03-PLAN.md (conversation engine integration) -- Phase 5 complete, ready for Phase 6 (search tools)
+Stopped at: Completed 06-01-PLAN.md (search & discovery tool definitions) -- ready for Plan 06-02 (tool registration)
 Resume file: None
