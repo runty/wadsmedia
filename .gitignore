@@ -1,6 +1,6 @@
 node_modules/
 dist/
-drizzle/
+# drizzle/ migrations are tracked -- needed for runtime migrate()
 *.db
 *.db-wal
 *.db-shm
