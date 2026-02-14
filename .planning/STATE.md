@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-13)
 
 ## Current Position
 
-Phase: 3 of 8 (User Management) -- COMPLETE
-Plan: 2 of 2 in current phase
-Status: Phase Complete
-Last activity: 2026-02-14 -- Plan 03-02 complete (onboarding flow and webhook integration)
+Phase: 4 of 8 (Media Server Clients)
+Plan: 1 of 3 in current phase
+Status: In Progress
+Last activity: 2026-02-14 -- Plan 04-01 complete (Sonarr client with shared HTTP utility)
 
-Progress: [████░░░░░░] 38%
+Progress: [████░░░░░░] 42%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: 3min
-- Total execution time: 0.35 hours
+- Total execution time: 0.4 hours
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: [████░░░░░░] 38%
 | 01-foundation | 3 | 12min | 4min |
 | 02-messaging-gateway | 2 | 4min | 2min |
 | 03-user-management | 2 | 4min | 2min |
+| 04-media-server-clients | 1 | 3min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (5min), 02-01 (2min), 02-02 (2min), 03-01 (2min), 03-02 (2min)
+- Last 5 plans: 02-01 (2min), 02-02 (2min), 03-01 (2min), 03-02 (2min), 04-01 (3min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -66,6 +67,9 @@ Recent decisions affecting current work:
 - [03-02]: displayName null/empty/non-empty used as onboarding state sentinel values (no extra DB columns needed)
 - [03-02]: ADMIN_PHONE made required in config (breaking change, acceptable pre-release) for admin notification guarantee
 - [03-02]: Active users get placeholder acknowledgment; conversation logic deferred to Phase 5
+- [04-01]: SeriesSchema aliased to SeriesLookupSchema (identical shape, id becomes non-zero after POST)
+- [04-01]: 30s timeout for search operations (proxies to TheTVDB), 10s default for CRUD
+- [04-01]: Separate apiRequestVoid for DELETE operations avoids awkward schema parameter on void responses
 
 ### Pending Todos
 
@@ -74,10 +78,10 @@ None yet.
 ### Blockers/Concerns
 
 - Phase 5: LLM provider compatibility (strict function calling mode) needs verification across OpenAI, Anthropic, Ollama during implementation
-- Phase 4: Sonarr/Radarr API version (v3 vs v4) needs live verification during implementation
+- Phase 4: Sonarr/Radarr API version resolved -- both use /api/v3/ regardless of application version (confirmed in research)
 
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Phase 3 complete, ready to plan Phase 4 (Media Server Clients)
+Stopped at: Completed 04-01-PLAN.md (Sonarr client), ready for 04-02-PLAN.md (Radarr client)
 Resume file: None
