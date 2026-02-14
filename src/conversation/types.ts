@@ -1,10 +1,11 @@
 import type {
+  ChatCompletionFunctionTool,
   ChatCompletionMessageParam,
   ChatCompletionTool,
 } from "openai/resources/chat/completions";
 
 // Re-export OpenAI message type for convenience
-export type { ChatCompletionMessageParam, ChatCompletionTool };
+export type { ChatCompletionFunctionTool, ChatCompletionMessageParam, ChatCompletionTool };
 
 // Stored message shape (maps to messages table row)
 export interface ChatMessage {
@@ -23,7 +24,7 @@ export type ConfirmationTier = "safe" | "destructive";
 
 // Tool definition with metadata for registry
 export interface ToolDefinition {
-  definition: ChatCompletionTool;
+  definition: ChatCompletionFunctionTool;
   tier: ConfirmationTier;
   paramSchema: unknown; // Zod schema for argument validation
   execute: (args: unknown, context: ToolContext) => Promise<unknown>;
