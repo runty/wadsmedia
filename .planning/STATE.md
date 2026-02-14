@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-02-13)
 ## Current Position
 
 Phase: 4 of 8 (Media Server Clients)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In Progress
-Last activity: 2026-02-14 -- Plan 04-01 complete (Sonarr client with shared HTTP utility)
+Last activity: 2026-02-14 -- Plan 04-02 complete (Radarr client with 9 API methods)
 
-Progress: [████░░░░░░] 42%
+Progress: [█████░░░░░] 47%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 9
 - Average duration: 3min
 - Total execution time: 0.4 hours
 
@@ -30,10 +30,10 @@ Progress: [████░░░░░░] 42%
 | 01-foundation | 3 | 12min | 4min |
 | 02-messaging-gateway | 2 | 4min | 2min |
 | 03-user-management | 2 | 4min | 2min |
-| 04-media-server-clients | 1 | 3min | 3min |
+| 04-media-server-clients | 2 | 4min | 2min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (2min), 02-02 (2min), 03-01 (2min), 03-02 (2min), 04-01 (3min)
+- Last 5 plans: 02-02 (2min), 03-01 (2min), 03-02 (2min), 04-01 (3min), 04-02 (1min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -70,6 +70,9 @@ Recent decisions affecting current work:
 - [04-01]: SeriesSchema aliased to SeriesLookupSchema (identical shape, id becomes non-zero after POST)
 - [04-01]: 30s timeout for search operations (proxies to TheTVDB), 10s default for CRUD
 - [04-01]: Separate apiRequestVoid for DELETE operations avoids awkward schema parameter on void responses
+- [04-02]: MovieLookupSchema reused for Movie alias (identical shape, id non-zero after POST) -- same pattern as Sonarr
+- [04-02]: 30s timeout for searchMovies/lookupByTmdbId (proxies to TMDB), 10s default for CRUD
+- [04-02]: Radarr uses addImportExclusion (not addImportListExclusion like Sonarr) per API docs
 
 ### Pending Todos
 
@@ -83,5 +86,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Completed 04-01-PLAN.md (Sonarr client), ready for 04-02-PLAN.md (Radarr client)
+Stopped at: Completed 04-02-PLAN.md (Radarr client), ready for 04-03-PLAN.md (Fastify plugins)
 Resume file: None
