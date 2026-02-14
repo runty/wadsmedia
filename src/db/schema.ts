@@ -25,3 +25,35 @@ export const users = sqliteTable("users", {
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+// Phase 5: Conversation message history
+export const messages = sqliteTable("messages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  role: text("role", { enum: ["user", "assistant", "tool", "system"] }).notNull(),
+  content: text("content"),
+  toolCalls: text("tool_calls"),
+  toolCallId: text("tool_call_id"),
+  name: text("name"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// Phase 5: Pending destructive actions awaiting user confirmation
+export const pendingActions = sqliteTable("pending_actions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id)
+    .unique(),
+  functionName: text("function_name").notNull(),
+  arguments: text("arguments").notNull(),
+  promptText: text("prompt_text").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+});

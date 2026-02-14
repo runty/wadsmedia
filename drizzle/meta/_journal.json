@@ -15,6 +15,13 @@
       "when": 1771036243699,
       "tag": "0001_remarkable_tomas",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1771040312099,
+      "tag": "0002_perpetual_mentor",
+      "breakpoints": true
     }
   ]
 }
