@@ -20,12 +20,12 @@ export const SeriesLookupSchema = z
     title: z.string(),
     sortTitle: z.string(),
     status: z.string(),
-    overview: z.string().nullable(),
-    network: z.string().nullable(),
+    overview: z.string().nullable().optional(),
+    network: z.string().nullable().optional(),
     year: z.number(),
     runtime: z.number(),
     tvdbId: z.number(),
-    imdbId: z.string().nullable(),
+    imdbId: z.string().nullable().optional(),
     tvMazeId: z.number().optional(),
     titleSlug: z.string(),
     images: z.array(ImageSchema),
@@ -35,16 +35,17 @@ export const SeriesLookupSchema = z
     firstAired: z.string().nullable().optional(),
     added: z.string().optional(),
     ratings: z.object({}).passthrough().optional(),
-    id: z.number(),
+    id: z.number().optional(),
   })
   .passthrough();
 
 /**
- * SeriesSchema is an alias for SeriesLookupSchema.
- * After POST, the id field will be non-zero. The schema is identical
- * since .passthrough() tolerates any additional fields.
+ * SeriesSchema is for library data where id is always present.
+ * SeriesLookupSchema is for search results where id may be absent.
  */
-export const SeriesSchema = SeriesLookupSchema;
+export const SeriesSchema = SeriesLookupSchema.extend({
+  id: z.number(),
+});
 
 export const QualityProfileSchema = z
   .object({

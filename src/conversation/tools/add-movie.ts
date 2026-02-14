@@ -15,7 +15,7 @@ export const addMovieTool = defineTool(
 
     const movie = await context.radarr.lookupByTmdbId(args.tmdbId);
 
-    if (movie.id > 0) {
+    if (movie.id && movie.id > 0) {
       return {
         alreadyInLibrary: true,
         title: movie.title,

@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import type {
   MovieLookupSchema,
+  MovieSchema,
   QualityProfileSchema,
   QueuePageSchema,
   QueueRecordSchema,
@@ -9,8 +10,8 @@ import type {
 
 export type MovieLookupResult = z.infer<typeof MovieLookupSchema>;
 
-/** Alias for MovieLookupResult -- identical schema, id is non-zero after add. */
-export type Movie = MovieLookupResult;
+/** Movie in library -- id is always present. */
+export type Movie = z.infer<typeof MovieSchema>;
 
 export type QualityProfile = z.infer<typeof QualityProfileSchema>;
 export type RootFolder = z.infer<typeof RootFolderSchema>;

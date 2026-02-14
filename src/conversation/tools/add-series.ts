@@ -20,7 +20,7 @@ export const addSeriesTool = defineTool(
       return { error: "Could not find series with that TVDB ID" };
     }
 
-    if (series.id > 0) {
+    if (series.id && series.id > 0) {
       return {
         alreadyInLibrary: true,
         title: series.title,

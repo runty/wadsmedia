@@ -6,12 +6,13 @@ import type {
   QueueRecordSchema,
   RootFolderSchema,
   SeriesLookupSchema,
+  SeriesSchema,
 } from "./sonarr.schemas.js";
 
 export type SeriesLookupResult = z.infer<typeof SeriesLookupSchema>;
 
-/** Alias for SeriesLookupResult -- identical schema, id is non-zero after add. */
-export type Series = SeriesLookupResult;
+/** Series in library -- id is always present. */
+export type Series = z.infer<typeof SeriesSchema>;
 
 export type QualityProfile = z.infer<typeof QualityProfileSchema>;
 export type RootFolder = z.infer<typeof RootFolderSchema>;

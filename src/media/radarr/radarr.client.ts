@@ -3,6 +3,7 @@ import type { HttpRequestOptions } from "../http.js";
 import { apiRequest, apiRequestVoid } from "../http.js";
 import {
   MovieLookupSchema,
+  MovieSchema,
   QualityProfileSchema,
   QueuePageSchema,
   RootFolderSchema,
@@ -86,12 +87,12 @@ export class RadarrClient {
 
   /** Get all movies currently in Radarr. */
   async getMovies(): Promise<Movie[]> {
-    return this.request("movie", z.array(MovieLookupSchema));
+    return this.request("movie", z.array(MovieSchema));
   }
 
   /** Add a movie to Radarr. */
   async addMovie(input: AddMovieInput): Promise<Movie> {
-    return this.request("movie", MovieLookupSchema, {
+    return this.request("movie", MovieSchema, {
       method: "POST",
       body: input,
     });
@@ -117,7 +118,7 @@ export class RadarrClient {
 
   /** Get upcoming movies for a date range. */
   async getUpcoming(start: string, end: string): Promise<Movie[]> {
-    return this.request("calendar", z.array(MovieLookupSchema), {
+    return this.request("calendar", z.array(MovieSchema), {
       query: { start, end, unmonitored: false },
     });
   }

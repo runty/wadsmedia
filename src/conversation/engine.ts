@@ -177,11 +177,13 @@ export async function processConversation(params: ProcessConversationParams): Pr
     }
 
     // Send the reply to the user
+    log.info({ replyLength: result.reply.length }, "Sending reply via messaging");
     await messaging.send({
       to: userPhone,
       body: result.reply,
       from: config.TWILIO_PHONE_NUMBER,
     });
+    log.info("Reply sent");
   } catch (err) {
     log.error({ err, userId }, "Conversation processing error");
 

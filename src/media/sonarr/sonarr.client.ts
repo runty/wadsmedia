@@ -7,6 +7,7 @@ import {
   QueuePageSchema,
   RootFolderSchema,
   SeriesLookupSchema,
+  SeriesSchema,
 } from "./sonarr.schemas.js";
 import type {
   AddSeriesInput,
@@ -80,12 +81,12 @@ export class SonarrClient {
 
   /** Get all series currently in Sonarr. */
   async getSeries(): Promise<Series[]> {
-    return this.request("series", z.array(SeriesLookupSchema));
+    return this.request("series", z.array(SeriesSchema));
   }
 
   /** Add a series to Sonarr. */
   async addSeries(input: AddSeriesInput): Promise<Series> {
-    return this.request("series", SeriesLookupSchema, {
+    return this.request("series", SeriesSchema, {
       method: "POST",
       body: input,
     });

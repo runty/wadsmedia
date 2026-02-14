@@ -14,11 +14,11 @@ export const MovieLookupSchema = z
     originalTitle: z.string().optional(),
     sortTitle: z.string(),
     status: z.string(),
-    overview: z.string().nullable(),
+    overview: z.string().nullable().optional(),
     year: z.number(),
     runtime: z.number(),
     tmdbId: z.number(),
-    imdbId: z.string().nullable(),
+    imdbId: z.string().nullable().optional(),
     titleSlug: z.string(),
     cleanTitle: z.string().optional(),
     images: z.array(ImageSchema),
@@ -30,9 +30,17 @@ export const MovieLookupSchema = z
     inCinemas: z.string().nullable().optional(),
     physicalRelease: z.string().nullable().optional(),
     digitalRelease: z.string().nullable().optional(),
-    id: z.number(),
+    id: z.number().optional(),
   })
   .passthrough();
+
+/**
+ * MovieSchema is for library data where id is always present.
+ * MovieLookupSchema is for search results where id may be absent.
+ */
+export const MovieSchema = MovieLookupSchema.extend({
+  id: z.number(),
+});
 
 export const QualityProfileSchema = z
   .object({

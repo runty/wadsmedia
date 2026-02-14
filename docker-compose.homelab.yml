@@ -7,7 +7,7 @@ services:
     volumes:
       - wadsmedia-data:/data
     env_file:
-      - .env
+      - ${ENV_FILE:-.env}
     environment:
       NODE_ENV: production
       DATABASE_PATH: /data/wadsmedia.db

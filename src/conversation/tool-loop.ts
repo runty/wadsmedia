@@ -26,11 +26,13 @@ export async function toolCallLoop(params: ToolCallLoopParams): Promise<ToolCall
   const tools = registry.getDefinitions();
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
+    log.info({ iteration, messageCount: messages.length }, "Calling LLM");
     const response = await client.chat.completions.create({
       model,
       messages,
       tools,
     });
+    log.info({ iteration, finishReason: response.choices[0]?.finish_reason }, "LLM responded");
 
     const choice = response.choices[0];
     if (!choice) {
