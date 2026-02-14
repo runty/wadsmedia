@@ -33,9 +33,7 @@ export class ValidationError extends Error {
   readonly zodError: z.ZodError;
 
   constructor(endpoint: string, zodError: z.ZodError) {
-    super(
-      `Unexpected response from ${endpoint}: ${zodError.message}`,
-    );
+    super(`Unexpected response from ${endpoint}: ${zodError.message}`);
     this.name = "ValidationError";
     this.endpoint = endpoint;
     this.zodError = zodError;

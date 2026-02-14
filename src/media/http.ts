@@ -1,9 +1,5 @@
 import type { z } from "zod";
-import {
-  ConnectionError,
-  MediaServerError,
-  ValidationError,
-} from "./errors.js";
+import { ConnectionError, MediaServerError, ValidationError } from "./errors.js";
 
 export interface HttpRequestOptions {
   baseUrl: string;
@@ -22,19 +18,8 @@ export interface HttpRequestOptions {
  * - Uses `AbortSignal.timeout()` for request timeouts
  * - Classifies errors into ConnectionError, MediaServerError, or ValidationError
  */
-export async function apiRequest<T>(
-  options: HttpRequestOptions,
-  schema: z.ZodType<T>,
-): Promise<T> {
-  const {
-    baseUrl,
-    apiKey,
-    path,
-    method = "GET",
-    body,
-    query,
-    timeoutMs = 10_000,
-  } = options;
+export async function apiRequest<T>(options: HttpRequestOptions, schema: z.ZodType<T>): Promise<T> {
+  const { baseUrl, apiKey, path, method = "GET", body, query, timeoutMs = 10_000 } = options;
 
   const url = new URL(`/api/v3/${path}`, baseUrl);
   if (query) {
@@ -57,17 +42,13 @@ export async function apiRequest<T>(
     });
   } catch (err: unknown) {
     const hostname = new URL(baseUrl).hostname;
-    if (
-      err instanceof TypeError
-    ) {
+    if (err instanceof TypeError) {
       throw new ConnectionError(
         `${hostname} is unreachable. Check that the server is running and the URL is correct.`,
       );
     }
     if (err instanceof DOMException && err.name === "TimeoutError") {
-      throw new ConnectionError(
-        `${hostname} did not respond within the timeout period.`,
-      );
+      throw new ConnectionError(`${hostname} did not respond within the timeout period.`);
     }
     throw err;
   }
@@ -94,18 +75,8 @@ export async function apiRequest<T>(
  * Does not parse the response body. Still checks response.ok and throws
  * MediaServerError on non-2xx responses.
  */
-export async function apiRequestVoid(
-  options: HttpRequestOptions,
-): Promise<void> {
-  const {
-    baseUrl,
-    apiKey,
-    path,
-    method = "DELETE",
-    body,
-    query,
-    timeoutMs = 10_000,
-  } = options;
+export async function apiRequestVoid(options: HttpRequestOptions): Promise<void> {
+  const { baseUrl, apiKey, path, method = "DELETE", body, query, timeoutMs = 10_000 } = options;
 
   const url = new URL(`/api/v3/${path}`, baseUrl);
   if (query) {
@@ -128,17 +99,13 @@ export async function apiRequestVoid(
     });
   } catch (err: unknown) {
     const hostname = new URL(baseUrl).hostname;
-    if (
-      err instanceof TypeError
-    ) {
+    if (err instanceof TypeError) {
       throw new ConnectionError(
         `${hostname} is unreachable. Check that the server is running and the URL is correct.`,
       );
     }
     if (err instanceof DOMException && err.name === "TimeoutError") {
-      throw new ConnectionError(
-        `${hostname} did not respond within the timeout period.`,
-      );
+      throw new ConnectionError(`${hostname} did not respond within the timeout period.`);
     }
     throw err;
   }
