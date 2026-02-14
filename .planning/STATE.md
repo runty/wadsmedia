@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-13)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** Phase 5: Conversation Engine (Phase 4 complete)
+**Current focus:** Phase 5: Conversation Engine (Plan 01 complete, Plans 02-03 remaining)
 
 ## Current Position
 
-Phase: 4 of 8 (Media Server Clients) -- COMPLETE
-Plan: 3 of 3 in current phase (all complete)
-Status: Phase Complete
-Last activity: 2026-02-14 -- Plan 04-03 complete (Fastify plugins for Sonarr and Radarr)
+Phase: 5 of 8 (Conversation Engine)
+Plan: 1 of 3 in current phase
+Status: In Progress
+Last activity: 2026-02-14 -- Plan 05-01 complete (conversation data layer, LLM client, history)
 
-Progress: [██████░░░░] 53%
+Progress: [██████░░░░] 58%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
+- Total plans completed: 11
 - Average duration: 3min
-- Total execution time: 0.4 hours
+- Total execution time: 0.5 hours
 
 **By Phase:**
 
@@ -31,9 +31,10 @@ Progress: [██████░░░░] 53%
 | 02-messaging-gateway | 2 | 4min | 2min |
 | 03-user-management | 2 | 4min | 2min |
 | 04-media-server-clients | 3 | 5min | 2min |
+| 05-conversation-engine | 1 | 3min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (2min), 03-02 (2min), 04-01 (3min), 04-02 (1min), 04-03 (1min)
+- Last 5 plans: 03-02 (2min), 04-01 (3min), 04-02 (1min), 04-03 (1min), 05-01 (3min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -76,6 +77,9 @@ Recent decisions affecting current work:
 - [04-03]: Optional decorator type (sonarr?: SonarrClient) so downstream code must null-check before use
 - [04-03]: Unreachable server on startup still registers client in degraded mode (empty cache, methods still callable)
 - [04-03]: Plugin depends on database plugin for consistent infrastructure ordering
+- [05-01]: OpenAI SDK used directly (no wrapper class) -- factory function returns raw OpenAI client
+- [05-01]: Sliding window works backward from most recent messages, pulling in full tool call groups atomically
+- [05-01]: getHistory fetches all rows then slices last N (simple for SQLite scale, avoids subquery complexity)
 
 ### Pending Todos
 
@@ -89,5 +93,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Completed 04-03-PLAN.md (Fastify plugins) -- Phase 4 complete, ready for Phase 5
+Stopped at: Completed 05-01-PLAN.md (conversation data layer) -- ready for 05-02 (tool call loop)
 Resume file: None
