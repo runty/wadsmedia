@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Project scaffolding, Docker container, database, config, logging, and health check
 - [x] **Phase 2: Messaging Gateway** - Twilio adapter with webhook receiving, signature validation, and outbound messaging
-- [ ] **Phase 3: User Management** - Phone whitelist authorization, admin designation, unknown user onboarding, and conversation isolation
+- [x] **Phase 3: User Management** - Phone whitelist authorization, admin designation, unknown user onboarding, and conversation isolation
 - [ ] **Phase 4: Media Server Clients** - Typed Sonarr and Radarr API wrappers with caching and graceful error handling
 - [ ] **Phase 5: Conversation Engine** - LLM integration with tool calling framework, conversation history, and confirmation system
 - [ ] **Phase 6: Search and Discovery** - Message router and LLM tools for searching movies/shows, ambiguity resolution, and schedule viewing
@@ -68,8 +68,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- Users table schema, user service module, and user-resolver Fastify plugin with startup seeding
-- [ ] 03-02-PLAN.md -- Onboarding state machine and webhook handler wiring for user routing
+- [x] 03-01-PLAN.md -- Users table schema, user service module, and user-resolver Fastify plugin with startup seeding
+- [x] 03-02-PLAN.md -- Onboarding state machine and webhook handler wiring for user routing
 
 ### Phase 4: Media Server Clients
 **Goal**: The application can communicate with Sonarr and Radarr APIs to search, add, remove, and query media with validated, typed responses
@@ -161,7 +161,7 @@ Phases execute in numeric order. Note: Phases 4 and 5 can proceed in parallel af
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2026-02-14 |
 | 2. Messaging Gateway | 2/2 | Complete | 2026-02-14 |
-| 3. User Management | 0/2 | Not started | - |
+| 3. User Management | 2/2 | Complete | 2026-02-14 |
 | 4. Media Server Clients | 0/3 | Not started | - |
 | 5. Conversation Engine | 0/4 | Not started | - |
 | 6. Search and Discovery | 0/3 | Not started | - |

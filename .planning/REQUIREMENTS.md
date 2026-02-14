@@ -37,11 +37,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### User Management
 
-- [ ] **USER-01**: Admin user designated via environment variable
-- [ ] **USER-02**: Known users identified by phone number whitelist
-- [ ] **USER-03**: Unknown numbers prompted for their name, then admin texted for approval
-- [ ] **USER-04**: Each user has a display name stored with their profile
-- [ ] **USER-05**: Per-user conversation isolation (users only see their own history)
+- [x] **USER-01**: Admin user designated via environment variable
+- [x] **USER-02**: Known users identified by phone number whitelist
+- [x] **USER-03**: Unknown numbers prompted for their name, then admin texted for approval
+- [x] **USER-04**: Each user has a display name stored with their profile
+- [x] **USER-05**: Per-user conversation isolation (users only see their own history)
 
 ### Messaging
 
@@ -126,11 +126,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONV-02 | Phase 5 | Pending |
 | CONV-03 | Phase 5 | Pending |
 | CONV-04 | Phase 5 | Pending |
-| USER-01 | Phase 3 | Pending |
-| USER-02 | Phase 3 | Pending |
-| USER-03 | Phase 3 | Pending |
-| USER-04 | Phase 3 | Pending |
-| USER-05 | Phase 3 | Pending |
+| USER-01 | Phase 3 | Done |
+| USER-02 | Phase 3 | Done |
+| USER-03 | Phase 3 | Done |
+| USER-04 | Phase 3 | Done |
+| USER-05 | Phase 3 | Done |
 | MSG-01 | Phase 2 | Done |
 | MSG-02 | Phase 2 | Done |
 | MSG-03 | Phase 2 | Done |
