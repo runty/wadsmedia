@@ -131,8 +131,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md -- Add/remove tool definitions, search tool libraryId extension, and barrel index
-- [ ] 07-02-PLAN.md -- System prompt library management guidance and tool registration in conversation plugin
+- [x] 07-01-PLAN.md -- Add/remove tool definitions, search tool libraryId extension, and barrel index
+- [x] 07-02-PLAN.md -- System prompt library management guidance and tool registration in conversation plugin
 
 ### Phase 8: Status and Notifications
 **Goal**: Users can check on their downloads and receive proactive notifications when media events occur, completing the full media management experience
@@ -162,5 +162,5 @@ Phases execute in numeric order. Note: Phases 4 and 5 can proceed in parallel af
 | 4. Media Server Clients | 3/3 | Complete | 2026-02-14 |
 | 5. Conversation Engine | 3/3 | Complete | 2026-02-14 |
 | 6. Search and Discovery | 2/2 | Complete | 2026-02-14 |
-| 7. Library Management | 0/2 | Not started | - |
+| 7. Library Management | 2/2 | Complete | 2026-02-13 |
 | 8. Status and Notifications | 0/3 | Not started | - |

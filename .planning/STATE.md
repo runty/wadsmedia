@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-02-13)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** Phase 7: Library Management
+**Current focus:** Phase 8: Status and Notifications
 
 ## Current Position
 

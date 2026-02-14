@@ -115,10 +115,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SRCH-03 | Phase 6 | Done |
 | SRCH-04 | Phase 6 | Done |
 | SRCH-05 | Phase 6 | Done |
-| LIB-01 | Phase 7 | Pending |
-| LIB-02 | Phase 7 | Pending |
-| LIB-03 | Phase 7 | Pending |
-| LIB-04 | Phase 7 | Pending |
+| LIB-01 | Phase 7 | Done |
+| LIB-02 | Phase 7 | Done |
+| LIB-03 | Phase 7 | Done |
+| LIB-04 | Phase 7 | Done |
 | STAT-01 | Phase 8 | Pending |
 | STAT-02 | Phase 8 | Pending |
 | STAT-03 | Phase 8 | Pending |
