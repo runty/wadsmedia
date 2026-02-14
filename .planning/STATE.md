@@ -5,14 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-14)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** v2.0 Smart Discovery & Admin -- defining requirements
+**Current focus:** Phase 9 -- TMDB Discovery + Library Routing
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: --
-Status: Defining requirements
-Last activity: 2026-02-14 -- Milestone v2.0 started
+Phase: 9 of 13 (TMDB Discovery + Library Routing)
+Plan: 0 of 3 in current phase
+Status: Ready to plan
+Last activity: 2026-02-14 -- v2.0 roadmap created
+
+Progress: [####################..........] 19/30 plans (v1.0 complete, v2.0 starting)
 
 ## Performance Metrics
 
@@ -39,17 +41,24 @@ Last activity: 2026-02-14 -- Milestone v2.0 started
 ### Decisions
 
 Decisions archived in PROJECT.md Key Decisions table.
+Recent decisions affecting v2.0:
+
+- Tool consolidation: keep total LLM tool count under 15 (enhance existing tools, do not proliferate)
+- Zero-dependency API clients: TMDB/Plex/Tautulli via native fetch() following existing apiRequest pattern
+- Permission enforcement at execution layer, not system prompt
+- RCS brand onboarding: start early (4-6 week approval timeline)
 
 ### Pending Todos
 
-None.
+- Start RCS brand onboarding with Twilio as early as possible (blocks Phase 13 sending)
 
 ### Blockers/Concerns
 
-None.
+- Plex API docs are sparse; community resources are MEDIUM confidence (plan verification step in Phase 11)
+- RCS brand approval for homelab projects is uncertain; SMS/MMS fallback is functional alternative
 
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: v2.0 milestone started, defining requirements
+Stopped at: v2.0 roadmap created, ready to plan Phase 9
 Resume file: None

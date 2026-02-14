@@ -79,32 +79,32 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DISC-01 | Pending | Pending |
-| DISC-02 | Pending | Pending |
-| DISC-03 | Pending | Pending |
-| PLEX-01 | Pending | Pending |
-| PLEX-02 | Pending | Pending |
-| PLEX-03 | Pending | Pending |
-| PLEX-04 | Pending | Pending |
-| ADMN-01 | Pending | Pending |
-| ADMN-02 | Pending | Pending |
-| ADMN-03 | Pending | Pending |
-| ADMN-04 | Pending | Pending |
-| ADMN-05 | Pending | Pending |
-| ADMN-06 | Pending | Pending |
-| ROUT-01 | Pending | Pending |
-| ROUT-02 | Pending | Pending |
-| ROUT-03 | Pending | Pending |
-| ROUT-04 | Pending | Pending |
-| MSG-01 | Pending | Pending |
-| MSG-02 | Pending | Pending |
-| MSG-03 | Pending | Pending |
+| DISC-01 | Phase 9 | Pending |
+| DISC-02 | Phase 9 | Pending |
+| DISC-03 | Phase 9 | Pending |
+| PLEX-01 | Phase 11 | Pending |
+| PLEX-02 | Phase 11 | Pending |
+| PLEX-03 | Phase 11 | Pending |
+| PLEX-04 | Phase 12 | Pending |
+| ADMN-01 | Phase 10 | Pending |
+| ADMN-02 | Phase 10 | Pending |
+| ADMN-03 | Phase 10 | Pending |
+| ADMN-04 | Phase 12 | Pending |
+| ADMN-05 | Phase 12 | Pending |
+| ADMN-06 | Phase 12 | Pending |
+| ROUT-01 | Phase 9 | Pending |
+| ROUT-02 | Phase 9 | Pending |
+| ROUT-03 | Phase 9 | Pending |
+| ROUT-04 | Phase 9 | Pending |
+| MSG-01 | Phase 13 | Pending |
+| MSG-02 | Phase 13 | Pending |
+| MSG-03 | Phase 13 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20 (pending roadmap creation)
+- Mapped to phases: 20
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-14 after initial definition*
+*Last updated: 2026-02-14 after roadmap creation*
