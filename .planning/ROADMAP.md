@@ -16,8 +16,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Messaging Gateway** - Twilio adapter with webhook receiving, signature validation, and outbound messaging
 - [x] **Phase 3: User Management** - Phone whitelist authorization, admin designation, unknown user onboarding, and conversation isolation
 - [x] **Phase 4: Media Server Clients** - Typed Sonarr and Radarr API wrappers with caching and graceful error handling
-- [ ] **Phase 5: Conversation Engine** - LLM integration with tool calling framework, conversation history, and confirmation system
-- [ ] **Phase 6: Search and Discovery** - Message router and LLM tools for searching movies/shows, ambiguity resolution, and schedule viewing
+- [x] **Phase 5: Conversation Engine** - LLM integration with tool calling framework, conversation history, and confirmation system
+- [ ] **Phase 6: Search and Discovery** - LLM tools for searching movies/shows, library cross-referencing, ambiguity resolution, and schedule viewing
 - [ ] **Phase 7: Library Management** - LLM tools for adding, removing, and managing media with conversational context
 - [ ] **Phase 8: Status and Notifications** - Download status checking and proactive event notifications
 
@@ -99,9 +99,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- Database schema, LLM client, conversation history with sliding window, and system prompt
-- [ ] 05-02-PLAN.md -- Tool registry with Zod-to-JSON-Schema and tool call loop with confirmation interception
-- [ ] 05-03-PLAN.md -- Confirmation tier, conversation engine orchestrator, Fastify plugin, and webhook integration
+- [x] 05-01-PLAN.md -- Database schema, LLM client, conversation history with sliding window, and system prompt
+- [x] 05-02-PLAN.md -- Tool registry with Zod-to-JSON-Schema and tool call loop with confirmation interception
+- [x] 05-03-PLAN.md -- Confirmation tier, conversation engine orchestrator, Fastify plugin, and webhook integration
 
 ### Phase 6: Search and Discovery
 **Goal**: Users can text the app to search for movies and shows, see if media is already in their library, handle ambiguous results, and check upcoming schedules -- the first complete end-to-end conversational flow
@@ -113,12 +113,11 @@ Plans:
   3. Search results indicate whether media is already in the user's library
   4. When search returns a single strong match, the app auto-selects it; when results are ambiguous, the app presents options and asks the user to choose
   5. User can ask about upcoming air dates and receives a schedule of upcoming episodes and movie releases
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 06-01: Message router and end-to-end pipeline
-- [ ] 06-02: Search tools (movie and TV show)
-- [ ] 06-03: Ambiguity resolution and schedule tools
+- [ ] 06-01-PLAN.md -- Search and schedule tool definitions (search_movies, search_series, get_upcoming_episodes, get_upcoming_movies)
+- [ ] 06-02-PLAN.md -- System prompt update with search/ambiguity guidance and tool registration in conversation plugin
 
 ### Phase 7: Library Management
 **Goal**: Users can add and remove media from their libraries through natural conversation, including referencing previous search results
@@ -163,6 +162,6 @@ Phases execute in numeric order. Note: Phases 4 and 5 can proceed in parallel af
 | 3. User Management | 2/2 | Complete | 2026-02-14 |
 | 4. Media Server Clients | 3/3 | Complete | 2026-02-14 |
 | 5. Conversation Engine | 3/3 | Complete | 2026-02-14 |
-| 6. Search and Discovery | 0/3 | Not started | - |
+| 6. Search and Discovery | 0/2 | Not started | - |
 | 7. Library Management | 0/3 | Not started | - |
 | 8. Status and Notifications | 0/3 | Not started | - |
