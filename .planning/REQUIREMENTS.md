@@ -45,10 +45,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Messaging
 
-- [ ] **MSG-01**: Modular messaging provider interface with Twilio RCS/SMS as initial implementation
-- [ ] **MSG-02**: Incoming messages received via webhook with signature validation
-- [ ] **MSG-03**: Outgoing messages sent via provider API
-- [ ] **MSG-04**: Responses designed text-first (readable as plain SMS with RCS enhancement)
+- [x] **MSG-01**: Modular messaging provider interface with Twilio RCS/SMS as initial implementation
+- [x] **MSG-02**: Incoming messages received via webhook with signature validation
+- [x] **MSG-03**: Outgoing messages sent via provider API
+- [x] **MSG-04**: Responses designed text-first (readable as plain SMS with RCS enhancement)
 
 ### Media Server Integration
 
@@ -131,10 +131,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | USER-03 | Phase 3 | Pending |
 | USER-04 | Phase 3 | Pending |
 | USER-05 | Phase 3 | Pending |
-| MSG-01 | Phase 2 | Pending |
-| MSG-02 | Phase 2 | Pending |
-| MSG-03 | Phase 2 | Pending |
-| MSG-04 | Phase 2 | Pending |
+| MSG-01 | Phase 2 | Done |
+| MSG-02 | Phase 2 | Done |
+| MSG-03 | Phase 2 | Done |
+| MSG-04 | Phase 2 | Done |
 | API-01 | Phase 4 | Pending |
 | API-02 | Phase 4 | Pending |
 | API-03 | Phase 4 | Pending |

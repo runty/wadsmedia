@@ -13,7 +13,7 @@ WadsMedia delivers a conversational gateway from natural language messaging to S
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Project scaffolding, Docker container, database, config, logging, and health check
-- [ ] **Phase 2: Messaging Gateway** - Twilio adapter with webhook receiving, signature validation, and outbound messaging
+- [x] **Phase 2: Messaging Gateway** - Twilio adapter with webhook receiving, signature validation, and outbound messaging
 - [ ] **Phase 3: User Management** - Phone whitelist authorization, admin designation, unknown user onboarding, and conversation isolation
 - [ ] **Phase 4: Media Server Clients** - Typed Sonarr and Radarr API wrappers with caching and graceful error handling
 - [ ] **Phase 5: Conversation Engine** - LLM integration with tool calling framework, conversation history, and confirmation system
@@ -52,8 +52,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- Messaging provider interface and Twilio adapter class
-- [ ] 02-02-PLAN.md -- Webhook endpoint, signature validation, and Fastify plugin wiring
+- [x] 02-01-PLAN.md -- Messaging provider interface and Twilio adapter class
+- [x] 02-02-PLAN.md -- Webhook endpoint, signature validation, and Fastify plugin wiring
 
 ### Phase 3: User Management
 **Goal**: The system knows who is texting, authorizes known users, onboards unknown users through conversation, and keeps each user's data isolated
@@ -160,7 +160,7 @@ Phases execute in numeric order. Note: Phases 4 and 5 can proceed in parallel af
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2026-02-14 |
-| 2. Messaging Gateway | 0/2 | Not started | - |
+| 2. Messaging Gateway | 2/2 | Complete | 2026-02-14 |
 | 3. User Management | 0/2 | Not started | - |
 | 4. Media Server Clients | 0/3 | Not started | - |
 | 5. Conversation Engine | 0/4 | Not started | - |
