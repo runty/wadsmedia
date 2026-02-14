@@ -62,6 +62,7 @@ export default fp(
               registry: fastify.toolRegistry,
               sonarr: fastify.sonarr,
               radarr: fastify.radarr,
+              brave: fastify.brave,
               messaging: fastify.messaging,
               config: fastify.config,
               log: request.log,

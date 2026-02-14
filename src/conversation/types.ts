@@ -34,6 +34,8 @@ export interface ToolDefinition {
 export interface ToolContext {
   sonarr?: import("../media/sonarr/sonarr.client.js").SonarrClient;
   radarr?: import("../media/radarr/radarr.client.js").RadarrClient;
+  tmdb?: import("../media/tmdb/tmdb.client.js").TmdbClient;
+  brave?: import("../media/brave/brave.client.js").BraveSearchClient;
   userId: number;
 }
 

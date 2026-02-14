@@ -1,6 +1,7 @@
 import formbody from "@fastify/formbody";
 import Fastify from "fastify";
 import type { AppConfig } from "./config.js";
+import bravePlugin from "./plugins/brave.js";
 import conversationPlugin from "./plugins/conversation.js";
 import databasePlugin from "./plugins/database.js";
 import healthPlugin from "./plugins/health.js";
@@ -40,6 +41,7 @@ export async function buildServer(config: AppConfig) {
   await fastify.register(healthPlugin);
   await fastify.register(sonarrPlugin);
   await fastify.register(radarrPlugin);
+  await fastify.register(bravePlugin);
   await fastify.register(conversationPlugin);
   await fastify.register(formbody);
   await fastify.register(messagingPlugin);

@@ -4,8 +4,10 @@ import type OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import type { AppConfig } from "../config.js";
 import type * as schema from "../db/schema.js";
+import type { BraveSearchClient } from "../media/brave/brave.client.js";
 import type { RadarrClient } from "../media/radarr/radarr.client.js";
 import type { SonarrClient } from "../media/sonarr/sonarr.client.js";
+import type { TmdbClient } from "../media/tmdb/tmdb.client.js";
 import type { MessagingProvider } from "../messaging/types.js";
 import {
   clearExpiredActions,
@@ -32,6 +34,8 @@ interface ProcessConversationParams {
   registry: ToolRegistry;
   sonarr?: SonarrClient;
   radarr?: RadarrClient;
+  tmdb?: TmdbClient;
+  brave?: BraveSearchClient;
   messaging: MessagingProvider;
   config: AppConfig;
   log: FastifyBaseLogger;
@@ -61,6 +65,8 @@ export async function processConversation(params: ProcessConversationParams): Pr
     registry,
     sonarr,
     radarr,
+    tmdb,
+    brave,
     messaging,
     config,
     log,
@@ -86,7 +92,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
 
           let resultText: string;
           try {
-            const result = await tool.execute(parsedArgs, { sonarr, radarr, userId });
+            const result = await tool.execute(parsedArgs, { sonarr, radarr, tmdb, brave, userId });
             resultText = `Done! ${typeof result === "object" ? JSON.stringify(result) : String(result)}`;
           } catch (err) {
             const errorMsg = err instanceof Error ? err.message : "Unknown error";
@@ -152,7 +158,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
       model: config.LLM_MODEL,
       messages: llmMessages,
       registry,
-      context: { sonarr, radarr, userId },
+      context: { sonarr, radarr, tmdb, brave, userId },
       log,
     });
 

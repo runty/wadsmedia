@@ -26,6 +26,12 @@ const envSchema = z.object({
   RADARR_URL: z.string().url().optional(),
   RADARR_API_KEY: z.string().min(1).optional(),
 
+  // TMDB (optional, for media discovery)
+  TMDB_ACCESS_TOKEN: z.string().min(1).optional(),
+
+  // Brave Search (optional, for web search fallback)
+  BRAVE_SEARCH_API_KEY: z.string().min(1).optional(),
+
   // Notifications (optional, for webhook security)
   NOTIFICATION_SECRET: z.string().min(1).optional(),
 

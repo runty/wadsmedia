@@ -5,6 +5,7 @@ import { createLLMClient } from "../conversation/llm.js";
 import {
   addMovieTool,
   addSeriesTool,
+  discoverMediaTool,
   getDownloadQueueTool,
   getUpcomingEpisodesTool,
   getUpcomingMoviesTool,
@@ -12,6 +13,7 @@ import {
   removeSeriesTool,
   searchMoviesTool,
   searchSeriesTool,
+  webSearchTool,
 } from "../conversation/tools/index.js";
 import { createToolRegistry, type ToolRegistry } from "../conversation/tools.js";
 
@@ -45,6 +47,8 @@ export default fp(
     registry.register(removeMovieTool);
     registry.register(removeSeriesTool);
     registry.register(getDownloadQueueTool);
+    registry.register(discoverMediaTool);
+    registry.register(webSearchTool);
 
     fastify.decorate("llm", client);
     fastify.decorate("toolRegistry", registry);
