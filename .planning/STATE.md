@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-13)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** Phase 5: Conversation Engine (Plans 01-02 complete, Plan 03 remaining)
+**Current focus:** Phase 5: Conversation Engine (COMPLETE -- all 3 plans executed)
 
 ## Current Position
 
 Phase: 5 of 8 (Conversation Engine)
-Plan: 2 of 3 in current phase
-Status: In Progress
-Last activity: 2026-02-14 -- Plan 05-02 complete (tool registry and tool call loop)
+Plan: 3 of 3 in current phase
+Status: Phase Complete
+Last activity: 2026-02-14 -- Plan 05-03 complete (conversation engine integration)
 
-Progress: [██████░░░░] 63%
+Progress: [██████░░░░] 68%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 13
 - Average duration: 3min
-- Total execution time: 0.6 hours
+- Total execution time: 0.65 hours
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: [██████░░░░] 63%
 | 02-messaging-gateway | 2 | 4min | 2min |
 | 03-user-management | 2 | 4min | 2min |
 | 04-media-server-clients | 3 | 5min | 2min |
-| 05-conversation-engine | 2 | 6min | 3min |
+| 05-conversation-engine | 3 | 9min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (3min), 04-02 (1min), 04-03 (1min), 05-01 (3min), 05-02 (3min)
+- Last 5 plans: 04-02 (1min), 04-03 (1min), 05-01 (3min), 05-02 (3min), 05-03 (3min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -84,6 +84,10 @@ Recent decisions affecting current work:
 - [05-02]: z.toJSONSchema() with draft-7 target used for Zod-to-JSON-Schema (not zodFunction from OpenAI SDK helpers)
 - [05-02]: Tool call loop filters to function-type tool calls to handle OpenAI SDK v6 union type safely
 - [05-02]: Zod import in tool-loop.ts is type-only since paramSchema cast only needs the type at compile time
+- [05-03]: Webhook responds immediately with empty TwiML then processes conversation async (fire-and-forget)
+- [05-03]: Conversation plugin uses same graceful-skip pattern as sonarr/radarr when LLM unconfigured
+- [05-03]: Pending action upsert via onConflictDoUpdate on userId unique constraint (one per user)
+- [05-03]: Unrelated messages clear stale pending actions and fall through to normal LLM processing
 
 ### Pending Todos
 
@@ -97,5 +101,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Completed 05-02-PLAN.md (tool registry and tool call loop) -- ready for 05-03 (conversation plugin integration)
+Stopped at: Completed 05-03-PLAN.md (conversation engine integration) -- Phase 5 complete, ready for Phase 6 (search tools)
 Resume file: None
