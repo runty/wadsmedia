@@ -112,6 +112,31 @@ export const addSeriesTool = defineTool(
 
     const profileName = context.sonarr.qualityProfiles.find((p) => p.id === qualityProfileId)?.name;
 
+    // Phase 10: Track media addition
+    if (context.db) {
+      const { insertMediaTracking } = await import("../../users/media-tracking.js");
+      insertMediaTracking(context.db, {
+        userId: context.userId,
+        mediaType: "series",
+        title: added.title,
+        year: added.year ?? null,
+        externalId: String(args.tvdbId),
+        sonarrRadarrId: added.id ?? null,
+      });
+    }
+
+    // Phase 10: Notify admin when non-admin adds media
+    if (!context.isAdmin && context.messaging && context.config?.ADMIN_PHONE) {
+      const who = context.displayName || "A user";
+      context.messaging
+        .send({
+          to: context.config.ADMIN_PHONE,
+          body: `${who} added series: ${added.title} (${added.year ?? "N/A"}) [${routingReason}]`,
+          from: context.config.TWILIO_PHONE_NUMBER,
+        })
+        .catch(() => {}); // Fire-and-forget
+    }
+
     return {
       success: true,
       title: added.title,

@@ -172,7 +172,19 @@ export async function processConversation(params: ProcessConversationParams): Pr
       model: config.LLM_MODEL,
       messages: llmMessages,
       registry,
-      context: { sonarr, radarr, tmdb, brave, config, userId, isAdmin, displayName, userPhone, messaging, db },
+      context: {
+        sonarr,
+        radarr,
+        tmdb,
+        brave,
+        config,
+        userId,
+        isAdmin,
+        displayName,
+        userPhone,
+        messaging,
+        db,
+      },
       log,
     });
 

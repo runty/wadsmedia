@@ -57,3 +57,19 @@ export const pendingActions = sqliteTable("pending_actions", {
     .$defaultFn(() => new Date()),
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
 });
+
+// Phase 10: Per-user media addition tracking
+export const mediaTracking = sqliteTable("media_tracking", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  mediaType: text("media_type", { enum: ["movie", "series"] }).notNull(),
+  title: text("title").notNull(),
+  year: integer("year"),
+  externalId: text("external_id").notNull(), // tmdbId for movies, tvdbId for series
+  sonarrRadarrId: integer("sonarr_radarr_id"),
+  addedAt: integer("added_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});

@@ -46,9 +46,7 @@ export interface ToolContext {
   displayName: string | null;
   userPhone: string;
   messaging?: import("../messaging/types.js").MessagingProvider;
-  db?: import("drizzle-orm/better-sqlite3").BetterSQLite3Database<
-    typeof import("../db/schema.js")
-  >;
+  db?: import("drizzle-orm/better-sqlite3").BetterSQLite3Database<typeof import("../db/schema.js")>;
 }
 
 // Result from the tool call loop
