@@ -135,10 +135,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MSG-02 | Phase 2 | Done |
 | MSG-03 | Phase 2 | Done |
 | MSG-04 | Phase 2 | Done |
-| API-01 | Phase 4 | Pending |
-| API-02 | Phase 4 | Pending |
-| API-03 | Phase 4 | Pending |
-| API-04 | Phase 4 | Pending |
+| API-01 | Phase 4 | Done |
+| API-02 | Phase 4 | Done |
+| API-03 | Phase 4 | Done |
+| API-04 | Phase 4 | Done |
 | INFRA-01 | Phase 1 | Done |
 | INFRA-02 | Phase 1 | Done |
 | INFRA-03 | Phase 1 | Done |
