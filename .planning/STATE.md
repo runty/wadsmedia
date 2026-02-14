@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-13)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** Phase 6: Search & Discovery (Plan 1 of 2 complete)
+**Current focus:** Phase 6: Search & Discovery (complete)
 
 ## Current Position
 
 Phase: 6 of 8 (Search & Discovery)
-Plan: 1 of 2 in current phase
-Status: In Progress
-Last activity: 2026-02-14 -- Plan 06-01 complete (search & discovery tool definitions)
+Plan: 2 of 2 in current phase
+Status: Phase Complete
+Last activity: 2026-02-14 -- Plan 06-02 complete (tool registration & system prompt)
 
-Progress: [███████░░░] 73%
+Progress: [████████░░] 79%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
+- Total plans completed: 15
 - Average duration: 3min
-- Total execution time: 0.68 hours
+- Total execution time: 0.70 hours
 
 **By Phase:**
 
@@ -32,10 +32,10 @@ Progress: [███████░░░] 73%
 | 03-user-management | 2 | 4min | 2min |
 | 04-media-server-clients | 3 | 5min | 2min |
 | 05-conversation-engine | 3 | 9min | 3min |
-| 06-search-and-discovery | 1 | 2min | 2min |
+| 06-search-and-discovery | 2 | 3min | 2min |
 
 **Recent Trend:**
-- Last 5 plans: 04-03 (1min), 05-01 (3min), 05-02 (3min), 05-03 (3min), 06-01 (2min)
+- Last 5 plans: 05-01 (3min), 05-02 (3min), 05-03 (3min), 06-01 (2min), 06-02 (1min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -92,6 +92,8 @@ Recent decisions affecting current work:
 - [06-01]: Used .optional() instead of .default() for days parameter to avoid JSON Schema ambiguity with LLM providers
 - [06-01]: Series title resolution via separate getSeries() Map lookup rather than relying on includeSeries passthrough
 - [06-01]: Overview truncation at 150 chars for search tools, 100 chars for upcoming movies
+- [06-02]: System prompt uses structured sections (search behavior, response format) rather than flat guidelines list
+- [06-02]: Tool registration logs tool count for debugging visibility
 
 ### Pending Todos
 
@@ -105,5 +107,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Completed 06-01-PLAN.md (search & discovery tool definitions) -- ready for Plan 06-02 (tool registration)
+Stopped at: Completed 06-02-PLAN.md (tool registration & system prompt) -- Phase 6 complete, ready for Phase 7 (Library Management)
 Resume file: None
