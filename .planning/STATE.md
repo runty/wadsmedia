@@ -5,21 +5,21 @@
 See: .planning/PROJECT.md (updated 2026-02-13)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** Phase 4: Media Server Clients
+**Current focus:** Phase 5: Conversation Engine (Phase 4 complete)
 
 ## Current Position
 
-Phase: 4 of 8 (Media Server Clients)
-Plan: 2 of 3 in current phase
-Status: In Progress
-Last activity: 2026-02-14 -- Plan 04-02 complete (Radarr client with 9 API methods)
+Phase: 4 of 8 (Media Server Clients) -- COMPLETE
+Plan: 3 of 3 in current phase (all complete)
+Status: Phase Complete
+Last activity: 2026-02-14 -- Plan 04-03 complete (Fastify plugins for Sonarr and Radarr)
 
-Progress: [█████░░░░░] 47%
+Progress: [██████░░░░] 53%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 10
 - Average duration: 3min
 - Total execution time: 0.4 hours
 
@@ -30,10 +30,10 @@ Progress: [█████░░░░░] 47%
 | 01-foundation | 3 | 12min | 4min |
 | 02-messaging-gateway | 2 | 4min | 2min |
 | 03-user-management | 2 | 4min | 2min |
-| 04-media-server-clients | 2 | 4min | 2min |
+| 04-media-server-clients | 3 | 5min | 2min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (2min), 03-01 (2min), 03-02 (2min), 04-01 (3min), 04-02 (1min)
+- Last 5 plans: 03-01 (2min), 03-02 (2min), 04-01 (3min), 04-02 (1min), 04-03 (1min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -73,6 +73,9 @@ Recent decisions affecting current work:
 - [04-02]: MovieLookupSchema reused for Movie alias (identical shape, id non-zero after POST) -- same pattern as Sonarr
 - [04-02]: 30s timeout for searchMovies/lookupByTmdbId (proxies to TMDB), 10s default for CRUD
 - [04-02]: Radarr uses addImportExclusion (not addImportListExclusion like Sonarr) per API docs
+- [04-03]: Optional decorator type (sonarr?: SonarrClient) so downstream code must null-check before use
+- [04-03]: Unreachable server on startup still registers client in degraded mode (empty cache, methods still callable)
+- [04-03]: Plugin depends on database plugin for consistent infrastructure ordering
 
 ### Pending Todos
 
@@ -86,5 +89,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Completed 04-02-PLAN.md (Radarr client), ready for 04-03-PLAN.md (Fastify plugins)
+Stopped at: Completed 04-03-PLAN.md (Fastify plugins) -- Phase 4 complete, ready for Phase 5
 Resume file: None
