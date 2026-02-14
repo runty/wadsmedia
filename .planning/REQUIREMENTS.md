@@ -122,10 +122,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STAT-01 | Phase 8 | Pending |
 | STAT-02 | Phase 8 | Pending |
 | STAT-03 | Phase 8 | Pending |
-| CONV-01 | Phase 5 | Pending |
-| CONV-02 | Phase 5 | Pending |
-| CONV-03 | Phase 5 | Pending |
-| CONV-04 | Phase 5 | Pending |
+| CONV-01 | Phase 5 | Done |
+| CONV-02 | Phase 5 | Done |
+| CONV-03 | Phase 5 | Done |
+| CONV-04 | Phase 5 | Done |
 | USER-01 | Phase 3 | Done |
 | USER-02 | Phase 3 | Done |
 | USER-03 | Phase 3 | Done |
