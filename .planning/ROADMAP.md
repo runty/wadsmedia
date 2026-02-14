@@ -45,12 +45,12 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   3. Anime series are automatically detected and routed to the anime root folder when added via Sonarr, without user intervention
   4. Asian-language movies are automatically detected and routed to the CMovies root folder when added via Radarr, without user intervention
   5. User can override auto-detected routing ("add this to regular TV" or "put this in the anime library") and system defaults to 1080p quality unless user requests otherwise
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 09-01: TMDB client and discovery tool
-- [ ] 09-02: Web search fallback (Brave Search API)
-- [ ] 09-03: Smart library routing
+- [ ] 09-01-PLAN.md -- TMDB client and discover_media tool (wave 1)
+- [ ] 09-02-PLAN.md -- Brave Search client and web_search fallback tool (wave 1)
+- [ ] 09-03-PLAN.md -- Smart library routing with TDD (wave 2, depends on 09-01)
 
 ### Phase 10: Permissions + User Tracking
 **Goal**: Non-admin users are restricted from destructive actions, and all media additions are tracked with user attribution
