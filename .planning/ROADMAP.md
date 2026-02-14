@@ -80,12 +80,12 @@ Plans:
   2. Radarr API client can search movies, add movies, remove movies, get upcoming, and get download queue with Zod-validated responses
   3. Quality profiles and root folders are fetched from both servers on startup and cached for use in add operations
   4. When Sonarr or Radarr is unreachable, operations fail gracefully with user-friendly error messages instead of crashes
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 04-01: Sonarr API client
-- [ ] 04-02: Radarr API client
-- [ ] 04-03: Startup caching and graceful degradation
+- [ ] 04-01-PLAN.md -- Shared HTTP utility, error classes, and Sonarr API client with Zod-validated responses
+- [ ] 04-02-PLAN.md -- Radarr API client with Zod-validated responses
+- [ ] 04-03-PLAN.md -- Fastify plugins for startup caching, graceful degradation, and server wiring
 
 ### Phase 5: Conversation Engine
 **Goal**: Natural language messages are interpreted by a configurable LLM that can call tools, maintain conversation context, and require confirmation before destructive actions
