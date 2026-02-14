@@ -1,3 +1,12 @@
-// Entry point - placeholder for Task 1 verification
-// Full implementation in Task 2
-export {};
+import { loadConfig } from "./config.js";
+import { buildServer } from "./server.js";
+
+const config = loadConfig();
+const server = await buildServer(config);
+
+try {
+  await server.listen({ port: config.PORT, host: config.HOST });
+} catch (err) {
+  server.log.error(err);
+  process.exit(1);
+}
