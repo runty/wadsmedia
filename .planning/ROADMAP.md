@@ -60,10 +60,10 @@ Plans:
   1. Non-admin user who tries to remove media is blocked at the code level (not just system prompt guidance) and told they lack permission
   2. Admin receives a text notification when a non-admin user adds a show or movie, including what was added and who added it
   3. System records which user added which media with timestamps, queryable for dashboard consumption in Phase 12
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 10-01: Permission guard and user tracking
+- [ ] 10-01-PLAN.md -- Permission guard, media tracking table, and admin notification (wave 1)
 
 ### Phase 11: Plex + Tautulli Integration
 **Goal**: Users have library awareness -- they know what they already have before adding, and can ask about their watch history
@@ -125,7 +125,7 @@ Phases execute in numeric order: 9 -> 10 -> 11 -> 12 -> 13
 | 7. Library Management | v1.0 | 2/2 | Complete | 2026-02-13 |
 | 8. Status and Notifications | v1.0 | 2/2 | Complete | 2026-02-14 |
 | 9. TMDB Discovery + Library Routing | v2.0 | 3/3 | Complete | 2026-02-14 |
-| 10. Permissions + User Tracking | v2.0 | 0/1 | Not started | - |
+| 10. Permissions + User Tracking | v2.0 | 0/1 | Planned | - |
 | 11. Plex + Tautulli Integration | v2.0 | 0/2 | Not started | - |
 | 12. Web Admin Dashboard | v2.0 | 0/3 | Not started | - |
 | 13. RCS Rich Messaging + Personality | v2.0 | 0/2 | Not started | - |
