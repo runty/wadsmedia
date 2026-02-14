@@ -30,4 +30,5 @@ export const removeMovieTool = defineTool(
         : "Movie removed from library (files kept on disk)",
     };
   },
+  "admin",
 );

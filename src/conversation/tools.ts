@@ -2,6 +2,7 @@ import { z } from "zod";
 import type {
   ChatCompletionFunctionTool,
   ConfirmationTier,
+  RequiredRole,
   ToolContext,
   ToolDefinition,
 } from "./types.js";
@@ -16,6 +17,7 @@ export function defineTool<T extends z.ZodType>(
   parameters: T,
   tier: ConfirmationTier,
   execute: (args: z.infer<T>, context: ToolContext) => Promise<unknown>,
+  requiredRole: RequiredRole = "any",
 ): ToolDefinition {
   const jsonSchema = z.toJSONSchema(parameters, {
     target: "draft-7",
@@ -31,6 +33,7 @@ export function defineTool<T extends z.ZodType>(
       },
     },
     tier,
+    requiredRole,
     paramSchema: parameters,
     execute: execute as (args: unknown, context: ToolContext) => Promise<unknown>,
   };

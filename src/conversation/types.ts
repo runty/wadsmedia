@@ -22,10 +22,14 @@ export interface ChatMessage {
 // Confirmation tier classification
 export type ConfirmationTier = "safe" | "destructive";
 
+// Required role for tool execution
+export type RequiredRole = "admin" | "any";
+
 // Tool definition with metadata for registry
 export interface ToolDefinition {
   definition: ChatCompletionFunctionTool;
   tier: ConfirmationTier;
+  requiredRole: RequiredRole;
   paramSchema: unknown; // Zod schema for argument validation
   execute: (args: unknown, context: ToolContext) => Promise<unknown>;
 }
@@ -38,6 +42,13 @@ export interface ToolContext {
   brave?: import("../media/brave/brave.client.js").BraveSearchClient;
   config?: import("../config.js").AppConfig;
   userId: number;
+  isAdmin: boolean;
+  displayName: string | null;
+  userPhone: string;
+  messaging?: import("../messaging/types.js").MessagingProvider;
+  db?: import("drizzle-orm/better-sqlite3").BetterSQLite3Database<
+    typeof import("../db/schema.js")
+  >;
 }
 
 // Result from the tool call loop

@@ -56,6 +56,7 @@ export default fp(
               userId: user.id,
               userPhone: user.phone,
               displayName: user.displayName,
+              isAdmin: user.isAdmin,
               messageBody: message.body,
               db: fastify.db,
               llmClient: fastify.llm,

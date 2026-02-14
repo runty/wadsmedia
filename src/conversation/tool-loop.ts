@@ -101,6 +101,19 @@ export async function toolCallLoop(params: ToolCallLoopParams): Promise<ToolCall
         continue;
       }
 
+      // Permission check: block non-admins from admin-only tools
+      if (tool.requiredRole === "admin" && !context.isAdmin) {
+        messages.push({
+          role: "tool",
+          tool_call_id: toolCall.id,
+          content: JSON.stringify({
+            error:
+              "Permission denied. Only admins can perform this action. You can search, add, and view media, but removing requires admin access.",
+          }),
+        });
+        continue;
+      }
+
       // Check confirmation tier: intercept destructive tools before execution
       if (registry.isDestructive(functionName)) {
         const argSummary = Object.entries(parsedArgs as Record<string, unknown>)

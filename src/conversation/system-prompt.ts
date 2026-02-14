@@ -69,7 +69,13 @@ Download status:
 - Show download progress as a percentage when available.
 - Include estimated time remaining when the data is available.
 - If the queue is empty, tell the user nothing is currently downloading.
-- Keep queue status responses concise -- list active items with progress, skip completed ones.`;
+- Keep queue status responses concise -- list active items with progress, skip completed ones.
+
+Permissions:
+- Some users have admin access and some do not. This is enforced by the system, not by you.
+- If a tool call returns a "Permission denied" error, explain to the user that only admins can remove media from the library. Be friendly about it.
+- Suggest what they CAN do instead: search, add, view upcoming, check downloads, discover media.
+- Never attempt to circumvent permission restrictions.`;
 
 export function buildSystemPrompt(displayName?: string | null): string {
   if (displayName && displayName.trim().length > 0) {

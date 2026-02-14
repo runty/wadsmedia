@@ -30,4 +30,5 @@ export const removeSeriesTool = defineTool(
         : "Series removed from library (files kept on disk)",
     };
   },
+  "admin",
 );

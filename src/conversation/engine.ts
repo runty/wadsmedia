@@ -28,6 +28,7 @@ interface ProcessConversationParams {
   userId: number;
   userPhone: string;
   displayName: string | null;
+  isAdmin: boolean;
   messageBody: string;
   db: DB;
   llmClient: OpenAI;
@@ -59,6 +60,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
     userId,
     userPhone,
     displayName,
+    isAdmin,
     messageBody,
     db,
     llmClient,
@@ -99,6 +101,11 @@ export async function processConversation(params: ProcessConversationParams): Pr
               brave,
               config,
               userId,
+              isAdmin,
+              displayName,
+              userPhone,
+              messaging,
+              db,
             });
             resultText = `Done! ${typeof result === "object" ? JSON.stringify(result) : String(result)}`;
           } catch (err) {
@@ -165,7 +172,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
       model: config.LLM_MODEL,
       messages: llmMessages,
       registry,
-      context: { sonarr, radarr, tmdb, brave, config, userId },
+      context: { sonarr, radarr, tmdb, brave, config, userId, isAdmin, displayName, userPhone, messaging, db },
       log,
     });
 
