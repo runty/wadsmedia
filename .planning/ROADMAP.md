@@ -65,11 +65,11 @@ Plans:
   3. Unknown phone numbers trigger a name prompt, then the admin receives a text asking to approve the new user
   4. Each user has a stored display name associated with their phone number
   5. Users only see their own conversation history -- no cross-user data leakage
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 03-01: User store and whitelist authorization
-- [ ] 03-02: Unknown user onboarding and admin approval flow
+- [ ] 03-01-PLAN.md -- Users table schema, user service module, and user-resolver Fastify plugin with startup seeding
+- [ ] 03-02-PLAN.md -- Onboarding state machine and webhook handler wiring for user routing
 
 ### Phase 4: Media Server Clients
 **Goal**: The application can communicate with Sonarr and Radarr APIs to search, add, remove, and query media with validated, typed responses
