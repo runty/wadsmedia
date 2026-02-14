@@ -5,13 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-14)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** v1.0 shipped -- planning next milestone
+**Current focus:** v2.0 Smart Discovery & Admin -- defining requirements
 
 ## Current Position
 
-Milestone: v1.0 MVP -- SHIPPED 2026-02-14
-Status: Complete
-Last activity: 2026-02-14 -- v1.0 milestone archived
+Phase: Not started (defining requirements)
+Plan: --
+Status: Defining requirements
+Last activity: 2026-02-14 -- Milestone v2.0 started
 
 ## Performance Metrics
 
@@ -45,10 +46,10 @@ None.
 
 ### Blockers/Concerns
 
-None -- v1.0 shipped clean.
+None.
 
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: v1.0 milestone archived
+Stopped at: v2.0 milestone started, defining requirements
 Resume file: None

@@ -30,18 +30,43 @@ Users can manage their media libraries through natural conversation -- text a me
 
 ### Active
 
-(None -- define for next milestone with `/gsd:new-milestone`)
+- [ ] Smart discovery via TMDB API with structured search (actor, network, genre, year) and web search fallback for vague queries
+- [ ] Plex integration to check if media already exists in user's library (seasons/episodes for TV)
+- [ ] Tautulli integration for watch history awareness and user activity tracking
+- [ ] Default to 1080p quality profile, only change when user explicitly requests different quality
+- [ ] Smart library routing for Sonarr: auto-detect anime from metadata, route to anime folder vs TV folder
+- [ ] Smart library routing for Radarr: auto-detect Asian-language movies, route to CMovies folder vs Movies folder
+- [ ] Role-based permissions: non-admins can search, add, view status/upcoming, but cannot remove media
+- [ ] Admin notification when non-admin user adds a show or movie
+- [ ] Per-user media tracking: record which user added which shows/movies
+- [ ] Web admin dashboard with user management and chat history viewer
+- [ ] Plex user linking in web admin interface
+- [ ] Dashboard stats: request counts, recent activity, system health
+- [ ] RCS rich cards with posters for search results
+- [ ] RCS suggested reply buttons for quick actions ("Add this", "Next result")
+- [ ] Fun, edgy, slightly spicy assistant personality with emojis
+
+## Current Milestone: v2.0 Smart Discovery & Admin
+
+**Goal:** Transform WadsMedia from a basic command proxy into an intelligent media assistant with TMDB/Plex awareness, smart library routing, role-based access, a web admin dashboard, and rich RCS messaging.
+
+**Target features:**
+- Smart media discovery (TMDB + web search fallback)
+- Plex/Tautulli integration (library checks + watch history)
+- Intelligent library routing (anime/Asian-language auto-detection)
+- Role-based permissions with admin notifications
+- Web admin dashboard with user management and stats
+- RCS rich messaging with cards and suggested replies
 
 ### Out of Scope
 
 - Mobile app -- messaging-first, no native app needed
-- Web dashboard -- management happens through conversation
-- Self-serve signup -- admin whitelists users
-- Lidarr/Readarr integration -- Sonarr + Radarr only for v1, architecture allows adding more later
+- Self-serve signup -- admin whitelists users via web dashboard
+- Lidarr/Readarr integration -- Sonarr + Radarr only, architecture allows adding more later
 - Media playback -- this manages the library, not the player
 - Voice interface -- text messaging is the sweet spot
-- Rich media previews (posters) -- SMS has limited support, text descriptions sufficient
 - Per-user request quotas -- whitelisted users are trusted
+- OAuth/SSO for web dashboard -- simple auth sufficient for admin-only interface
 
 ## Context
 
@@ -78,4 +103,4 @@ Key patterns: fire-and-forget webhook response (avoids Twilio 15s timeout), slid
 | Destructive action confirmation via DB | Pending actions with 5-min expiry, yes/no detection | ✓ Good -- simple state machine |
 
 ---
-*Last updated: 2026-02-14 after v1.0 milestone*
+*Last updated: 2026-02-14 after v2.0 milestone started*
