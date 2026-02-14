@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-13)
 
 ## Current Position
 
-Phase: 8 of 8 (Status and Notifications)
-Plan: 1 of 2 in current phase
-Status: In Progress
-Last activity: 2026-02-14 -- Plan 08-01 complete (download queue tool)
+Phase: 8 of 8 (Status and Notifications) -- COMPLETE
+Plan: 2 of 2 in current phase
+Status: Phase Complete
+Last activity: 2026-02-14 -- Plan 08-02 complete (proactive notifications)
 
-Progress: [█████████░] 95%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
+- Total plans completed: 19
 - Average duration: 3min
-- Total execution time: 0.78 hours
+- Total execution time: 0.81 hours
 
 **By Phase:**
 
@@ -34,10 +34,10 @@ Progress: [█████████░] 95%
 | 05-conversation-engine | 3 | 9min | 3min |
 | 06-search-and-discovery | 2 | 3min | 2min |
 | 07-library-management | 2 | 3min | 2min |
-| 08-status-and-notifications | 1 | 2min | 2min |
+| 08-status-and-notifications | 2 | 4min | 2min |
 
 **Recent Trend:**
-- Last 5 plans: 06-01 (2min), 06-02 (1min), 07-01 (2min), 07-02 (1min), 08-01 (2min)
+- Last 5 plans: 06-02 (1min), 07-01 (2min), 07-02 (1min), 08-01 (2min), 08-02 (2min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -106,6 +106,10 @@ Recent decisions affecting current work:
 - [08-01]: No parameters on get_download_queue -- fetches everything, LLM filters in response
 - [08-01]: Sonarr queue enriched with series titles via separate getSeries() call; Radarr uses record.title directly
 - [08-01]: Independent try/catch per server so one failure does not block reporting the other
+- [08-02]: TypeScript interfaces (not Zod) for webhook payloads since external schemas are underdocumented
+- [08-02]: Token auth via ?token= query param (simple, works with Sonarr/Radarr webhook config)
+- [08-02]: Fire-and-forget dispatch: webhook responds 200 immediately, SMS sent asynchronously
+- [08-02]: Only Download and Grab events generate notifications; all others return null (silent skip)
 
 ### Pending Todos
 
@@ -119,5 +123,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-14
-Stopped at: Completed 08-01-PLAN.md (download queue tool) -- ready for 08-02
+Stopped at: Completed 08-02-PLAN.md (proactive notifications) -- Phase 8 complete, all 8 phases done
 Resume file: None
