@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 ## Current Position
 
 Phase: 18 of 21 (Conversation Reliability)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-02-15 -- Roadmap created for v2.2 milestone (4 phases, 9 requirements)
+Plan: 1 of 2 in current phase
+Status: Executing
+Last activity: 2026-02-15 -- Completed 18-01 orphaned user message pruning (TDD)
 
 Progress: [==================..] 81% (17/21 phases complete)
 
@@ -41,6 +41,7 @@ Recent decisions affecting current work:
 - v2.2: Deferred user message persistence already implemented -- Phase 18 should verify and document it (CONV-02)
 - v2.2: Admin user management tools (list_pending_users, manage_user) added outside GSD -- need dashboard integration (ADMIN-01)
 - v2.2: gpt-4o-mini confused responses traced to dense consecutive user messages in history -- CONV-01 and CONV-03 address this
+- 18-01: Tool messages do not break consecutive user runs; pruning applied before sliding window in buildLLMMessages
 
 ### Pending Todos
 
@@ -55,5 +56,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Roadmap created for v2.2 Stability & Polish
+Stopped at: Completed 18-01-PLAN.md (orphaned user message pruning)
 Resume file: None
