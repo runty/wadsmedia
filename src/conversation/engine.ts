@@ -20,9 +20,22 @@ import {
   savePendingAction,
 } from "./confirmation.js";
 import { buildLLMMessages, getGroupHistory, getHistory, saveGroupMessage, saveMessage } from "./history.js";
+import { extractLatestSearchResult } from "./message-formatter.js";
 import { buildSystemPrompt } from "./system-prompt.js";
 import { toolCallLoop } from "./tool-loop.js";
 import type { ToolRegistry } from "./tools.js";
+
+/**
+ * Convert markdown bold/italic to HTML for Telegram.
+ * Handles **bold**, *italic*, and `code` patterns that LLMs commonly produce
+ * despite being told to use HTML.
+ */
+function markdownToHtml(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+    .replace(/(?<![*])\*([^*]+?)\*(?![*])/g, "<i>$1</i>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
 
 type DB = BetterSQLite3Database<typeof schema>;
 
@@ -253,12 +266,19 @@ export async function processConversation(params: ProcessConversationParams): Pr
 
     // Send the reply -- format depends on provider
     if (providerName === "telegram") {
-      // Telegram: use HTML parse mode, no MMS pixel needed
-      log.info({ replyLength: result.reply.length, group: isGroupChat }, "Sending reply via Telegram");
+      // Telegram: convert any leftover markdown to HTML, attach poster if available
+      const htmlReply = markdownToHtml(result.reply);
+      const searchResult = extractLatestSearchResult(result.messagesConsumed);
+      const photoUrl = searchResult?.posterUrl ?? undefined;
+      log.info(
+        { replyLength: htmlReply.length, group: isGroupChat, hasPoster: !!photoUrl },
+        "Sending reply via Telegram",
+      );
       await messaging.send({
         to: replyAddress,
-        body: result.reply,
+        body: htmlReply,
         parseMode: "HTML",
+        photoUrl,
         replyToMessageId,
       });
     } else {
