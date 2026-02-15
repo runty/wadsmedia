@@ -1,3 +1,5 @@
+ALTER TABLE `users` ADD `telegram_chat_id` text;--> statement-breakpoint
+ALTER TABLE `users` ADD `telegram_username` text;--> statement-breakpoint
 PRAGMA foreign_keys=OFF;--> statement-breakpoint
 CREATE TABLE `__new_users` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,

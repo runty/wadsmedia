@@ -37,11 +37,11 @@ export const TautulliUserSchema = z
     user_id: z.number(),
     username: z.string(),
     friendly_name: z.string(),
-    email: z.string().optional(),
+    email: z.string().nullable().optional(),
     is_active: z.number(),
-    is_admin: z.number().optional(),
-    thumb: z.string().optional(),
-    shared_libraries: z.string().optional(),
+    is_admin: z.number().nullable().optional(),
+    thumb: z.string().nullable().optional(),
+    shared_libraries: z.union([z.string(), z.array(z.unknown())]).nullable().optional(),
   })
   .passthrough();
 
