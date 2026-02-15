@@ -4,11 +4,20 @@ export interface InboundMessage {
   to: string;
   body: string;
   numMedia: number;
+  /** Button id from RCS/rich messaging quick-reply tap (Twilio ButtonPayload param) */
+  buttonPayload: string | null;
+  /** Button title from RCS/rich messaging quick-reply tap (Twilio ButtonText param) */
+  buttonText: string | null;
 }
 
 export interface OutboundMessage {
   to: string;
-  body: string;
+  /** Plain text message body (mutually exclusive with contentSid) */
+  body?: string;
+  /** Content Template SID for rich card sends (mutually exclusive with body) */
+  contentSid?: string;
+  /** JSON string of template variables: {"1": "val", "2": "val", ...} */
+  contentVariables?: string;
   messagingServiceSid?: string;
   from?: string;
 }

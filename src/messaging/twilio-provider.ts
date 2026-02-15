@@ -14,8 +14,22 @@ export class TwilioMessagingProvider implements MessagingProvider {
   }
 
   async send(message: OutboundMessage): Promise<SendResult> {
+    if (message.contentSid) {
+      // Rich card via Content Template
+      const result = await this.client.messages.create({
+        contentSid: message.contentSid,
+        ...(message.contentVariables ? { contentVariables: message.contentVariables } : {}),
+        to: message.to,
+        ...(message.messagingServiceSid
+          ? { messagingServiceSid: message.messagingServiceSid }
+          : { from: message.from }),
+      });
+      return { sid: result.sid, status: result.status };
+    }
+
+    // Plain text (existing behavior)
     const result = await this.client.messages.create({
-      body: message.body,
+      body: message.body ?? "",
       to: message.to,
       ...(message.messagingServiceSid
         ? { messagingServiceSid: message.messagingServiceSid }
@@ -39,6 +53,8 @@ export class TwilioMessagingProvider implements MessagingProvider {
       to: body.To ?? "",
       body: body.Body ?? "",
       numMedia: Number.parseInt(body.NumMedia ?? "0", 10),
+      buttonPayload: body.ButtonPayload ?? null,
+      buttonText: body.ButtonText ?? null,
     };
   }
 
