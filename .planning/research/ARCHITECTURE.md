@@ -1,1008 +1,1096 @@
-# Architecture Research: v2.0 Integrations & Web Dashboard
+# Architecture Research: Telegram Bot Integration
 
-**Domain:** Extending conversational media gateway with TMDB/Plex/Tautulli integrations, web admin dashboard, RCS rich messaging, permissions, smart routing, and user media tracking
+**Domain:** Adding Telegram as a second messaging provider to an existing SMS-based media assistant
 **Researched:** 2026-02-14
-**Confidence:** HIGH (existing codebase analyzed directly; external APIs verified via official documentation)
+**Confidence:** HIGH (existing codebase analyzed directly; Telegram Bot API verified via official documentation)
 
-## Existing Architecture (v1.0 Baseline)
+## Existing Architecture Baseline
 
-The v2.0 features integrate into a well-structured existing system. Understanding the current architecture is critical for identifying clean integration points.
+The current system has a clean provider abstraction, but it is phone-centric in ways that go deeper than the MessagingProvider interface alone. Understanding every touch point is critical before designing the Telegram integration.
 
-### Current System Diagram
+### Current MessagingProvider Interface
 
-```
-                          EXTERNAL SERVICES
- +-------------+    +-------------+    +-------------+
- |   Twilio    |    | OpenAI-     |    | Sonarr /    |
- |   SMS/RCS   |    | Compatible  |    | Radarr      |
- +------+------+    +------+------+    +------+------+
-        |                  |                  |
-========|==================|==================|=========
-        |        WADSMEDIA CONTAINER          |
-        |                  |                  |
- +------v------+    +------v------+    +------v------+
- | Twilio      |    |   OpenAI    |    | Sonarr/     |
- | Provider    |    |   Client    |    | Radarr      |
- | (messaging/)|    | (conversa-  |    | Clients     |
- |             |    |  tion/llm)  |    | (media/)    |
- +------+------+    +------+------+    +------+------+
-        |                  |                  |
- +------v------------------v------------------v------+
- |            FASTIFY PLUGIN ARCHITECTURE            |
- |  webhook.ts -> user-resolver -> conversation.ts   |
- +---+----------+----------+----------+----------+--+
-     |          |          |          |          |
- +---v---+ +---v---+ +----v---+ +---v---+ +---v----+
- |webhook| | user  | |conver- | |notifi-| |health  |
- |plugin | |resolve| |sation  | |cation | |plugin  |
- |       | |plugin | |plugin  | |plugin | |        |
- +---+---+ +---+---+ +----+---+ +---+---+ +--------+
-     |          |          |          |
- +---v----------v----------v----------v---------+
- |        SQLite (better-sqlite3 + Drizzle)     |
- |  users | messages | pending_actions | meta   |
- +-----------------------------------------------+
+```typescript
+// src/messaging/types.ts
+interface MessagingProvider {
+  send(message: OutboundMessage): Promise<SendResult>;
+  validateWebhook(params: { signature: string; url: string; body: Record<string, string> }): boolean;
+  parseInbound(body: Record<string, string>): InboundMessage;
+  formatReply(text: string): string;
+  formatEmptyReply(): string;
+}
 ```
 
-### Key Extension Points Identified
+### Phone-Centric Assumptions (Every Place That Must Change)
 
-1. **`ToolContext` interface** (`src/conversation/types.ts` line 34-38) -- currently passes `sonarr?`, `radarr?`, `userId`. New clients (TMDB, Plex, Tautulli) add here.
-2. **`ToolRegistry`** (`src/conversation/tools.ts`) -- new tools register without modifying existing code. Just call `registry.register()`.
-3. **`ProcessConversationParams`** (`src/conversation/engine.ts` line 25-37) -- new clients thread through here.
-4. **Fastify plugin pattern** (`src/server.ts`) -- new plugins register via `fastify.register()` with dependency declarations.
-5. **`MessagingProvider` interface** (`src/messaging/types.ts`) -- `OutboundMessage` needs extension for RCS content.
-6. **DB schema** (`src/db/schema.ts`) -- new tables via Drizzle migrations.
-7. **Config** (`src/config.ts`) -- new env vars via Zod schema extension.
+The codebase assumes phone numbers as the universal identity and routing mechanism in these specific locations:
 
-## v2.0 Architecture: Integrated System
+| Location | What It Does | Phone Dependency |
+|----------|-------------|------------------|
+| `InboundMessage.from` | Sender identity | Phone number string |
+| `OutboundMessage.to` | Recipient address | Phone number string |
+| `OutboundMessage.from` | Sender address (Twilio number) | Phone number string |
+| `users.phone` column | User lookup key | Phone number, UNIQUE constraint |
+| `user-resolver.ts` | Resolves `body.From` to user | Reads phone from Twilio POST body |
+| `user.service.ts` | All queries by phone | `findUserByPhone()`, `updateUserStatus()`, etc. |
+| `engine.ts` | `userPhone` param, used in send() calls | Phone passed to every `messaging.send()` |
+| `engine.ts` lines 133-160 | Sends replies with `from: config.TWILIO_PHONE_NUMBER` | Twilio-specific `from` field |
+| `onboarding.ts` | Admin notification with phone | `to: config.ADMIN_PHONE, from: config.TWILIO_PHONE_NUMBER` |
+| `add-movie.ts` / `add-series.ts` | Admin notification | `to: config.ADMIN_PHONE, from: config.TWILIO_PHONE_NUMBER` |
+| `notify.ts` | Broadcast to all users | Queries `users.phone`, sends with `from: config.TWILIO_PHONE_NUMBER` |
+| `ToolContext.userPhone` | Passed to tool executors | Used for admin notifications |
+| `config.ts` | `ADMIN_PHONE`, `PHONE_WHITELIST` | Phone-based admin and whitelist |
+| `notifications.ts` plugin | Skip if no `TWILIO_PHONE_NUMBER` | Gated on Twilio config |
 
-### Updated System Diagram
+### What the Engine Actually Needs
+
+Looking at `processConversation()` and the tool loop, the conversation engine itself is **transport-agnostic**. It needs:
+
+1. A `userId` (DB integer) to load/save history
+2. A `messageBody` (string) as input
+3. A `messaging` provider to send the reply
+4. A destination address (currently `userPhone`) for where to send the reply
+5. A source address (currently `config.TWILIO_PHONE_NUMBER`) for `from` field
+
+The LLM, tool loop, history, confirmation, and tool execution layers do not care about transport. The coupling is in how messages are sent and how users are resolved.
+
+## Telegram Bot API: Key Facts
+
+Verified against official documentation at https://core.telegram.org/bots/api.
+
+### Update Object Structure
+
+Telegram delivers updates as JSON POST to your webhook URL. Each Update contains exactly one of many optional fields. The ones relevant to WadsMedia:
+
+```typescript
+interface TelegramUpdate {
+  update_id: number;
+  message?: TelegramMessage;         // User sent a text/photo/etc
+  callback_query?: CallbackQuery;    // User tapped an inline keyboard button
+  // Many other types (edited_message, channel_post, etc.) -- ignore for now
+}
+
+interface TelegramMessage {
+  message_id: number;
+  from?: TelegramUser;               // Sender (absent in channels)
+  chat: TelegramChat;                // Conversation context
+  date: number;                      // Unix timestamp
+  text?: string;                     // Text message content
+  photo?: PhotoSize[];               // Photo message (array of sizes)
+  // Many other media types
+}
+
+interface TelegramUser {
+  id: number;                        // Unique user ID (stable, permanent)
+  is_bot: boolean;
+  first_name: string;
+  last_name?: string;
+  username?: string;                  // @username, optional
+}
+
+interface TelegramChat {
+  id: number;                        // Chat ID (= user ID for private chats, negative for groups)
+  type: "private" | "group" | "supergroup" | "channel";
+  title?: string;                    // Group name (absent for private chats)
+  first_name?: string;               // For private chats
+  username?: string;
+}
+
+interface CallbackQuery {
+  id: string;                        // Must be answered with answerCallbackQuery
+  from: TelegramUser;                // Who tapped the button
+  message?: TelegramMessage;         // The message the button was attached to
+  data?: string;                     // callback_data from the button (max 64 bytes)
+}
+```
+
+### Key API Methods Needed
+
+| Method | Purpose | Parameters |
+|--------|---------|------------|
+| `setWebhook` | Register webhook URL | `url`, `secret_token` (1-256 chars), `allowed_updates` |
+| `sendMessage` | Send text reply | `chat_id`, `text`, `parse_mode`, `reply_markup` |
+| `sendPhoto` | Send photo with caption | `chat_id`, `photo` (URL or file_id), `caption`, `reply_markup` |
+| `answerCallbackQuery` | Acknowledge button tap | `callback_query_id`, `text` (optional toast) |
+| `getMe` | Verify bot token | none |
+
+### Critical Differences from Twilio
+
+| Aspect | Twilio (Current) | Telegram |
+|--------|-----------------|----------|
+| **Identity** | Phone number (E.164 string) | Numeric user ID + numeric chat ID |
+| **Webhook body** | URL-encoded form params (`From`, `Body`) | JSON body with nested `Update` object |
+| **Webhook auth** | HMAC signature in `X-Twilio-Signature` header | `X-Telegram-Bot-Api-Secret-Token` header (simple string compare) |
+| **Reply mechanism** | TwiML XML in response body, or async API call | JSON in response body (one method), or async API call |
+| **Message limit** | SMS: 160 chars (auto-chained), MMS: larger | 4096 UTF-8 characters per message |
+| **Rich content** | RCS Content Templates (pre-created, Twilio-specific) | Inline keyboards, photos via URL, MarkdownV2/HTML formatting |
+| **Sender identity** | `from: TWILIO_PHONE_NUMBER` required | Bot identity is implicit (no `from` needed) |
+| **Group context** | N/A (1:1 SMS) | Group chats: `chat.id` is group, `from.id` is user |
+| **Button callbacks** | ButtonPayload in same webhook body | Separate `callback_query` update type |
+| **Photo sending** | MMS media URLs or Content Templates | `sendPhoto` with URL or file_id |
+
+### Webhook Security
+
+Telegram supports a `secret_token` parameter on `setWebhook`. When set, Telegram includes an `X-Telegram-Bot-Api-Secret-Token` header with every webhook delivery. Validation is a simple string equality check -- no HMAC computation required.
+
+### Direct Reply in Webhook Response
+
+Telegram allows returning a Bot API method call directly in the webhook HTTP response body (as JSON). This avoids a separate API call for the first response. However, this only works for one method per webhook response. Since WadsMedia processes conversations asynchronously (responds with empty/fast, then sends reply later), this is less useful. The async pattern (respond 200, then call sendMessage separately) is the better fit.
+
+### SSL/TLS Requirements
+
+Telegram webhooks require HTTPS on ports 443, 80, 88, or 8443. TLS 1.2 minimum. The existing deployment behind a reverse proxy with SSL termination satisfies this.
+
+## Recommended Architecture
+
+### Strategy: Generalize Identity, Add Provider, New Webhook Route
+
+The integration follows three principles:
+
+1. **Generalize user identity** from phone-only to provider-agnostic addressing
+2. **Add TelegramMessagingProvider** implementing the same interface
+3. **Add a separate webhook route** for Telegram updates, with its own user resolution
+
+### Architecture Diagram: Multi-Provider System
 
 ```
-                              EXTERNAL SERVICES
- +----------+ +----------+ +----------+ +----------+ +----------+
- |  Twilio  | | OpenAI-  | | Sonarr / | |   TMDB   | |  Plex /  |
- |  SMS/RCS | | Compat.  | | Radarr   | |   API    | | Tautulli |
- +----+-----+ +----+-----+ +----+-----+ +----+-----+ +----+-----+
-      |             |            |            |            |
-======|=============|============|============|============|=====
-      |           WADSMEDIA CONTAINER (v2.0)               |
-      |             |            |            |            |
- +----v----+  +-----v----+ +----v----+ +-----v----+ +-----v----+
- | Twilio  |  |  OpenAI  | | Sonarr/ | |   TMDB   | |  Plex/   |
- | Provider|  |  Client  | | Radarr  | |  Client  | | Tautulli |
- | (RCS+   |  |          | | Clients | |  (NEW)   | | Clients  |
- |  SMS)   |  |          | |         | |          | |  (NEW)   |
- +----+----+  +-----+----+ +----+----+ +-----+----+ +-----+----+
-      |             |            |            |            |
- +----v-------------v------------v------------v------------v----+
- |              FASTIFY PLUGIN ARCHITECTURE                     |
- |                                                              |
- |  MESSAGING LAYER    CONVERSATION LAYER    INTEGRATION LAYER  |
- |  +-----------+      +--------------+      +---------------+  |
- |  | webhook   |      | engine +     |      | tmdb plugin   |  |
- |  | plugin    |      | tool-loop    |      | plex plugin   |  |
- |  | (RCS-     |      | (permissions |      | tautulli      |  |
- |  |  aware)   |      |  -aware)     |      |   plugin      |  |
- |  +-----------+      +--------------+      +---------------+  |
- |                                                              |
- |  USER LAYER         ADMIN LAYER           ROUTING LAYER      |
- |  +-----------+      +--------------+      +---------------+  |
- |  | user-     |      | dashboard    |      | library-      |  |
- |  | resolver  |      | API routes   |      |   router      |  |
- |  | (role-    |      | + static     |      | (anime/lang   |  |
- |  |  aware)   |      |   files      |      |  detection)   |  |
- |  +-----------+      +--------------+      +---------------+  |
- +---+----------+----------+----------+----------+--------------+
-     |          |          |          |          |
- +---v----------v----------v----------v----------v-----------+
- |               SQLite (better-sqlite3 + Drizzle)           |
- |  users (+ role) | messages | pending_actions | meta       |
- |  media_tracking | user_plex_links                         |
- +-------------------------------------------------------+
+                         EXTERNAL SERVICES
+ +----------+  +----------+  +----------+  +----------+
+ |  Twilio  |  | Telegram |  | OpenAI-  |  | Sonarr / |
+ |  SMS/RCS |  | Bot API  |  | Compat.  |  | Radarr   |
+ +----+-----+  +----+-----+  +----+-----+  +----+-----+
+      |             |              |              |
+======|=============|==============|==============|======
+      |       WADSMEDIA CONTAINER                 |
+      |             |              |              |
+ +----v-----+ +----v------+  +----v-----+  +----v-----+
+ | Twilio   | | Telegram  |  |  OpenAI  |  | Sonarr/  |
+ | Provider | | Provider  |  |  Client  |  | Radarr   |
+ +----+-----+ +----+------+  +----+-----+  +----+-----+
+      |             |              |              |
+ +----v-------------v--------------v--------------v----+
+ |             FASTIFY PLUGIN ARCHITECTURE             |
+ |                                                     |
+ |  WEBHOOK LAYER (provider-specific)                  |
+ |  +----------------+  +-------------------+          |
+ |  | POST           |  | POST              |          |
+ |  | /webhook/twilio |  | /webhook/telegram |          |
+ |  | (form-encoded) |  | (JSON body)       |          |
+ |  +-------+--------+  +--------+----------+          |
+ |          |                     |                     |
+ |          v                     v                     |
+ |  +-------+---------------------+--------+           |
+ |  |    USER RESOLVER (generalized)       |           |
+ |  |    resolve by phone OR chatId        |           |
+ |  +------------------+-------------------+           |
+ |                     |                               |
+ |  CONVERSATION LAYER (transport-agnostic)            |
+ |  +------------------v-------------------+           |
+ |  | processConversation()                |           |
+ |  | - userId (DB int)                    |           |
+ |  | - messageBody (string)               |           |
+ |  | - replyAddress (string)              |           |
+ |  | - messaging (provider instance)      |           |
+ |  +--------------------------------------+           |
+ +-----------------------------------------------------+
 ```
 
 ### Component Boundaries
 
 | Component | Responsibility | New/Modified | Communicates With |
 |-----------|---------------|--------------|-------------------|
-| **TMDB Client** | Search movies/TV by structured criteria (actor, genre, network, year, language). Provides metadata enrichment (original language, genres, keywords) for smart routing. | NEW | Tool executors, Library Router |
-| **Plex Client** | Check if media exists in Plex library. Get library sections. Verify availability by season/episode for TV. | NEW | Tool executors, Dashboard API |
-| **Tautulli Client** | Get watch history per Plex user. Get user watch time stats. Check recently watched/added. | NEW | Tool executors, Dashboard API |
-| **Library Router** | Auto-detect anime (via TMDB genre IDs, keywords). Auto-detect Asian-language media (via `original_language`). Route to correct Sonarr/Radarr root folder and quality profile. | NEW | TMDB Client, Sonarr/Radarr Clients |
-| **Permission Guard** | Check user role before tool execution. Block destructive tools for non-admins. Emit admin notifications on non-admin adds. | NEW | Tool loop, User service, Messaging |
-| **Media Tracker** | Record which user added which media. Query history per user. | NEW | Tool executors (add tools), Dashboard API |
-| **Dashboard API** | REST endpoints for user management, chat history, stats, Plex user linking. Serves static SPA files. | NEW | DB, Plex Client, Tautulli Client |
-| **Dashboard Frontend** | SPA for admin interface. User list, chat viewer, stats, Plex linking. | NEW | Dashboard API |
-| **RCS Messaging** | Extend outbound messages to support rich cards (poster image, title, year) and suggested reply buttons ("Add this", "Next result"). Falls back to plain text for SMS. | MODIFIED | Twilio Content API |
-| **Conversation Engine** | Extended to pass new clients to tool context. Permission checks injected into tool loop. | MODIFIED | All clients, Permission Guard |
-| **User Service** | Extended with `role` field. Admin vs member distinction replaces boolean `isAdmin`. | MODIFIED | Permission Guard, Dashboard API |
-| **Config** | Extended with TMDB, Plex, Tautulli, dashboard env vars. | MODIFIED | All new plugins |
-| **System Prompt** | Updated to describe new capabilities (TMDB discovery, Plex checks, permissions). | MODIFIED | Conversation Engine |
+| **TelegramMessagingProvider** | Implement MessagingProvider for Telegram Bot API. Send messages via sendMessage/sendPhoto. Validate webhook via secret_token. Parse Update JSON into InboundMessage. | NEW | Telegram Bot API, webhook route |
+| **Telegram webhook route** | POST /webhook/telegram. Validate secret_token header. Dispatch message updates and callback_query updates. Resolve user by Telegram chat ID. | NEW | TelegramMessagingProvider, user resolver, conversation engine |
+| **Telegram webhook setup** | On server startup, call setWebhook to register the webhook URL with Telegram. Call getMe to verify the bot token. | NEW | Telegram Bot API |
+| **MessagingProvider interface** | Generalized: `formatReply`/`formatEmptyReply` become optional (Telegram does not use TwiML). `validateWebhook` signature changes. | MODIFIED | Both providers |
+| **InboundMessage type** | Generalized: `from` becomes a generic string (phone or chatId). Add optional `chatId` and `userId` fields for Telegram context. | MODIFIED | Both webhook routes |
+| **OutboundMessage type** | Generalized: `from` becomes optional (Telegram does not need it). `to` becomes chatId string for Telegram. | MODIFIED | Both providers |
+| **User model / schema** | Add optional `telegramChatId` column. Users can be identified by phone OR telegramChatId. | MODIFIED | User resolver, user service |
+| **User resolver** | Generalized: resolve by phone (Twilio) or by telegramChatId (Telegram). Create pending users from either channel. | MODIFIED | Both webhook routes |
+| **processConversation** | Replace `userPhone` with generic `replyAddress`. Remove `from: config.TWILIO_PHONE_NUMBER` hardcoding -- let the provider handle sender identity. | MODIFIED | Conversation engine |
+| **Notification dispatch** | Send to all active users across all providers. Users with phone get SMS, users with telegramChatId get Telegram message, users with both get one (configurable). | MODIFIED | All providers, user service |
+| **Config** | Add TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET, TELEGRAM_WEBHOOK_URL. | MODIFIED | Telegram plugin |
 
-## New Components: Detailed Architecture
+## Detailed Design: New and Modified Components
 
-### 1. TMDB Client (`src/media/tmdb/`)
+### 1. Generalized MessagingProvider Interface
 
-**Purpose:** Direct TMDB API v3 access for structured discovery that Sonarr/Radarr search cannot do (filter by actor, genre, network, year, original language).
+The current interface has Twilio-specific methods (`formatReply` returns TwiML, `validateWebhook` expects HMAC signature params). These need to be generalized.
 
-**Architecture decision:** Build a custom thin client using the existing `apiRequest` pattern from `src/media/http.ts` rather than using a third-party library. Rationale: The existing codebase already has a battle-tested HTTP+Zod validation pattern. TMDB's API is simple REST with bearer token auth. A third-party library adds a dependency for no meaningful benefit when you only need 6-8 endpoints.
+**Recommended approach:** Evolve the interface to be less Twilio-specific while maintaining backward compatibility.
 
-**Authentication:** Bearer token in `Authorization` header. TMDB API key configured via `TMDB_API_KEY` env var, which TMDB also provides as an access token for bearer auth.
-
-**Rate limits:** ~40-50 requests/second per IP. Not a concern for this use case.
-
-**Key endpoints needed:**
-
-| Endpoint | Purpose | Parameters |
-|----------|---------|------------|
-| `GET /3/search/movie` | Text search for movies | `query`, `year`, `language` |
-| `GET /3/search/tv` | Text search for TV shows | `query`, `first_air_date_year`, `language` |
-| `GET /3/search/person` | Find actor/director IDs | `query` |
-| `GET /3/discover/movie` | Structured discovery | `with_genres`, `with_cast`, `with_original_language`, `primary_release_year`, `sort_by` |
-| `GET /3/discover/tv` | Structured TV discovery | `with_genres`, `with_networks`, `with_original_language`, `first_air_date_year` |
-| `GET /3/movie/{id}` | Full movie details | `append_to_response=keywords,credits` |
-| `GET /3/tv/{id}` | Full TV details | `append_to_response=keywords,credits` |
-| `GET /3/genre/movie/list` | Genre ID mapping | `language` |
-| `GET /3/genre/tv/list` | TV genre ID mapping | `language` |
-| `GET /3/configuration` | Image base URL | none |
-
-**Adaptation needed for `src/media/http.ts`:** The existing `apiRequest` function hardcodes the `X-Api-Key` header and `/api/v3/` path prefix (Sonarr/Radarr convention). TMDB uses `Authorization: Bearer <token>` and `/3/` prefix. Two options:
-
-- **Option A (recommended):** Create a separate `tmdbRequest` helper in `src/media/tmdb/tmdb.http.ts` that follows the same pattern but with TMDB-specific auth and URL structure. Keep the existing `apiRequest` unchanged.
-- **Option B:** Generalize `apiRequest` to accept auth strategy as a parameter. More elegant but risks breaking existing Sonarr/Radarr clients.
-
-**File structure:**
-```
-src/media/tmdb/
-  tmdb.client.ts      # TmdbClient class (same pattern as RadarrClient)
-  tmdb.http.ts         # TMDB-specific HTTP helper with bearer auth
-  tmdb.schemas.ts      # Zod schemas for TMDB API responses
-  tmdb.types.ts        # TypeScript types inferred from schemas
-```
-
-**Confidence:** HIGH -- TMDB API v3 is stable, well-documented, and uses standard REST patterns.
-
-### 2. Plex Client (`src/media/plex/`)
-
-**Purpose:** Check if media already exists in the user's Plex library. Get library section metadata. Check season/episode availability for TV.
-
-**Architecture decision:** Custom thin client using `fetch` directly (not reusing `apiRequest` because Plex has a completely different API structure -- XML default, different auth header, different URL paths).
-
-**Authentication:** `X-Plex-Token` header. Token configured via `PLEX_URL` and `PLEX_TOKEN` env vars. Must also send `Accept: application/json` to get JSON responses (Plex defaults to XML).
-
-**Key endpoints needed:**
-
-| Endpoint | Purpose | Notes |
-|----------|---------|-------|
-| `GET /library/sections` | List all library sections | Returns section IDs and types |
-| `GET /library/sections/{id}/all` | All items in a section | Filter with `?title=X` or `?year=Y` |
-| `GET /library/metadata/{ratingKey}` | Single item details | Full metadata |
-| `GET /library/metadata/{ratingKey}/children` | Seasons of a show | For TV completeness checks |
-| `GET /library/metadata/{ratingKey}/children` (season) | Episodes of a season | Nested: show -> seasons -> episodes |
-| `GET /search?query=X` | Search across all sections | Quick global search |
-
-**Required headers for all requests:**
 ```typescript
-{
-  'X-Plex-Token': token,
-  'Accept': 'application/json',
-  'X-Plex-Client-Identifier': 'wadsmedia',
-  'X-Plex-Product': 'WadsMedia',
-  'X-Plex-Version': '2.0.0',
-}
-```
+// src/messaging/types.ts -- EVOLVED
 
-**File structure:**
-```
-src/media/plex/
-  plex.client.ts      # PlexClient class
-  plex.schemas.ts      # Zod schemas for Plex JSON responses
-  plex.types.ts        # TypeScript types
-```
-
-**Important note:** Plex API responses wrap everything in a `MediaContainer` object. The Zod schemas must account for this wrapper structure.
-
-**Confidence:** HIGH -- Plex API is mature and stable. Endpoint paths confirmed via official documentation and community resources.
-
-### 3. Tautulli Client (`src/media/tautulli/`)
-
-**Purpose:** Watch history awareness. User activity tracking. Recently watched data for recommendation context.
-
-**Architecture decision:** Custom thin client. Tautulli uses a simple single-endpoint API where all commands go to `/api/v2` with `cmd` and `apikey` query parameters.
-
-**Authentication:** API key via `apikey` query parameter. All requests go to one endpoint:
-```
-GET http://{host}:{port}/api/v2?apikey={key}&cmd={command}&{params}
-```
-
-**Key commands needed:**
-
-| Command | Purpose | Key Parameters |
-|---------|---------|----------------|
-| `get_history` | Watch history with filtering | `user_id`, `media_type`, `length`, `start_date` |
-| `get_users` | List all Plex users | none |
-| `get_user_watch_time_stats` | User watch statistics | `user_id`, `query_days` |
-| `get_recently_added` | Recently added to Plex | `count`, `media_type`, `section_id` |
-| `get_activity` | Current active streams | none |
-
-**File structure:**
-```
-src/media/tautulli/
-  tautulli.client.ts   # TautulliClient class
-  tautulli.schemas.ts   # Zod schemas for Tautulli responses
-  tautulli.types.ts     # TypeScript types
-```
-
-**Confidence:** HIGH -- Tautulli API is simple and well-documented.
-
-### 4. Library Router (`src/media/routing/`)
-
-**Purpose:** Automatically detect anime content and Asian-language media, routing them to the correct Sonarr/Radarr root folders and quality profiles.
-
-**Architecture decision:** Pure function that takes TMDB metadata and returns routing decisions. No state, no side effects. Called by the `add_movie` and `add_series` tool executors before passing to Sonarr/Radarr.
-
-**Detection logic:**
-
-For anime detection (Sonarr routing):
-```typescript
-interface RoutingDecision {
-  rootFolderPath: string;
-  qualityProfileId: number;
-  reason: string;  // For logging/debugging
+export interface InboundMessage {
+  messageId: string;          // Was messageSid. Generic message identifier.
+  from: string;               // Phone number (Twilio) or chatId (Telegram)
+  to: string;                 // Bot's phone/identity
+  body: string;               // Text content
+  numMedia: number;           // Media attachment count
+  buttonPayload: string | null;  // Callback data (Twilio ButtonPayload or Telegram callback_data)
+  buttonText: string | null;     // Button display text
+  // NEW: Telegram-specific context (optional, null for Twilio)
+  telegramUserId?: number;    // The user who sent (distinct from chatId in groups)
+  chatType?: "private" | "group" | "supergroup";
 }
 
-function routeSeries(tmdbMetadata: TmdbSeriesDetail, sonarr: SonarrClient): RoutingDecision {
-  const isAnime =
-    tmdbMetadata.genres.some(g => g.id === 16) &&  // Animation genre
-    tmdbMetadata.origin_country.includes('JP');     // Japanese origin
-  // OR: keywords include 'anime'
-  // OR: original_language === 'ja' && genre includes Animation
-
-  if (isAnime) {
-    return {
-      rootFolderPath: findFolderByName(sonarr.rootFolders, 'anime'),
-      qualityProfileId: findProfileByName(sonarr.qualityProfiles, 'anime'),
-      reason: 'Detected as anime (Japanese animation)',
-    };
-  }
-
-  return {
-    rootFolderPath: sonarr.rootFolders[0].path,  // Default TV folder
-    qualityProfileId: findDefault1080pProfile(sonarr.qualityProfiles),
-    reason: 'Standard TV series',
-  };
-}
-```
-
-For Asian-language movie detection (Radarr routing):
-```typescript
-const ASIAN_LANGUAGES = ['zh', 'ja', 'ko', 'th', 'vi', 'id', 'ms', 'tl'];
-
-function routeMovie(tmdbMetadata: TmdbMovieDetail, radarr: RadarrClient): RoutingDecision {
-  const isAsianLanguage = ASIAN_LANGUAGES.includes(tmdbMetadata.original_language);
-
-  if (isAsianLanguage) {
-    return {
-      rootFolderPath: findFolderByName(radarr.rootFolders, 'cmovies'),
-      qualityProfileId: findDefault1080pProfile(radarr.qualityProfiles),
-      reason: `Asian-language film (${tmdbMetadata.original_language})`,
-    };
-  }
-
-  return {
-    rootFolderPath: radarr.rootFolders[0].path,  // Default Movies folder
-    qualityProfileId: findDefault1080pProfile(radarr.qualityProfiles),
-    reason: 'Standard movie',
-  };
-}
-```
-
-**Key dependency:** Library router REQUIRES TMDB metadata (original_language, genres, origin_country) to make routing decisions. This means the `add_movie` and `add_series` tools must fetch TMDB details before adding to Sonarr/Radarr, even when the user found the content via Sonarr/Radarr search.
-
-**Configuration:** Root folder name matching is fuzzy (case-insensitive, partial match). Quality profile names are configurable via env vars with sensible defaults. If a configured folder/profile is not found, fall back to the first available option and log a warning.
-
-**File structure:**
-```
-src/media/routing/
-  library-router.ts     # Pure routing functions
-  library-router.types.ts  # RoutingDecision type
-```
-
-**Confidence:** HIGH -- straightforward data-driven logic. TMDB genre IDs are stable (Animation = 16).
-
-### 5. Permission Guard (`src/users/permissions.ts`)
-
-**Purpose:** Role-based access control for tool execution. Non-admins can search, view, and add, but cannot remove. Admin gets notified when non-admin adds media.
-
-**Architecture decision:** Inject permission checks into the tool call loop, not into individual tools. This keeps tools simple and ensures consistent enforcement.
-
-**Implementation approach:** Extend `ConfirmationTier` to include a `requiredRole` property on `ToolDefinition`:
-
-```typescript
-// Extended tool definition
-export interface ToolDefinition {
-  definition: ChatCompletionFunctionTool;
-  tier: ConfirmationTier;
-  requiredRole: 'admin' | 'member' | 'any';  // NEW
-  paramSchema: unknown;
-  execute: (args: unknown, context: ToolContext) => Promise<unknown>;
-}
-```
-
-The tool loop checks `requiredRole` before executing:
-```typescript
-// In tool-loop.ts, before execution
-if (tool.requiredRole === 'admin' && !context.userRole.isAdmin) {
-  messages.push({
-    role: 'tool',
-    tool_call_id: toolCall.id,
-    content: JSON.stringify({ error: 'You do not have permission to perform this action.' }),
-  });
-  continue;
-}
-```
-
-**Role assignments:**
-
-| Tool | Required Role | Rationale |
-|------|--------------|-----------|
-| `search_movies`, `search_series` | any | Everyone can search |
-| `check_status` | any | Everyone can check status |
-| `get_upcoming_*` | any | Everyone can view upcoming |
-| `get_download_queue` | any | Everyone can view downloads |
-| `add_movie`, `add_series` | any | Members can add (admin notified) |
-| `remove_movie`, `remove_series` | admin | Only admins can remove |
-| `discover_*` (new TMDB tools) | any | Everyone can discover |
-| `check_plex_library` (new) | any | Everyone can check availability |
-
-**Admin notification on non-admin add:** Hook into the add tool executors. After successful add, if `!context.isAdmin`, send a notification to admin:
-```
-"[User Name] added [Movie/Show Title] (YYYY)"
-```
-
-**Schema change:** The `users` table already has `isAdmin` boolean. This is sufficient. No new `role` column needed -- just use the existing boolean. The `ToolDefinition.requiredRole` maps to this:
-- `'admin'` = `isAdmin === true`
-- `'member'` = `isAdmin === false && status === 'active'`
-- `'any'` = `status === 'active'`
-
-**ToolContext extension:**
-```typescript
-export interface ToolContext {
-  sonarr?: SonarrClient;
-  radarr?: RadarrClient;
-  tmdb?: TmdbClient;       // NEW
-  plex?: PlexClient;        // NEW
-  tautulli?: TautulliClient; // NEW
-  userId: number;
-  isAdmin: boolean;          // NEW
-  userPhone: string;         // NEW (for admin notification)
-  displayName: string | null; // NEW (for admin notification)
-}
-```
-
-**Confidence:** HIGH -- simple boolean-based authorization, no complex RBAC needed.
-
-### 6. Media Tracker (`src/db/` schema + `src/users/`)
-
-**Purpose:** Record which user added which media. Support dashboard queries for "who added what."
-
-**Schema:**
-```typescript
-export const mediaTracking = sqliteTable('media_tracking', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id').notNull().references(() => users.id),
-  mediaType: text('media_type', { enum: ['movie', 'series'] }).notNull(),
-  title: text('title').notNull(),
-  year: integer('year'),
-  externalId: text('external_id').notNull(),  // tmdbId or tvdbId
-  sonarrRadarrId: integer('sonarr_radarr_id'),  // ID in Sonarr/Radarr
-  addedAt: integer('added_at', { mode: 'timestamp' })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
-```
-
-**Integration point:** The `add_movie` and `add_series` tool executors insert a tracking record after successful Sonarr/Radarr add. The context already has `userId`.
-
-**Confidence:** HIGH -- simple insert-after-action pattern.
-
-### 7. Dashboard API (`src/dashboard/`)
-
-**Purpose:** REST API for the web admin dashboard. User management, chat history viewing, stats, Plex user linking.
-
-**Architecture decision:** Register as a Fastify plugin with a `/api/admin/` prefix. Use `@fastify/static` to serve the SPA frontend from the same container.
-
-**Authentication:** Simple token-based auth. Dashboard protected by a `DASHBOARD_SECRET` env var. The admin enters this token in the dashboard login form. Token sent as `Authorization: Bearer <token>` header on all API requests. No sessions, no cookies, no OAuth -- this is a single-admin tool.
-
-**API routes:**
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| `POST` | `/api/admin/auth` | Validate dashboard token |
-| `GET` | `/api/admin/users` | List all users with status |
-| `PATCH` | `/api/admin/users/:id` | Update user status/role |
-| `GET` | `/api/admin/users/:id/messages` | Get user's chat history |
-| `GET` | `/api/admin/users/:id/media` | Get user's added media |
-| `GET` | `/api/admin/stats` | Dashboard stats (counts, recent activity) |
-| `GET` | `/api/admin/stats/activity` | Recent activity feed |
-| `POST` | `/api/admin/users/:id/plex-link` | Link Plex user to WadsMedia user |
-| `DELETE` | `/api/admin/users/:id/plex-link` | Unlink Plex user |
-| `GET` | `/api/admin/plex/users` | List available Plex users (from Tautulli) |
-
-**Plex user linking schema:**
-```typescript
-export const userPlexLinks = sqliteTable('user_plex_links', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id').notNull().references(() => users.id).unique(),
-  plexUserId: integer('plex_user_id').notNull(),
-  plexUsername: text('plex_username').notNull(),
-  linkedAt: integer('linked_at', { mode: 'timestamp' })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
-```
-
-**Static file serving:**
-```typescript
-// In dashboard plugin
-await fastify.register(import('@fastify/static'), {
-  root: path.join(__dirname, '../../dashboard/dist'),
-  prefix: '/dashboard/',
-  wildcard: true,  // SPA routing support
-});
-
-// Catch-all for SPA client-side routing
-fastify.setNotFoundHandler((req, reply) => {
-  if (req.url.startsWith('/dashboard')) {
-    return reply.sendFile('index.html');
-  }
-  reply.code(404).send({ error: 'Not found' });
-});
-```
-
-**File structure:**
-```
-src/dashboard/
-  routes.ts           # All API route handlers
-  auth.ts             # Token validation middleware
-  stats.ts            # Stats aggregation queries
-  types.ts            # API request/response types
-```
-
-**Confidence:** HIGH -- standard Fastify REST API patterns. `@fastify/static` is the official plugin for serving static files.
-
-### 8. Dashboard Frontend (`dashboard/`)
-
-**Purpose:** Simple admin SPA for user management, chat viewing, and stats.
-
-**Architecture decision:** Separate directory at project root (`dashboard/`), built with Vite, output goes to `dashboard/dist/`. The Docker build compiles it and copies dist into the container.
-
-**Technology choice:** Keep it minimal. React + Vite + Tailwind CSS. No heavy admin framework (Refine, React Admin) -- the dashboard has maybe 5-6 views and does not justify a framework dependency.
-
-**Views:**
-1. **Login** -- token entry
-2. **Dashboard** -- stats cards (total users, active users, recent requests, media added)
-3. **Users** -- table with status, role, last activity, actions (approve/block/promote)
-4. **User Detail** -- chat history viewer, media added list, Plex link
-5. **Activity** -- recent activity feed (adds, searches, notifications)
-
-**File structure:**
-```
-dashboard/
-  index.html
-  src/
-    main.tsx
-    App.tsx
-    api/
-      client.ts       # fetch wrapper with auth header
-    pages/
-      Login.tsx
-      Dashboard.tsx
-      Users.tsx
-      UserDetail.tsx
-      Activity.tsx
-    components/
-      Layout.tsx
-      StatsCard.tsx
-      ChatHistory.tsx
-      UserTable.tsx
-  vite.config.ts
-  tailwind.config.ts
-  tsconfig.json
-  package.json
-```
-
-**Docker integration:** Multi-stage build adds a dashboard build stage:
-```dockerfile
-# Stage 1: Build dashboard
-FROM node:22-slim AS dashboard-build
-WORKDIR /dashboard
-COPY dashboard/package*.json ./
-RUN npm ci
-COPY dashboard/ ./
-RUN npm run build
-
-# Stage 2: Build backend (existing)
-FROM node:22-slim AS backend-build
-# ... existing build steps ...
-
-# Stage 3: Production
-FROM node:22-slim
-# ... existing copy steps ...
-COPY --from=dashboard-build /dashboard/dist ./dashboard/dist
-```
-
-**Confidence:** MEDIUM -- the dashboard architecture is straightforward, but frontend technology choices have more variability. React + Vite + Tailwind is a well-proven combination.
-
-### 9. RCS Rich Messaging (Modified `src/messaging/`)
-
-**Purpose:** Send search results as rich cards with poster images, and provide suggested reply buttons for quick actions.
-
-**Architecture decision:** Use Twilio's Content Template Builder API to create and send rich cards programmatically. Templates are created at startup or on-demand and cached by content type.
-
-**How Twilio Content API works:**
-1. Create a content template via `POST https://content.twilio.com/v1/Content` with template type `twilio/card`
-2. Get back a `ContentSid` (like `HXXXXXXXXXXX`)
-3. Send messages with `contentSid` instead of `body` parameter
-4. Templates support variables for dynamic content (`ContentVariables`)
-
-**Key challenge:** Templates must be pre-created and approved by Twilio before sending. For dynamic content like search results, you need to use variables in pre-defined templates.
-
-**Template strategy:**
-
-| Template | Type | Variables | When Used |
-|----------|------|-----------|-----------|
-| Movie Result Card | `twilio/card` | `{title}`, `{year}`, `{overview}`, `{posterUrl}` | Search results |
-| TV Result Card | `twilio/card` | `{title}`, `{year}`, `{overview}`, `{posterUrl}`, `{seasons}` | Search results |
-| Quick Reply | `twilio/quick-reply` | `{body}` + actions: "Add this", "More results" | After showing a result |
-
-**Implementation approach:**
-
-```typescript
-// Extended OutboundMessage
 export interface OutboundMessage {
-  to: string;
-  body: string;
-  messagingServiceSid?: string;
-  from?: string;
-  // NEW: RCS rich content
-  contentSid?: string;
-  contentVariables?: Record<string, string>;
+  to: string;                    // Phone number or chat ID
+  body?: string;                 // Plain text message
+  contentSid?: string;           // Twilio content template (ignored by Telegram)
+  contentVariables?: string;     // Twilio template vars (ignored by Telegram)
+  mediaUrl?: string[];           // Twilio MMS / Telegram photo URLs
+  messagingServiceSid?: string;  // Twilio-specific (ignored by Telegram)
+  from?: string;                 // Twilio-specific sender (ignored by Telegram)
+  // NEW: Rich content options (used by Telegram, future Twilio RCS)
+  inlineKeyboard?: InlineButton[][];  // Button rows
+  parseMode?: "MarkdownV2" | "HTML";  // Telegram formatting
+  photo?: string;                     // Single photo URL (Telegram sendPhoto)
 }
 
-// In TwilioMessagingProvider.send():
-async send(message: OutboundMessage): Promise<SendResult> {
-  const createParams: any = {
-    to: message.to,
-    ...(message.messagingServiceSid
-      ? { messagingServiceSid: message.messagingServiceSid }
-      : { from: message.from }),
-  };
+export interface InlineButton {
+  text: string;         // Button label
+  callbackData: string; // Data sent back on tap (max 64 bytes for Telegram)
+}
 
-  if (message.contentSid) {
-    createParams.contentSid = message.contentSid;
-    if (message.contentVariables) {
-      createParams.contentVariables = JSON.stringify(message.contentVariables);
-    }
-    // Do NOT set body when using contentSid
-  } else {
-    createParams.body = message.body;
+export interface SendResult {
+  messageId: string;    // Was sid. Generic.
+  status: string;
+}
+
+export interface MessagingProvider {
+  /** Send an outbound message */
+  send(message: OutboundMessage): Promise<SendResult>;
+
+  /** Validate an incoming webhook request is authentic */
+  validateWebhook(request: WebhookValidationParams): boolean;
+
+  /** Parse raw webhook body into a normalized InboundMessage */
+  parseInbound(body: unknown): InboundMessage;
+
+  /** Provider name for logging and routing */
+  readonly providerName: string;
+
+  /** Format an immediate webhook response (TwiML for Twilio, null for Telegram) */
+  formatWebhookResponse(text?: string): string | null;
+}
+
+export interface WebhookValidationParams {
+  headers: Record<string, string | string[] | undefined>;
+  url: string;
+  body: unknown;
+}
+```
+
+**Key changes:**
+- `validateWebhook` takes generic headers/body instead of Twilio-specific params
+- `formatReply`/`formatEmptyReply` merged into `formatWebhookResponse` (returns null for providers that do not reply in the webhook response)
+- `parseInbound` takes `unknown` instead of `Record<string, string>` (Telegram sends JSON, Twilio sends form-encoded)
+- `providerName` added for logging and routing
+- `InlineButton` type added for cross-provider button support
+- `OutboundMessage` gains `inlineKeyboard`, `parseMode`, `photo` for Telegram rich content
+
+### 2. TelegramMessagingProvider
+
+```typescript
+// src/messaging/telegram-provider.ts -- NEW
+
+const TELEGRAM_API = "https://api.telegram.org/bot";
+
+export class TelegramMessagingProvider implements MessagingProvider {
+  private botToken: string;
+  private webhookSecret: string;
+  readonly providerName = "telegram";
+
+  constructor(botToken: string, webhookSecret: string) {
+    this.botToken = botToken;
+    this.webhookSecret = webhookSecret;
   }
 
-  const result = await this.client.messages.create(createParams);
-  return { sid: result.sid, status: result.status };
+  async send(message: OutboundMessage): Promise<SendResult> {
+    // If photo is provided, use sendPhoto; otherwise sendMessage
+    if (message.photo) {
+      return this.sendPhoto(message);
+    }
+    return this.sendText(message);
+  }
+
+  private async sendText(message: OutboundMessage): Promise<SendResult> {
+    const payload: Record<string, unknown> = {
+      chat_id: message.to,
+      text: message.body ?? "",
+    };
+    if (message.parseMode) payload.parse_mode = message.parseMode;
+    if (message.inlineKeyboard) {
+      payload.reply_markup = {
+        inline_keyboard: message.inlineKeyboard.map(row =>
+          row.map(btn => ({ text: btn.text, callback_data: btn.callbackData }))
+        ),
+      };
+    }
+    const result = await this.callApi("sendMessage", payload);
+    return { messageId: String(result.message_id), status: "sent" };
+  }
+
+  private async sendPhoto(message: OutboundMessage): Promise<SendResult> {
+    const payload: Record<string, unknown> = {
+      chat_id: message.to,
+      photo: message.photo,
+      caption: message.body,
+    };
+    if (message.parseMode) payload.parse_mode = message.parseMode;
+    if (message.inlineKeyboard) {
+      payload.reply_markup = {
+        inline_keyboard: message.inlineKeyboard.map(row =>
+          row.map(btn => ({ text: btn.text, callback_data: btn.callbackData }))
+        ),
+      };
+    }
+    const result = await this.callApi("sendPhoto", payload);
+    return { messageId: String(result.message_id), status: "sent" };
+  }
+
+  validateWebhook(params: WebhookValidationParams): boolean {
+    const token = params.headers["x-telegram-bot-api-secret-token"];
+    return token === this.webhookSecret;
+  }
+
+  parseInbound(body: unknown): InboundMessage {
+    const update = body as TelegramUpdate;
+
+    if (update.callback_query) {
+      return this.parseCallbackQuery(update.callback_query);
+    }
+
+    if (update.message) {
+      return this.parseMessage(update.message);
+    }
+
+    // Unsupported update type
+    return {
+      messageId: String(update.update_id),
+      from: "",
+      to: "",
+      body: "",
+      numMedia: 0,
+      buttonPayload: null,
+      buttonText: null,
+    };
+  }
+
+  formatWebhookResponse(_text?: string): string | null {
+    // Telegram: always return null -- reply via API call, not webhook response
+    return null;
+  }
+
+  // ... private helper methods
 }
 ```
 
-**Graceful degradation:** When sending to a non-RCS-capable device (SMS only), Twilio automatically falls back to a text-only version of the template. The existing plain text `body` continues to work as-is. The Content API handles this transparently.
+### 3. Telegram Webhook Route
 
-**TMDB image URLs for poster images:** TMDB provides poster paths like `/kqjL17yufvn9OVLyXYpvtyrFfak.jpg`. Full URL requires the base URL from `/3/configuration`: `https://image.tmdb.org/t/p/w500{poster_path}`.
+A new Fastify plugin that handles Telegram updates. Critically different from the Twilio webhook:
 
-**Confidence:** MEDIUM -- Twilio Content API is well-documented, but the template creation/approval workflow needs validation. Templates with variables must be tested end-to-end. The RCS fallback behavior for SMS-only devices needs verification during implementation.
-
-## Data Flow Changes
-
-### New Data Flow: TMDB-Enhanced Search
-
-```
-[User: "find action movies with Tom Cruise"]
-    |
-    v
-[LLM identifies structured criteria via tool call]
-    | discover_movies({ with_cast: "Tom Cruise", with_genres: "action" })
-    v
-[Tool executor: resolve "Tom Cruise" -> TMDB person ID]
-    | tmdb.searchPerson("Tom Cruise") -> personId: 500
-    v
-[Tool executor: discover with structured filters]
-    | tmdb.discoverMovies({ with_cast: 500, with_genres: 28 })
-    v
-[Return results with poster URLs, overview, year]
-    |
-    v
-[LLM formats natural language response]
-    | Includes TMDB poster URLs for RCS cards
-    v
-[Send RCS rich card with poster OR plain text for SMS]
-```
-
-### New Data Flow: Smart Library Routing on Add
-
-```
-[User: "add Demon Slayer"]
-    |
-    v
-[LLM calls add_series({ tvdbId: 345678 })]
-    |
-    v
-[Tool executor: fetch TMDB metadata for routing decision]
-    | tmdb.getTvDetails(tmdbId) -> { original_language: "ja", genres: [Animation], origin_country: ["JP"] }
-    v
-[Library Router: isAnime? YES (Japanese + Animation)]
-    | -> rootFolderPath: "/anime/", qualityProfileId: 3
-    v
-[SonarrClient.addSeries({ rootFolderPath: "/anime/", qualityProfileId: 3, ... })]
-    |
-    v
-[Media Tracker: insert tracking record (userId, "series", "Demon Slayer", tvdbId)]
-    |
-    v
-[If !isAdmin: notify admin "UserName added Demon Slayer (2019)"]
-    |
-    v
-[LLM formats confirmation response]
-```
-
-### New Data Flow: Plex Library Check
-
-```
-[User: "do I have Breaking Bad?"]
-    |
-    v
-[LLM calls check_plex_library({ title: "Breaking Bad", type: "show" })]
-    |
-    v
-[PlexClient.searchLibrary("Breaking Bad")]
-    | -> Found in section "TV Shows", all 5 seasons, 62/62 episodes
-    v
-[Return structured result to LLM]
-    |
-    v
-[LLM: "Yes! Breaking Bad is in your Plex library with all 5 seasons (62 episodes)."]
-```
-
-### New Data Flow: Dashboard API
-
-```
-[Admin opens browser to /dashboard/]
-    |
-    v
-[@fastify/static serves SPA index.html + assets]
-    |
-    v
-[SPA: POST /api/admin/auth { token: "..." }]
-    | Validate DASHBOARD_SECRET
-    v
-[SPA: GET /api/admin/stats]
-    | Query: user counts, media_tracking counts, recent messages
-    v
-[SPA: GET /api/admin/users]
-    | Query: users table with last message timestamps
-    v
-[SPA: GET /api/admin/users/3/messages]
-    | Query: messages table for userId=3, ordered by createdAt
-    v
-[Admin: PATCH /api/admin/users/5 { status: "active" }]
-    | Update user, effective immediately for next message
-```
-
-### Modified Data Flow: Permission-Aware Tool Loop
-
-```
-[Existing tool-loop.ts, lines 104-122]
-    |
-    v
-[BEFORE execution, NEW check:]
-    if (tool.requiredRole === 'admin' && !context.isAdmin) {
-      // Return permission error to LLM
-      // LLM tells user they cannot perform this action
-    }
-    |
-    v
-[AFTER successful add execution, NEW hook:]
-    if (!context.isAdmin && isAddTool(functionName)) {
-      // Insert media_tracking record
-      // Send admin notification
-    }
-```
-
-## Modified Components: Specific Changes
-
-### `src/config.ts` -- New Environment Variables
+- Receives JSON (not form-encoded)
+- Must handle two update types: `message` and `callback_query`
+- Must call `answerCallbackQuery` for button taps
+- Must respond with HTTP 200 quickly (Telegram retries on failure)
+- User resolution is by `chat.id` (not phone number)
 
 ```typescript
-// TMDB
-TMDB_API_KEY: z.string().min(1).optional(),
-TMDB_IMAGE_BASE_URL: z.string().url().default('https://image.tmdb.org/t/p/w500'),
+// src/plugins/telegram-webhook.ts -- NEW
 
-// Plex
-PLEX_URL: z.string().url().optional(),
-PLEX_TOKEN: z.string().min(1).optional(),
+export default fp(
+  async (fastify: FastifyInstance) => {
+    const validateTelegramSecret = async (request: FastifyRequest, reply: FastifyReply) => {
+      const secretToken = request.headers["x-telegram-bot-api-secret-token"];
+      if (secretToken !== fastify.config.TELEGRAM_WEBHOOK_SECRET) {
+        reply.code(403).send({ error: "Invalid secret token" });
+        return;
+      }
+    };
 
-// Tautulli
-TAUTULLI_URL: z.string().url().optional(),
-TAUTULLI_API_KEY: z.string().min(1).optional(),
+    fastify.post(
+      "/webhook/telegram",
+      { preHandler: [validateTelegramSecret] },
+      async (request, reply) => {
+        const update = request.body as TelegramUpdate;
 
-// Dashboard
-DASHBOARD_SECRET: z.string().min(8).optional(),
+        // Always respond 200 immediately -- process async
+        reply.code(200).send({ ok: true });
 
-// Library routing (folder name hints, case-insensitive)
-ANIME_ROOT_FOLDER: z.string().default('anime'),
-CMOVIES_ROOT_FOLDER: z.string().default('cmovies'),
-DEFAULT_QUALITY_PROFILE: z.string().default('1080p'),
+        if (update.callback_query) {
+          // Handle inline keyboard button tap
+          await handleCallbackQuery(fastify, update.callback_query, request.log);
+          return;
+        }
 
-// RCS
-TWILIO_CONTENT_MOVIE_CARD_SID: z.string().optional(),
-TWILIO_CONTENT_TV_CARD_SID: z.string().optional(),
-TWILIO_CONTENT_QUICK_REPLY_SID: z.string().optional(),
+        if (update.message?.text) {
+          // Handle text message
+          await handleTextMessage(fastify, update.message, request.log);
+          return;
+        }
+
+        // Ignore other update types (photos, stickers, etc.)
+        request.log.debug({ updateId: update.update_id }, "Ignoring non-text Telegram update");
+      },
+    );
+  },
+  { name: "telegram-webhook", dependencies: ["database", "telegram-messaging"] },
+);
 ```
 
-### `src/conversation/types.ts` -- Extended ToolContext
+### 4. User Identity: Schema Changes
+
+The core challenge: users can contact WadsMedia via SMS (phone number) or Telegram (chat ID). A user might use both. The user model must support this.
+
+**Schema evolution:**
 
 ```typescript
-export interface ToolContext {
-  sonarr?: SonarrClient;
-  radarr?: RadarrClient;
-  tmdb?: TmdbClient;           // NEW
-  plex?: PlexClient;            // NEW
-  tautulli?: TautulliClient;    // NEW
+// src/db/schema.ts -- MODIFIED
+
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  phone: text("phone").unique(),              // NOW NULLABLE -- Telegram users may not have a phone
+  telegramChatId: text("telegram_chat_id").unique(),  // NEW -- Telegram chat ID as string
+  telegramUsername: text("telegram_username"),          // NEW -- optional @username
+  displayName: text("display_name"),
+  status: text("status", { enum: ["active", "pending", "blocked"] }).notNull().default("pending"),
+  isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
+  plexUserId: integer("plex_user_id"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+```
+
+**Critical decision: phone becomes nullable.** A Telegram-only user has no phone number. The UNIQUE constraint on phone still works (multiple NULLs are allowed in SQLite UNIQUE columns). The `ADMIN_PHONE` config still works for the admin user who uses SMS.
+
+**User lookup generalization:**
+
+```typescript
+// src/users/user.service.ts -- MODIFIED
+
+export function findUserByPhone(db: DB, phone: string) { /* unchanged */ }
+
+// NEW
+export function findUserByTelegramChatId(db: DB, chatId: string) {
+  return db.select().from(users).where(eq(users.telegramChatId, chatId)).get();
+}
+
+// NEW: resolve user from either channel
+export function findUser(db: DB, identifier: { phone?: string; telegramChatId?: string }) {
+  if (identifier.phone) return findUserByPhone(db, identifier.phone);
+  if (identifier.telegramChatId) return findUserByTelegramChatId(db, identifier.telegramChatId);
+  return undefined;
+}
+```
+
+### 5. Conversation Engine: Transport Generalization
+
+The `processConversation` function currently takes `userPhone` and hardcodes `from: config.TWILIO_PHONE_NUMBER` in every `messaging.send()` call. This must be generalized.
+
+**Recommended approach:** Replace `userPhone` with `replyAddress` and remove `from` from the engine entirely. Let each provider handle sender identity internally.
+
+```typescript
+// src/conversation/engine.ts -- MODIFIED
+
+interface ProcessConversationParams {
   userId: number;
-  isAdmin: boolean;              // NEW
-  userPhone: string;             // NEW
-  displayName: string | null;    // NEW
+  replyAddress: string;        // Was userPhone. Now: phone number OR chatId
+  displayName: string | null;
+  isAdmin: boolean;
+  messageBody: string;
+  // ... db, llmClient, registry, etc. unchanged
+  messaging: MessagingProvider;
+  config: AppConfig;
+  log: FastifyBaseLogger;
 }
 
-export interface ToolDefinition {
-  definition: ChatCompletionFunctionTool;
-  tier: ConfirmationTier;
-  requiredRole: 'admin' | 'member' | 'any';  // NEW
-  paramSchema: unknown;
-  execute: (args: unknown, context: ToolContext) => Promise<unknown>;
+// In every messaging.send() call, change from:
+await messaging.send({
+  to: userPhone,
+  body: resultText,
+  from: config.TWILIO_PHONE_NUMBER,  // REMOVE
+});
+
+// To:
+await messaging.send({
+  to: replyAddress,
+  body: resultText,
+  // from is handled by provider: Twilio adds it, Telegram ignores it
+  ...(config.TWILIO_PHONE_NUMBER ? { from: config.TWILIO_PHONE_NUMBER } : {}),
+});
+```
+
+**Better approach for `from`:** Move sender identity into the provider instance. The TwilioMessagingProvider constructor already takes credentials -- it can also take the phone number and inject `from` automatically in `send()`. Then the engine never specifies `from`.
+
+```typescript
+// TwilioMessagingProvider
+constructor(accountSid: string, authToken: string, fromNumber: string) {
+  this.fromNumber = fromNumber;
+}
+
+async send(message: OutboundMessage): Promise<SendResult> {
+  const from = message.from ?? this.fromNumber;  // Default to configured number
+  // ... rest unchanged
+}
+
+// TelegramMessagingProvider -- from is never needed
+async send(message: OutboundMessage): Promise<SendResult> {
+  // from is ignored -- bot identity is implicit in the token
 }
 ```
 
-### `src/conversation/tool-loop.ts` -- Permission Check Injection
+This means the engine can simply:
+```typescript
+await messaging.send({ to: replyAddress, body: resultText });
+```
 
-Insert between argument validation (line 92-101) and destructive tier check (line 104-121):
+### 6. ToolContext: Replace userPhone
 
 ```typescript
-// NEW: Permission check
-if (tool.requiredRole === 'admin' && !context.isAdmin) {
-  messages.push({
-    role: 'tool',
-    tool_call_id: toolCall.id,
-    content: JSON.stringify({
-      error: 'Permission denied. Only admins can perform this action.',
-    }),
+// src/conversation/types.ts -- MODIFIED
+
+export interface ToolContext {
+  // ... all existing fields unchanged
+  userId: number;
+  isAdmin: boolean;
+  displayName: string | null;
+  replyAddress: string;          // Was userPhone. Generic destination.
+  messaging?: MessagingProvider;
+  // ... db, config, etc.
+}
+```
+
+The only tool that uses `userPhone` is the admin notification in `add-movie.ts` and `add-series.ts`. These send to `config.ADMIN_PHONE`, not to the user, so they use the Twilio provider (or whichever provider the admin prefers). This needs a design decision: see "Admin Notification Routing" below.
+
+### 7. Notification Dispatch: Multi-Provider
+
+The current `notifyAllActiveUsers()` queries all active users' phone numbers and sends via the Twilio provider. With Telegram users, this must support both channels.
+
+**Recommended approach:** The notification system queries all active users and sends via the appropriate provider based on what identity the user has.
+
+```typescript
+// src/notifications/notify.ts -- MODIFIED
+
+export async function notifyAllActiveUsers(
+  db: DB,
+  providers: Map<string, MessagingProvider>,  // Was single messaging provider
+  config: AppConfig,
+  message: string,
+  log: FastifyBaseLogger,
+): Promise<void> {
+  const activeUsers = db
+    .select({ phone: users.phone, telegramChatId: users.telegramChatId })
+    .from(users)
+    .where(eq(users.status, "active"))
+    .all();
+
+  for (const user of activeUsers) {
+    try {
+      if (user.telegramChatId && providers.has("telegram")) {
+        await providers.get("telegram")!.send({
+          to: user.telegramChatId,
+          body: message,
+        });
+      } else if (user.phone && providers.has("twilio")) {
+        await providers.get("twilio")!.send({
+          to: user.phone,
+          body: message,
+          from: config.TWILIO_PHONE_NUMBER,
+        });
+      }
+    } catch (err) {
+      log.error({ err, userId: user.phone ?? user.telegramChatId }, "Failed to send notification");
+    }
+  }
+}
+```
+
+**Design decision: prefer Telegram for users with both.** If a user has both phone and telegramChatId, prefer Telegram (free, richer, no SMS cost). This preference can be configurable later.
+
+### 8. Group Chat Considerations
+
+Telegram supports group chats where multiple users share one chat. In the current WadsMedia model, conversation history is per-user (keyed by `userId`). Group chats create an interesting design question.
+
+**Recommended approach for MVP: Private chats only.** Ignore group messages. Telegram bots can be configured to not receive group messages via BotFather privacy settings. This avoids the complexity of shared conversation history, multiple users in one thread, and @mention parsing.
+
+**If group support is desired later:**
+- `chat.id` identifies the group (negative number)
+- `from.id` identifies who sent the message
+- History should be keyed by `chatId` (group), not `userId`
+- The bot should only respond when mentioned (`@botname`) or in reply
+- Permission checks should use `from.id` (the sender), not the group
+
+For now, the webhook route should check `update.message.chat.type === "private"` and ignore group messages.
+
+### 9. Callback Queries (Inline Keyboard Buttons)
+
+Telegram inline keyboards send `callback_query` updates -- a completely separate update type from regular messages. This maps to the existing `buttonPayload` concept in InboundMessage.
+
+**Flow:**
+1. Bot sends message with inline keyboard buttons (e.g., "Add this", "Next result", "Check Plex")
+2. User taps a button
+3. Telegram sends `callback_query` update with `data` field containing the button's `callback_data`
+4. Bot must call `answerCallbackQuery` to dismiss the loading state
+5. Bot processes the callback as if the user typed the button text
+
+**Implementation:**
+```typescript
+async function handleCallbackQuery(
+  fastify: FastifyInstance,
+  query: CallbackQuery,
+  log: FastifyBaseLogger,
+): Promise<void> {
+  const chatId = String(query.message?.chat.id ?? query.from.id);
+
+  // Always answer the callback to dismiss loading indicator
+  await fastify.telegramMessaging.answerCallbackQuery(query.id);
+
+  // Resolve user by chatId
+  const user = findUserByTelegramChatId(fastify.db, chatId);
+  if (!user || user.status !== "active") return;
+
+  // Treat callback_data as a message (e.g., "add_media", "next_result", "check_plex")
+  const messageBody = mapCallbackToMessage(query.data ?? "");
+
+  await processConversation({
+    userId: user.id,
+    replyAddress: chatId,
+    displayName: user.displayName,
+    isAdmin: user.isAdmin,
+    messageBody,
+    messaging: fastify.telegramMessaging,
+    // ... other params
   });
-  continue;
+}
+
+function mapCallbackToMessage(callbackData: string): string {
+  // Map callback_data to natural language the conversation engine understands
+  const mapping: Record<string, string> = {
+    "add_media": "Add this",
+    "next_result": "Show me the next result",
+    "check_plex": "Check if this is in Plex",
+  };
+  return mapping[callbackData] ?? callbackData;
 }
 ```
 
-### `src/server.ts` -- New Plugin Registration
+### 10. Photo Sending: Telegram vs Twilio
+
+| Feature | Twilio (Current) | Telegram |
+|---------|-----------------|----------|
+| Send photo | `mediaUrl` in OutboundMessage (MMS) | `sendPhoto` with URL or file_id |
+| Photo with caption | Separate body + mediaUrl | `caption` param in sendPhoto |
+| Photo with buttons | Not supported in MMS (RCS only) | `reply_markup` with inline keyboard |
+| TMDB poster URLs | Works directly with `mediaUrl` | Works directly with `photo` param |
+
+Telegram's photo sending is more capable because you can attach inline keyboard buttons to a photo message. This means search results can be sent as a poster image with "Add this" / "Next" / "Check Plex" buttons -- no Twilio Content Templates needed.
 
 ```typescript
-// After existing plugins
-await fastify.register(tmdbPlugin);
-await fastify.register(plexPlugin);
-await fastify.register(tautulliPlugin);
-await fastify.register(dashboardPlugin);
+// Telegram search result with poster
+await telegramProvider.send({
+  to: chatId,
+  photo: "https://image.tmdb.org/t/p/w500/poster.jpg",
+  body: "The Matrix (1999)\nSci-fi classic. 8.7 rating.",  // caption
+  parseMode: "MarkdownV2",
+  inlineKeyboard: [
+    [
+      { text: "Add this", callbackData: "add_media:tmdb:603" },
+      { text: "Next", callbackData: "next_result" },
+    ],
+    [
+      { text: "Check Plex", callbackData: "check_plex:The Matrix" },
+    ],
+  ],
+});
 ```
 
-### `src/conversation/system-prompt.ts` -- Updated Capabilities
+### 11. Admin Notification Routing
 
-Add sections for:
-- TMDB discovery capabilities (structured search by actor, genre, network, year)
-- Plex library checking (verify media exists, check episode completeness)
-- Permission awareness ("If you lack permission to remove media, explain and suggest asking an admin")
-- Smart routing is transparent to the user (no prompt changes needed, routing is automatic)
+When a non-admin user adds media, the admin receives a notification. Currently this goes to `config.ADMIN_PHONE` via Twilio. With Telegram, the admin might prefer Telegram notifications.
 
-## Updated Project Structure (v2.0 additions)
+**Recommended approach:** Add `ADMIN_TELEGRAM_CHAT_ID` config. If set, admin notifications go to Telegram. If not, fall back to ADMIN_PHONE via Twilio. Support both simultaneously if both are configured.
 
-```
-src/
-  config.ts                          # MODIFIED: new env vars
-  server.ts                          # MODIFIED: new plugin registrations
-  db/
-    schema.ts                        # MODIFIED: new tables
-    index.ts                         # unchanged
-  media/
-    http.ts                          # unchanged (Sonarr/Radarr only)
-    errors.ts                        # unchanged
-    sonarr/                          # unchanged
-    radarr/                          # unchanged
-    tmdb/                            # NEW
-      tmdb.client.ts
-      tmdb.http.ts
-      tmdb.schemas.ts
-      tmdb.types.ts
-    plex/                            # NEW
-      plex.client.ts
-      plex.schemas.ts
-      plex.types.ts
-    tautulli/                        # NEW
-      tautulli.client.ts
-      tautulli.schemas.ts
-      tautulli.types.ts
-    routing/                         # NEW
-      library-router.ts
-      library-router.types.ts
-  conversation/
-    engine.ts                        # MODIFIED: pass new clients + user role
-    tool-loop.ts                     # MODIFIED: permission check injection
-    tools.ts                         # MODIFIED: requiredRole on ToolDefinition
-    types.ts                         # MODIFIED: extended ToolContext
-    system-prompt.ts                 # MODIFIED: new capabilities description
-    tools/
-      index.ts                      # MODIFIED: export new tools
-      search-movies.ts              # MODIFIED: TMDB enrichment + RCS cards
-      search-series.ts              # MODIFIED: TMDB enrichment + RCS cards
-      add-movie.ts                  # MODIFIED: library routing + tracking
-      add-series.ts                 # MODIFIED: library routing + tracking
-      remove-movie.ts               # MODIFIED: requiredRole = 'admin'
-      remove-series.ts              # MODIFIED: requiredRole = 'admin'
-      discover-movies.ts            # NEW: TMDB discover endpoint
-      discover-series.ts            # NEW: TMDB discover endpoint
-      check-plex-library.ts         # NEW: Plex library check
-      get-watch-history.ts          # NEW: Tautulli watch history
-  messaging/
-    types.ts                         # MODIFIED: contentSid, contentVariables
-    twilio-provider.ts               # MODIFIED: Content API support
-  users/
-    user.service.ts                  # unchanged (isAdmin already exists)
-    user.types.ts                    # unchanged
-    permissions.ts                   # NEW: permission helper functions
-  plugins/
-    tmdb.ts                          # NEW
-    plex.ts                          # NEW
-    tautulli.ts                      # NEW
-    dashboard.ts                     # NEW
-    conversation.ts                  # MODIFIED: register new tools + pass context
-    webhook.ts                       # MODIFIED: pass isAdmin to context
-  dashboard/
-    routes.ts                        # NEW: admin API routes
-    auth.ts                          # NEW: token validation
-    stats.ts                         # NEW: stats queries
-    types.ts                         # NEW: API types
+The admin user record in the DB can have both `phone` and `telegramChatId` set, linking both identities to one user.
 
-dashboard/                           # NEW: SPA frontend (separate package)
-  package.json
-  vite.config.ts
-  src/
-    ...
+### 12. Onboarding Flow for Telegram
+
+The current onboarding flow (src/users/onboarding.ts) is:
+1. Unknown phone -> Ask name
+2. User provides name -> Notify admin, status pending
+3. Admin adds to whitelist -> Status active
+
+For Telegram, the flow is similar but identity comes from chat.id:
+1. Unknown chatId -> Ask name (or auto-detect from Telegram first_name)
+2. Auto-capture displayName from `message.from.first_name` (Telegram provides this)
+3. Notify admin (via their preferred channel) with username and chatId
+4. Admin approves via dashboard (or config whitelist)
+
+**Advantage:** Telegram provides `first_name` in every message, so the "ask for name" step can be skipped. The onboarding can be simplified:
+1. Unknown chatId -> Create pending user with displayName from `first_name`
+2. Notify admin
+3. Admin approves
+
+### 13. Webhook Registration on Startup
+
+Unlike Twilio (where you configure the webhook URL in the Twilio dashboard), Telegram webhooks are set via an API call. The server should register the webhook on startup.
+
+```typescript
+// src/plugins/telegram-messaging.ts -- NEW
+
+export default fp(
+  async (fastify: FastifyInstance) => {
+    const { TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET, TELEGRAM_WEBHOOK_URL } = fastify.config;
+    if (!TELEGRAM_BOT_TOKEN) {
+      fastify.log.info("Telegram not configured (TELEGRAM_BOT_TOKEN not set)");
+      return;
+    }
+
+    const provider = new TelegramMessagingProvider(TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET);
+    fastify.decorate("telegramMessaging", provider);
+
+    // Verify bot token
+    const botInfo = await provider.getMe();
+    fastify.log.info({ botUsername: botInfo.username }, "Telegram bot verified");
+
+    // Register webhook
+    if (TELEGRAM_WEBHOOK_URL) {
+      await provider.setWebhook(TELEGRAM_WEBHOOK_URL, TELEGRAM_WEBHOOK_SECRET);
+      fastify.log.info({ url: TELEGRAM_WEBHOOK_URL }, "Telegram webhook registered");
+    }
+  },
+  { name: "telegram-messaging" },
+);
 ```
 
-## Suggested Build Order (Dependency Graph)
+### 14. Config Changes
 
-```
-Phase 1: TMDB Client + Library Router
-  (no dependencies on other new features)
-  |- TMDB client (search, discover, details, genres)
-  |- TMDB plugin (Fastify registration)
-  |- Library router (anime detection, language detection)
-  |- Modify add_movie/add_series to use routing
-  |- New discover tools (discover_movies, discover_series)
-  |- Update ToolContext with tmdb
+```typescript
+// src/config.ts -- MODIFIED
 
-Phase 2: Permissions + Media Tracking
-  (depends on: Phase 1 for routing in add tools)
-  |- Add requiredRole to ToolDefinition
-  |- Permission check in tool-loop.ts
-  |- media_tracking table + Drizzle migration
-  |- Tracking inserts in add tool executors
-  |- Admin notification on non-admin add
-  |- Update defineTool() to accept requiredRole
+// Telegram (optional)
+TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
+TELEGRAM_WEBHOOK_SECRET: z.string().min(1).max(256).optional(),
+TELEGRAM_WEBHOOK_URL: z.string().url().optional(),
+ADMIN_TELEGRAM_CHAT_ID: z.string().optional(),
+TELEGRAM_CHAT_ID_WHITELIST: z
+  .string()
+  .transform((val) => val.split(","))
+  .pipe(z.array(z.string().min(1)))
+  .optional(),
 
-Phase 3: Plex + Tautulli Integration
-  (independent of Phases 1-2, but logically after)
-  |- Plex client (library sections, search, metadata)
-  |- Tautulli client (history, users, stats)
-  |- Plex/Tautulli plugins
-  |- check_plex_library tool
-  |- get_watch_history tool
-  |- Update ToolContext with plex, tautulli
-
-Phase 4: Web Admin Dashboard
-  (depends on: Phases 1-3 for full data to display)
-  |- Dashboard API routes (users, messages, stats, media tracking)
-  |- Dashboard auth middleware
-  |- user_plex_links table + Drizzle migration
-  |- Plex user linking API
-  |- @fastify/static setup
-  |- Dashboard SPA frontend (React + Vite + Tailwind)
-  |- Docker multi-stage build update
-
-Phase 5: RCS Rich Messaging
-  (depends on: Phase 1 for TMDB poster URLs)
-  |- Twilio Content Template creation
-  |- Extended OutboundMessage with contentSid
-  |- Modified TwilioMessagingProvider.send()
-  |- Rich card sending in search result tools
-  |- Suggested reply integration
-  |- SMS fallback verification
-
-Phase 6: System Prompt + Personality
-  (depends on: all above for complete capability description)
-  |- Updated system prompt with all new capabilities
-  |- Fun/edgy personality tuning
-  |- Edge case testing across all tools
+// ADMIN_PHONE becomes optional (admin might be Telegram-only)
+ADMIN_PHONE: z.string().min(1).optional(),  // Was required
 ```
 
-### Build Order Rationale
+## Data Flow: Telegram Message Lifecycle
 
-1. **TMDB + Library Router first** because it has zero dependencies on other new features and unlocks the highest-value capability (structured discovery + smart routing). The library router is also a prerequisite for correct media organization.
+### Text Message Flow
 
-2. **Permissions + Tracking second** because it modifies the tool execution path that Phase 1 already touched (add tools). Better to layer permissions and tracking onto the routing changes while they are fresh.
+```
+[User sends "find sci-fi movies" in Telegram DM]
+    |
+    v
+[Telegram sends POST /webhook/telegram with JSON Update]
+    | Headers: X-Telegram-Bot-Api-Secret-Token: <secret>
+    | Body: { update_id, message: { chat: { id: 123456, type: "private" },
+    |         from: { id: 123456, first_name: "John" }, text: "find sci-fi movies" } }
+    v
+[Fastify: validate secret_token header]
+    |
+    v
+[Respond HTTP 200 immediately]
+    |
+    v
+[Resolve user: findUserByTelegramChatId(db, "123456")]
+    | -> Found: { id: 5, telegramChatId: "123456", status: "active", ... }
+    v
+[processConversation({
+    userId: 5,
+    replyAddress: "123456",       // chatId as string
+    displayName: "John",
+    messageBody: "find sci-fi movies",
+    messaging: telegramProvider,   // Telegram-specific provider instance
+    ... })]
+    |
+    v
+[LLM + tool loop (unchanged -- transport agnostic)]
+    |
+    v
+[telegramProvider.send({
+    to: "123456",
+    body: "Here are some sci-fi movies...",
+    photo: "https://image.tmdb.org/t/p/w500/...",
+    inlineKeyboard: [[{ text: "Add this", callbackData: "add_media:123" }]]
+  })]
+    |
+    v
+[Telegram API: POST /bot<token>/sendPhoto]
+```
 
-3. **Plex + Tautulli third** because they are read-only integrations (no writes to external systems) and can be developed independently. They provide the data needed for dashboard views.
+### Callback Query Flow
 
-4. **Dashboard fourth** because it consumes data from all previous phases (users, messages, media tracking, Plex links). Building it earlier would require mocking data sources.
+```
+[User taps "Add this" button on search result]
+    |
+    v
+[Telegram sends POST /webhook/telegram with callback_query Update]
+    | Body: { update_id, callback_query: { id: "abc123", from: { id: 123456 },
+    |         message: { chat: { id: 123456 } }, data: "add_media:603" } }
+    v
+[Validate secret, respond 200]
+    |
+    v
+[answerCallbackQuery("abc123") -- dismiss loading indicator]
+    |
+    v
+[Extract chatId from callback_query.message.chat.id]
+    |
+    v
+[Resolve user by chatId]
+    |
+    v
+[mapCallbackToMessage("add_media:603") -> "Add this"]
+    |
+    v
+[processConversation({ messageBody: "Add this", ... })]
+    | Conversation history has the search results context
+    | LLM understands "Add this" refers to the last result
+    v
+[Bot sends confirmation: "Added The Matrix (1999)!"]
+```
 
-5. **RCS fifth** because it is a presentation layer enhancement that depends on TMDB poster URLs (Phase 1) and can be tested independently. It also carries the most uncertainty (Twilio template approval workflow) and should not block core functionality.
+## Patterns to Follow
 
-6. **System prompt last** because it describes the complete set of capabilities and should be written once all features are finalized.
+### Pattern 1: Provider Registry
+
+Instead of a single `fastify.messaging` decoration, use a provider map.
+
+```typescript
+// src/plugins/messaging.ts -- MODIFIED
+
+declare module "fastify" {
+  interface FastifyInstance {
+    messaging: MessagingProvider;           // Default provider (backward compat)
+    messagingProviders: Map<string, MessagingProvider>;  // All providers
+  }
+}
+
+// Registration:
+const providers = new Map<string, MessagingProvider>();
+if (twilioProvider) providers.set("twilio", twilioProvider);
+if (telegramProvider) providers.set("telegram", telegramProvider);
+fastify.decorate("messagingProviders", providers);
+fastify.decorate("messaging", twilioProvider ?? telegramProvider);  // Default
+```
+
+This preserves backward compatibility (`fastify.messaging` still works for Twilio-specific code) while enabling multi-provider notification dispatch.
+
+### Pattern 2: Provider-Aware Send Helper
+
+Instead of scattering `from: config.TWILIO_PHONE_NUMBER` throughout the codebase, create a send helper that handles provider differences.
+
+```typescript
+// src/messaging/send.ts -- NEW
+
+export async function sendReply(
+  provider: MessagingProvider,
+  to: string,
+  body: string,
+  config: AppConfig,
+  options?: { photo?: string; inlineKeyboard?: InlineButton[][] },
+): Promise<SendResult> {
+  return provider.send({
+    to,
+    body,
+    // Twilio needs from; Telegram ignores it
+    ...(provider.providerName === "twilio" ? { from: config.TWILIO_PHONE_NUMBER } : {}),
+    ...options,
+  });
+}
+```
+
+### Pattern 3: Thin HTTP Client for Telegram API
+
+Follow the existing project pattern of building thin HTTP clients with Zod validation (same as Sonarr, Radarr, TMDB, Plex, Tautulli clients). No SDK -- use native `fetch()`.
+
+```typescript
+// Inside TelegramMessagingProvider
+
+private async callApi(method: string, payload: Record<string, unknown>): Promise<any> {
+  const response = await fetch(`${TELEGRAM_API}${this.botToken}/${method}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Telegram API ${method} failed: ${response.status} ${text}`);
+  }
+
+  const data = await response.json() as { ok: boolean; result: any; description?: string };
+  if (!data.ok) {
+    throw new Error(`Telegram API ${method} error: ${data.description}`);
+  }
+
+  return data.result;
+}
+```
+
+**Rationale for no SDK:** The existing codebase builds all API clients with native fetch + Zod validation. Telegraf and node-telegram-bot-api are full frameworks with their own routing, middleware, and state management. They conflict with the existing Fastify architecture. The Telegram Bot API is simple HTTP JSON -- a thin client with 5-6 methods is all that is needed.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Fat Library Router with External Calls
+### Anti-Pattern 1: Using a Telegram Bot Framework
 
-**What people do:** Make the library router call TMDB directly to fetch metadata.
-**Why it's wrong:** The router should be a pure function that receives metadata and returns a routing decision. Making it call external APIs introduces side effects, makes testing harder, and couples routing logic to API availability.
-**Do instead:** Fetch TMDB metadata in the tool executor, then pass it to the router function.
+**What:** Installing telegraf or node-telegram-bot-api
+**Why wrong:** These frameworks want to own the HTTP server and routing. They have their own middleware, context objects, and update dispatching. Using them inside Fastify creates two competing systems for handling the same HTTP requests.
+**Do instead:** Build a thin HTTP client (5-6 methods) using native `fetch()`. Handle webhook routing in Fastify. This matches the existing pattern for Sonarr, Radarr, TMDB, Plex, and Tautulli clients.
 
-### Anti-Pattern 2: Dashboard Auth via Cookies/Sessions
+### Anti-Pattern 2: Separate Conversation Histories per Provider
 
-**What people do:** Implement session-based auth with cookies for the dashboard.
-**Why it's wrong:** This is a single-admin tool accessed by one person. Session management adds complexity (expiry, refresh, CSRF) for no benefit. The admin already has the secret token.
-**Do instead:** Stateless token auth. Dashboard stores token in localStorage. API validates on every request. Simple, secure enough for admin-only access behind a firewall.
+**What:** Keying conversation history by `(userId, provider)` instead of just `userId`
+**Why wrong:** If a user switches from SMS to Telegram (or uses both), their conversation context is lost. The LLM loses context about previous searches and additions.
+**Do instead:** One user, one history. The user's `id` in the DB is the history key. If the same person contacts via SMS and Telegram, they should be linked to the same user record (manually by admin via dashboard, or automatically if phone number matches).
 
-### Anti-Pattern 3: Per-Tool Permission Logic
+### Anti-Pattern 3: Processing Telegram Updates Synchronously
 
-**What people do:** Add `if (!isAdmin) return error` inside each tool's execute function.
-**Why it's wrong:** Duplicates permission logic across every tool. Easy to forget on new tools. Hard to change policy centrally.
-**Do instead:** Check permissions in the tool loop before dispatching to the tool executor. The tool is unaware of permissions.
+**What:** Doing all LLM processing before responding to the Telegram webhook
+**Why wrong:** Telegram retries webhooks if it does not get a response quickly. The LLM tool loop can take 5-30 seconds. Telegram will re-send the update, causing duplicate processing.
+**Do instead:** Respond HTTP 200 immediately (same pattern as the existing Twilio webhook), then process the conversation asynchronously. Send the reply via a separate `sendMessage` API call.
 
-### Anti-Pattern 4: Mixing Dashboard Routes with Webhook Routes
+### Anti-Pattern 4: Sharing One Provider Instance Across Both Webhook Routes
 
-**What people do:** Put dashboard API routes in the same plugin as the Twilio webhook.
-**Why it's wrong:** Different auth mechanisms (Twilio signature vs dashboard token), different consumers (browser vs Twilio), different concerns.
-**Do instead:** Separate Fastify plugin for dashboard with its own prefix (`/api/admin/`), its own auth preHandler, and no coupling to the messaging layer.
+**What:** Using `fastify.messaging` (Twilio) for both SMS and Telegram
+**Why wrong:** Each webhook route needs its own provider instance. The Twilio webhook route uses the Twilio provider; the Telegram webhook route uses the Telegram provider. They have different auth, different parsing, different send methods.
+**Do instead:** Each webhook route receives the correct provider instance. The provider is determined by the webhook route, not by configuration lookup.
 
-### Anti-Pattern 5: Creating TMDB Client as a Wrapper Library
+### Anti-Pattern 5: Hardcoding Provider-Specific Logic in the Engine
 
-**What people do:** Build a full TMDB client covering all 100+ endpoints "for completeness."
-**Why it's wrong:** Only 8-10 endpoints are needed. A full wrapper is maintenance overhead.
-**Do instead:** Build only the endpoints you use. The client is internal -- not a published library.
+**What:** Adding `if (provider === "telegram") { ... } else { ... }` in processConversation
+**Why wrong:** The conversation engine should be transport-agnostic. Provider differences should be encapsulated in the MessagingProvider implementation.
+**Do instead:** The engine calls `messaging.send()` and the provider handles transport-specific details (adding `from` for Twilio, using `sendMessage` vs `sendPhoto` for Telegram, etc.).
+
+## Scalability Considerations
+
+| Concern | Current (SMS only) | With Telegram |
+|---------|--------------------|----|
+| Message volume | Low (SMS costs limit usage) | Higher (Telegram is free, users message more) |
+| Concurrent users | Limited by SMS sending rate | Telegram API: 30 messages/second to different chats |
+| Message length | 160 chars (SMS) or 300 chars (MMS trigger) | 4096 chars per message, no cost |
+| Rich content | RCS (limited availability) | Inline keyboards + photos (universal) |
+| Webhook reliability | Twilio retries, 15-second timeout | Telegram retries on non-200, no strict timeout |
+| Group scaling | N/A | One group = many users in one chat (future) |
+
+## Build Order (Dependency-Driven)
+
+```
+Wave 1: Interface Generalization
+  |- Evolve MessagingProvider interface (generalize)
+  |- Evolve InboundMessage/OutboundMessage types
+  |- Update TwilioMessagingProvider to new interface (backward compat)
+  |- Update conversation engine: userPhone -> replyAddress
+  |- Update tool context: userPhone -> replyAddress
+  |- Move `from` into TwilioMessagingProvider (encapsulate sender)
+
+  WHY FIRST: Every other change depends on the generalized interface.
+  Zero new features -- purely refactoring existing code.
+
+Wave 2: User Identity
+  |- Add telegramChatId column to users table (migration)
+  |- Make phone nullable (migration)
+  |- Add findUserByTelegramChatId to user service
+  |- Generalize user resolver to support both identifiers
+  |- Add Telegram config vars (TELEGRAM_BOT_TOKEN, etc.)
+
+  WHY SECOND: User resolution must work before any Telegram messages
+  can be processed.
+
+Wave 3: Telegram Provider + Webhook
+  |- Implement TelegramMessagingProvider (sendMessage, sendPhoto)
+  |- Implement webhook validation (secret_token)
+  |- Implement parseInbound for message and callback_query
+  |- Register Telegram webhook route (POST /webhook/telegram)
+  |- Implement setWebhook on startup
+  |- Implement answerCallbackQuery
+  |- Implement Telegram onboarding (auto displayName from first_name)
+
+  WHY THIRD: This is the core new functionality. Depends on Waves 1 + 2.
+
+Wave 4: Multi-Provider Notifications
+  |- Provider registry (Map<string, MessagingProvider>)
+  |- Multi-provider notifyAllActiveUsers
+  |- Admin notification routing (phone vs telegramChatId)
+  |- Update notification plugin to work with both providers
+
+  WHY FOURTH: Depends on provider implementation (Wave 3).
+
+Wave 5: Rich Telegram Features
+  |- Inline keyboard buttons on search results
+  |- Photo + caption for poster images
+  |- Callback query mapping to conversation commands
+  |- MarkdownV2 formatting for Telegram messages
+
+  WHY FIFTH: Polish and UX enhancement. Core functionality works without it.
+```
+
+## Integration Points Summary
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `src/messaging/telegram-provider.ts` | TelegramMessagingProvider implementation |
+| `src/plugins/telegram-messaging.ts` | Fastify plugin: init provider, verify bot, set webhook |
+| `src/plugins/telegram-webhook.ts` | Fastify plugin: POST /webhook/telegram route |
+| `src/messaging/send.ts` | Provider-aware send helper (optional) |
+
+### Modified Files
+
+| File | What Changes |
+|------|-------------|
+| `src/messaging/types.ts` | Generalize interfaces (InboundMessage, OutboundMessage, MessagingProvider) |
+| `src/messaging/twilio-provider.ts` | Adapt to new interface (backward compatible) |
+| `src/db/schema.ts` | Add telegramChatId, make phone nullable |
+| `src/users/user.service.ts` | Add findUserByTelegramChatId, generalize lookups |
+| `src/users/user.types.ts` | No change (inferred from schema) |
+| `src/plugins/user-resolver.ts` | Support Telegram user resolution |
+| `src/conversation/engine.ts` | userPhone -> replyAddress, remove hardcoded `from` |
+| `src/conversation/types.ts` | ToolContext: userPhone -> replyAddress |
+| `src/conversation/tools/add-movie.ts` | Admin notification uses provider, not hardcoded phone |
+| `src/conversation/tools/add-series.ts` | Same |
+| `src/users/onboarding.ts` | Support Telegram onboarding (auto name, different notification) |
+| `src/notifications/notify.ts` | Multi-provider dispatch |
+| `src/plugins/notifications.ts` | Work with provider registry |
+| `src/plugins/messaging.ts` | Register Twilio as named provider, create provider map |
+| `src/config.ts` | Add Telegram config vars, make ADMIN_PHONE optional |
+| `src/server.ts` | Register new Telegram plugins |
+
+### Unchanged Files
+
+The following remain completely untouched -- confirming the conversation engine is truly transport-agnostic:
+
+- `src/conversation/tool-loop.ts` (tool execution is identity-agnostic)
+- `src/conversation/history.ts` (keyed by userId, not phone)
+- `src/conversation/system-prompt.ts` (describes capabilities, not transport)
+- `src/conversation/confirmation.ts` (keyed by userId)
+- All tool implementations except add-movie/add-series (admin notification)
+- All media clients (Sonarr, Radarr, TMDB, Plex, Tautulli)
+- Admin dashboard routes
 
 ## Sources
 
-- TMDB API v3 documentation: https://developer.themoviedb.org/reference/getting-started (HIGH confidence)
-- TMDB rate limiting: https://developer.themoviedb.org/docs/rate-limiting (HIGH confidence)
-- TMDB authentication: https://developer.themoviedb.org/docs/authentication-application (HIGH confidence)
-- TMDB discover endpoint: https://developer.themoviedb.org/reference/discover-movie (HIGH confidence)
-- Plex Media Server API: https://developer.plex.tv/pms/ (HIGH confidence)
-- Plex API documentation: https://www.plexopedia.com/plex-media-server/api/ (MEDIUM confidence)
-- Plex authentication tokens: https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/ (HIGH confidence)
-- Tautulli API reference: https://docs.tautulli.com/extending-tautulli/api-reference (HIGH confidence)
-- Tautulli API wiki: https://github.com/Tautulli/Tautulli/wiki/Tautulli-API-Reference (HIGH confidence)
-- Twilio RCS documentation: https://www.twilio.com/docs/rcs (HIGH confidence)
-- Twilio Content Template Builder: https://www.twilio.com/docs/content (HIGH confidence)
-- Twilio Content API resources: https://www.twilio.com/docs/content/content-api-resources (HIGH confidence)
-- Twilio send templates: https://www.twilio.com/docs/content/send-templates-created-with-the-content-template-builder (HIGH confidence)
-- @fastify/static: https://github.com/fastify/fastify-static (HIGH confidence)
-- Existing codebase analysis: Direct file reads of all 47 source files (HIGH confidence)
+- Telegram Bot API official documentation: https://core.telegram.org/bots/api (HIGH confidence)
+- Telegram webhook guide: https://core.telegram.org/bots/webhooks (HIGH confidence)
+- Telegram Bot FAQ: https://core.telegram.org/bots/faq (HIGH confidence)
+- Telegram Bot Tutorial: https://core.telegram.org/bots/tutorial (HIGH confidence)
+- Telegram Bot API dialog IDs: https://core.telegram.org/api/bots/ids (HIGH confidence)
+- Telegram sendMessage text limit (4096 chars): https://github.com/yagop/node-telegram-bot-api/issues/165 (MEDIUM confidence -- community source, but widely confirmed)
+- Existing WadsMedia codebase: Direct analysis of all 63 source files (HIGH confidence)
 
 ---
-*Architecture research for: WadsMedia v2.0 -- Smart Discovery & Admin*
+*Architecture research for: WadsMedia -- Telegram Bot Integration*
 *Researched: 2026-02-14*

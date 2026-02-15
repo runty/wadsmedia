@@ -1,6 +1,6 @@
-# Stack Research
+# Stack Research: Telegram Bot Integration
 
-**Domain:** Media management gateway -- v2.0 feature additions (smart discovery, Plex/Tautulli integration, web admin dashboard, RCS rich messaging, role-based permissions, smart library routing, user media tracking)
+**Domain:** Telegram messaging provider for existing multi-transport media assistant
 **Researched:** 2026-02-14
 **Confidence:** HIGH
 
@@ -23,353 +23,223 @@ Already validated and in production. Listed for context only.
 
 ## Recommended Stack Additions
 
-### TMDB Integration
+### Core: Telegram Bot API Client
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| **No library -- use native `fetch()`** | N/A | TMDB API v3 client | The existing codebase already has a `media/http.ts` module with `apiRequest()` that wraps `fetch()` with Zod validation, timeout handling, and structured error classification. TMDB's REST API is straightforward (bearer token auth, JSON responses, paginated results). Adding a library like `tmdb-ts` (v2.0.2) would introduce an unnecessary abstraction layer when the existing pattern works perfectly. Build a thin `TmdbClient` class following the same pattern as `SonarrClient`/`RadarrClient`. |
+| grammy | ^1.40.0 | Telegram Bot API typed client | Best TypeScript support among Telegram bot libraries. Types auto-generated from Bot API spec (always current). Provides standalone `Api` class for outbound calls without running a bot loop -- critical for the `MessagingProvider.send()` pattern. MIT license, 3.4k GitHub stars, ~137k weekly npm downloads, actively maintained with Bot API 9.4 support. ESM-native, zero native dependencies, works with Node 22. |
 
-**TMDB API Details:**
-- Auth: Bearer token via `Authorization: Bearer {access_token}` header
-- Base URL: `https://api.themoviedb.org/3`
-- Key endpoints: `/search/movie`, `/search/tv`, `/search/multi`, `/movie/{id}`, `/tv/{id}`, `/discover/movie`, `/discover/tv`
-- Response: JSON with pagination (`page`, `results[]`, `total_pages`, `total_results`)
-- Image URLs: Constructed from `poster_path` + base URL `https://image.tmdb.org/t/p/w500`
-- Free API key available at developer.themoviedb.org
-- Rate limit: ~40 requests/second (generous for this use case)
-
-**Why NOT tmdb-ts:**
-- Adds a dependency for what is essentially `fetch()` + JSON parsing
-- The existing `apiRequest()` pattern with Zod schemas gives better type safety than any third-party wrapper
-- `tmdb-ts` uses its own internal types; we want Zod schemas that integrate with the existing validation pipeline
-- Zero-dependency approach matches the project's philosophy (the existing HTTP client is already zero-dependency)
-
-### Plex Integration
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **No library -- use native `fetch()`** | N/A | Plex Media Server API client | Same rationale as TMDB. The Plex API is a straightforward REST API with token-based auth. Build a `PlexClient` class following the `SonarrClient` pattern. The existing third-party libraries (`@ctrl/plex` v4.0.0 uses `ofetch` dependency, `node-plex-api` is 4+ years stale, `@lukehagar/plexjs` is over-engineered for our needs) all add unnecessary complexity. |
-
-**Plex API Details:**
-- Auth: `X-Plex-Token` query parameter or header
-- Base URL: User-configured (e.g., `http://plex:32400`)
-- Response: XML by default; add `Accept: application/json` header for JSON
-- Key endpoints: `/library/sections` (list libraries), `/library/sections/{id}/all` (list content), `/library/recentlyAdded`, `/status/sessions` (active streams), `/search?query=`
-- Required headers: `X-Plex-Token`, `Accept: application/json`, `X-Plex-Client-Identifier` (arbitrary unique string)
-- No rate limiting for local server access
-
-**Why NOT @ctrl/plex:**
-- Introduces `ofetch` dependency (the project uses native `fetch()` everywhere)
-- v4.0.0 is the latest but the library targets a broader API surface than we need
-- We only need: list libraries, get recently added, search, get sessions -- roughly 5-6 endpoints
-- Building a thin client with Zod schemas gives us exactly the types we need
-
-### Tautulli Integration
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **No library -- use native `fetch()`** | N/A | Tautulli monitoring API client | The only npm package (`tautulli-api` v1.0.2) was last updated 7 years ago, has no TypeScript types, and is effectively abandoned. The Tautulli API is a simple query-parameter-based REST API. Build a `TautulliClient` class. |
-
-**Tautulli API Details:**
-- Auth: `apikey` query parameter
-- Base URL: `http://{host}:{port}/api/v2?apikey={key}&cmd={command}`
-- Response: JSON wrapped in `{"response": {"data": ..., "result": "success"}}`
-- Key endpoints (via `cmd` parameter):
-  - `get_activity` -- current streaming sessions
-  - `get_history` -- viewing history with filtering (user, date range, media type)
-  - `get_libraries` -- list all media libraries
-  - `get_users` -- list users with access
-  - `get_user_watch_time_stats` -- viewing patterns per user
-  - `get_home_stats` -- popular content, concurrent streams
-  - `get_library_watch_time_stats` -- aggregate watch time per library
-- All parameters passed as query string key-value pairs
-
-### Web Search Fallback
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **Brave Search API (direct `fetch()`)** | REST API | Web search fallback for media not in TMDB | Independent search index (30B+ pages), generous free tier ($5/month credit = ~1,000 searches), simple REST API with JSON response, no npm package needed. Privacy-respecting. Superior to DuckDuckGo (limited API capabilities) and cheaper than Google Custom Search. |
-
-**Brave Search API Details:**
-- Auth: `X-Subscription-Token` header
-- Base URL: `https://api.search.brave.com/res/v1/web/search`
-- Response: JSON with `web.results[]` containing `title`, `url`, `description`
-- Free tier: $5/month credit (~1,000 web searches at $5/1,000 requests)
-- Key params: `q` (query), `count` (results per page), `search_lang`
-- No npm package needed -- simple GET request with query params
-
-**Why NOT DuckDuckGo:**
-- DuckDuckGo's API is extremely limited (instant answers only, not full web search)
-- No structured search results for media discovery
-
-**Why NOT SearXNG:**
-- Requires self-hosting a separate service -- unnecessary infrastructure complexity
-- WadsMedia is already Docker-deployed; adding another container for search is overkill when Brave has a free tier
-
-### Web Admin Dashboard
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| @fastify/view | ^11.1.1 | Template rendering for Fastify | Official Fastify plugin. Integrates directly with the existing Fastify 5 app. Supports `reply.viewAsync()` for async template rendering. Heavy caching in production mode. |
-| eta | ^4.5.1 | Template engine | Lightweight (2.5KB gzipped vs EJS 4.4KB), written in TypeScript, native ESM support, zero dependencies, faster than EJS. Works with `@fastify/view`. Uses `import.meta.dirname` (requires Node 20.11+, we target 22+). |
-| @fastify/static | ^8.x | Serve static assets (CSS, JS, images) | Official Fastify plugin for serving static files. v8.x supports Fastify 5.x per compatibility matrix. Needed for dashboard CSS/JS assets. |
-| htmx | 2.x (CDN/vendored) | Dynamic UI updates without SPA framework | ~14KB, no build step, server-rendered HTML partials. Perfect for admin dashboard that needs interactivity (user management, request approval, stats refresh) without a React/Vue/Angular build pipeline. Served from CDN or vendored static file. |
-| Alpine.js | 3.x (CDN/vendored) | Client-side interactivity (dropdowns, modals, tabs) | ~8KB gzipped, no build step, complements htmx for client-side state (modals, dropdowns, form validation). Declarative via HTML attributes. |
-
-**Dashboard Architecture:**
-- Server-rendered HTML via Eta templates + `@fastify/view`
-- Dynamic updates via htmx (AJAX-driven HTML partials from Fastify routes)
-- Client-side polish via Alpine.js (dropdowns, modals, tab switching)
-- No build step, no bundler, no node_modules frontend dependencies
-- htmx + Alpine.js loaded from CDN `<script>` tags or vendored into static assets
-- Authentication via `@fastify/cookie` + `@fastify/session` (see below)
-
-**Eta + Fastify integration pattern:**
-
-```typescript
-import fastifyView from "@fastify/view";
-import { Eta } from "eta";
-
-const eta = new Eta();
-server.register(fastifyView, {
-  engine: { eta },
-  templates: path.join(import.meta.dirname, "views"),
-});
-
-// In route handler:
-return reply.viewAsync("dashboard.eta", { users, stats });
-```
-
-**Why NOT React/Vue/Next.js:**
-- Requires a build step, bundler configuration, and frontend tooling
-- Massively over-engineered for an admin dashboard with ~5-10 pages
-- Would double the project complexity for minimal benefit
-- The project is 3,134 LOC -- adding a SPA framework would likely double that
-
-**Why NOT AdminJS:**
-- Opinionated auto-generated admin UI -- doesn't match the custom dashboard needs (RCS message preview, conversation logs, media request workflow)
-- Heavy dependency footprint
-
-### Dashboard Authentication & Security
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| @fastify/cookie | ^11.x | Cookie parsing for session management | Official Fastify plugin. Required by `@fastify/session`. Lightweight. |
-| @fastify/session | ^11.x | Server-side session management | Official Fastify plugin. Uses `@fastify/cookie` for session ID storage. Compatible with express-session stores. For SQLite-based apps, use the built-in better-sqlite3 to store sessions (write a simple store adapter). |
-| @fastify/csrf-protection | ^7.x | CSRF protection for dashboard forms | Official Fastify plugin. Prevents cross-site request forgery on admin dashboard POST routes. |
-
-**Session Store Strategy:** Do NOT use default in-memory store in production (leaks memory). Write a simple `SqliteSessionStore` class that implements `get(id)`, `set(id, session)`, `destroy(id)` using the existing better-sqlite3 connection. This keeps the dependency count at zero for session storage.
-
-### RCS Rich Messaging
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **No new dependencies** | N/A | RCS rich cards, suggested replies, carousels | The existing Twilio SDK (^5.12.1) already supports RCS. Rich content is sent via `client.messages.create()` with `contentSid` and `contentVariables` parameters. Content templates are created via the Twilio Content API (`https://content.twilio.com/v1/Content`). No additional packages needed. |
-
-**RCS Implementation Details:**
-- Rich cards, carousels, and suggested replies are defined as **Content Templates** in Twilio
-- Templates created programmatically via POST to `https://content.twilio.com/v1/Content` using basic auth (account SID + auth token)
-- Template types: `twilio/card` (rich card), `twilio/carousel` (carousel), `twilio/quick-reply` (suggested replies)
-- Sending uses existing SDK: `client.messages.create({ contentSid: "HXXX...", contentVariables: JSON.stringify({1: "value"}), messagingServiceSid: "MGXXX...", to: "+1..." })`
-- `contentSid` replaces both `body` and `mediaUrl` parameters
-- Automatic SMS fallback when RCS not available (via Messaging Service configuration)
-- RCS-only sending: prefix `to` with `rcs:` (e.g., `rcs:+15551234567`)
-- Image URLs in cards: use TMDB poster URLs directly (publicly accessible HTTPS required)
-
-**MessagingProvider Interface Extension:**
-The existing `OutboundMessage` type needs extension to support rich content:
-
-```typescript
-interface OutboundMessage {
-  to: string;
-  body: string;  // text-only messages
-  messagingServiceSid?: string;
-  from?: string;
-  // NEW for RCS rich content:
-  contentSid?: string;
-  contentVariables?: Record<string, string>;
-  mediaUrl?: string[];  // for inline media
-}
-```
-
-The `TwilioMessagingProvider.send()` method conditionally includes `contentSid`/`contentVariables` when present, or falls back to `body` for plain text.
-
-### Smart Library Routing
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **No new dependencies** | N/A | Route media to correct Sonarr/Radarr instance based on metadata | This is a logic layer, not a technology choice. Use TMDB metadata (genre, language, rating, year) plus Plex library structure to determine which quality profile, root folder, or instance to target. Implement as a `LibraryRouter` service class with configurable rules stored in SQLite via Drizzle. |
-
-### Role-Based Permissions
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **No new dependencies** | N/A | User role management (admin, user, viewer) | The existing user system (`users/user.service.ts`, `users/user.types.ts`) with Drizzle + SQLite handles this. Add a `role` column to the users table. Implement permission checks as Fastify hooks/decorators. No RBAC library needed for 3-4 roles. |
-
-### User Media Tracking
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **No new dependencies** | N/A | Track which users requested which media | New Drizzle schema tables (`media_requests`, `media_tracking`). Join user data with Sonarr/Radarr media IDs and Tautulli watch history. Pure database schema + query work. |
-
----
-
-## Supporting Libraries Summary
+### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| @fastify/view | ^11.1.1 | Template rendering | Dashboard phase |
-| eta | ^4.5.1 | Template engine | Dashboard phase |
-| @fastify/static | ^8.x | Static file serving | Dashboard phase |
-| @fastify/cookie | ^11.x | Cookie support | Dashboard auth |
-| @fastify/session | ^11.x | Session management | Dashboard auth |
-| @fastify/csrf-protection | ^7.x | CSRF protection | Dashboard auth |
+| (none required) | -- | -- | grammy is the only new dependency. The existing stack (Fastify 5, Zod 4, native fetch) provides everything else. grammy handles all Telegram API interaction. |
 
-## Development Tools
+### Development Tools
 
-No new development tools needed. Existing Biome, Vitest, tsx, and drizzle-kit cover all v2.0 needs.
-
----
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| @BotFather (Telegram) | Bot token provisioning | Interact with this Telegram bot to create your bot, set name/description/about, configure privacy mode. Not an npm package. |
+| ngrok or similar tunnel | Local webhook testing | Telegram requires HTTPS public URL for webhooks. Use `ngrok http 3000` during development. Not needed in production (Docker + reverse proxy already provides HTTPS). |
 
 ## Installation
 
 ```bash
-# Dashboard (all installed together when dashboard phase begins)
-npm install @fastify/view @fastify/static @fastify/cookie @fastify/session @fastify/csrf-protection eta
-
-# No other new npm dependencies -- all API integrations use native fetch()
+# One new production dependency
+npm install grammy
 ```
 
-**Total new production dependencies: 6** (all official Fastify plugins + Eta template engine)
-**Total new API integrations via native fetch: 4** (TMDB, Plex, Tautulli, Brave Search)
+No dev dependencies needed. grammy ships with TypeScript declarations built in.
 
----
+## Why grammy Over Alternatives
+
+### Decision: grammy `Api` class (not grammy `Bot`, not Telegraf, not node-telegram-bot-api, not raw fetch)
+
+**Why grammy at all?**
+WadsMedia uses native `fetch()` for all other API clients (Sonarr, Radarr, TMDB, Plex, Tautulli, Brave Search). Consistency argues for raw `fetch()` + type imports. However, Telegram is different from those APIs:
+1. Telegram Bot API has 80+ methods. Building a typed wrapper for the 10-15 we need (sendMessage, sendPhoto, setWebhook, deleteWebhook, getWebhookInfo, getMe, answerCallbackQuery, editMessageText, editMessageReplyMarkup, etc.) is 200-300 lines of boilerplate.
+2. File uploads require multipart/form-data. sendPhoto supports URL, file_id, or binary upload. grammy handles all three transparently.
+3. `reply_markup` JSON serialization has quirks. Telegram expects it as a JSON-stringified object in some contexts. grammy handles this.
+4. grammy's `Api` class is functionally equivalent to a typed fetch wrapper -- but pre-built, tested, and kept current with Bot API updates. It adds ~50KB to the bundle, has zero native dependencies, and saves 200+ lines of custom code.
+
+**Why NOT grammy `Bot` class?**
+The `Bot` class includes a middleware system (`bot.on()`, `bot.command()`, `bot.callbackQuery()`) that wants to own message routing. WadsMedia already has its own conversation engine (`processConversation`), tool registry, and Fastify-based webhook handling. Using `Bot` would mean either: (a) duplicating routing logic, or (b) abandoning the existing architecture. Neither is acceptable.
+
+**Why NOT Telegraf?**
+1. TypeScript quality is worse. Telegraf v4 migrated to TypeScript but types are acknowledged as overly complex. grammy's types are cleaner and auto-generated.
+2. Bot API version lag. Telegraf often lags behind Telegram Bot API releases by weeks/months. grammy tracks within days.
+3. Framework-heavy. Like grammy's `Bot`, Telegraf's middleware system wants to own routing. But unlike grammy, Telegraf does not expose a standalone API client class -- you must use it through the middleware chain.
+
+**Why NOT node-telegram-bot-api (NTBA)?**
+1. Not TypeScript-native. Requires `@types/node-telegram-bot-api`, which lags behind the library.
+2. Polling-centric architecture. Built around EventEmitter pattern that doesn't map to webhook-based Fastify routes.
+3. Scales poorly. Community consensus (and grammy's own comparison) notes NTBA codebases become "spaghetti-like" past ~50 lines.
+
+**Why NOT raw fetch() + @grammyjs/types?**
+Considered seriously for consistency with the codebase's `fetch()` pattern. Rejected because:
+1. @grammyjs/types is types-only (zero runtime code). Still need to write all HTTP calls, error handling, file upload logic, and reply_markup serialization.
+2. grammy `Api` class IS effectively the typed fetch wrapper already written. Using it saves 200-300 lines with no architectural cost.
+3. @grammyjs/types v3.23.0 is a transitive dependency of grammy anyway -- installed automatically.
+
+## What We Use From grammy
+
+| grammy Feature | Use? | Rationale |
+|----------------|------|-----------|
+| `Api` class | YES | Typed HTTP client for all Telegram Bot API calls. Instantiate with token, call methods directly. |
+| `Bot` class | NO | We have our own conversation engine. Do not need grammy's middleware system. |
+| `webhookCallback()` | NO | We write our own Fastify route handler. Consistent with Twilio webhook pattern. Keeps secret_token validation explicit. |
+| `InlineKeyboard` class | YES | Convenient builder for inline keyboard markup. Avoids manually constructing `InlineKeyboardMarkup` JSON. |
+| `Keyboard` class | NO | Reply keyboards (replace system keyboard) not needed. Inline keyboards are better for our action-button UX. |
+| `InputFile` class | MAYBE | Only needed for binary file uploads. We send photos by URL, so likely unnecessary. |
+| Type exports (`Update`, `Message`, `CallbackQuery`, `InlineKeyboardMarkup`) | YES | Type webhook payloads and TelegramMessagingProvider interface. |
+
+## Integration Architecture
+
+### How grammy Fits With Existing MessagingProvider
+
+The key insight: grammy's `Api` class is used ONLY for outbound calls. Inbound webhook processing is handled by our own Fastify route, just like Twilio.
+
+```
+INBOUND (webhook):
+  Telegram servers
+    -> POST /webhook/telegram (Fastify route)
+    -> preHandler: validate X-Telegram-Bot-Api-Secret-Token header
+    -> parseInbound(request.body as Update)
+    -> resolveUser (by Telegram user ID, not phone)
+    -> processConversation() [existing engine, unchanged]
+
+OUTBOUND (send):
+  processConversation()
+    -> messaging.send(message)
+    -> TelegramMessagingProvider.send()
+    -> grammy Api.sendMessage() / Api.sendPhoto()
+    -> Telegram servers
+
+CALLBACK QUERIES (inline keyboard button presses):
+  Telegram servers
+    -> POST /webhook/telegram (same route)
+    -> detect update.callback_query (not update.message)
+    -> answerCallbackQuery() (dismiss loading indicator)
+    -> extract callback_data, map to action
+    -> processConversation() with synthetic message
+```
+
+### Interface Adaptations Required
+
+The existing `MessagingProvider` interface and types need evolution to support Telegram:
+
+**`InboundMessage`** -- Current shape assumes Twilio fields (messageSid, buttonPayload). Telegram provides different fields (update_id, chat.id, from.id, callback_query). Need to either:
+- Generalize InboundMessage to be provider-agnostic (recommended), or
+- Create a union type with provider-specific variants
+
+**`OutboundMessage`** -- Current shape has `to: string` (phone number), `from: string` (Twilio phone). Telegram uses `chat_id: number`. Need to either:
+- Make `to` accept `string | number`, or
+- Use string representation of chat_id
+
+**`SendResult`** -- Current shape has `sid: string` (Twilio message SID). Telegram returns `message_id: number`. Map to string for interface consistency.
+
+**`formatReply()` / `formatEmptyReply()`** -- These generate TwiML XML. Telegram webhooks don't use synchronous reply format. Return empty JSON `{}` or use the webhook reply envelope (optional optimization where the response body IS the API call).
+
+**`validateWebhook()`** -- Twilio uses HMAC signature. Telegram uses static secret_token header comparison. Same interface, different implementation.
+
+## Telegram Bot API Key Facts
+
+These directly affect implementation decisions:
+
+| Fact | Impact on WadsMedia |
+|------|---------------------|
+| Webhooks require HTTPS on ports 443, 80, 88, or 8443 | Existing Docker + reverse proxy (nginx/Caddy) already provides this. No change needed. |
+| `secret_token` in setWebhook -> `X-Telegram-Bot-Api-Secret-Token` header | Simpler than Twilio HMAC. Just constant-time string comparison in preHandler. |
+| Telegram sends JSON POST (not form-encoded like Twilio) | Fastify parses JSON by default. No `@fastify/formbody` needed for Telegram route. |
+| `callback_data` limited to 64 bytes | Inline keyboard button payloads must be compact. Use short codes: `add:m:12345` (add movie TMDB ID 12345), not JSON objects. |
+| Bot privacy mode ON by default in groups | Bot only sees /commands, @mentions, and replies to bot messages. For TELE-02/TELE-03 (group chat), must disable privacy via BotFather OR design around mentions. Recommend disabling privacy mode. |
+| Photos sent by URL (no upload needed) | sendPhoto accepts URL string for `photo` param. TMDB poster URLs work directly. No file upload handling needed. |
+| `answerCallbackQuery` must be called within 30 seconds | After user taps inline keyboard button, must call answerCallbackQuery or client shows loading spinner indefinitely. Fire immediately, before processing the action. |
+| Chat ID: positive for private chats, negative for groups | Different from Twilio phone numbers. User identity resolution needs Telegram-specific path (Telegram user ID -> WadsMedia user record). |
+| Webhook timeout: Telegram retries after ~60 seconds | Must respond to webhook request quickly. Existing pattern (respond immediately, process async) works perfectly. |
+| Updates available for 24 hours before automatic deletion | If webhook is down for <24h, messages queue. Longer outages lose messages (acceptable for this use case). |
+| Maximum 100 concurrent webhook connections per bot | More than sufficient for a personal/small-group media assistant. |
+
+## Webhook vs Long Polling Decision
+
+**Use webhooks.** Rationale:
+
+| Criterion | Webhook | Long Polling |
+|-----------|---------|--------------|
+| Existing architecture | Fastify already handles webhooks (Twilio, Sonarr, Radarr notifications) | Would need a separate polling loop alongside Fastify |
+| Latency | Real-time push from Telegram | Slight delay depending on poll interval |
+| Resource efficiency | No open connections when idle | Constant connection to Telegram servers |
+| Docker deployment | Works with existing reverse proxy | Works but unnecessary complexity |
+| Development | Requires HTTPS tunnel (ngrok) for local dev | Simpler local development |
+| Production readiness | Standard for production bots | Typically dev/prototype only |
+
+The development inconvenience of needing ngrok is minor and identical to the existing Twilio development workflow. WadsMedia is already deployed behind a reverse proxy with HTTPS.
+
+## Environment Variables (New for Telegram)
+
+```bash
+# Telegram (required for Telegram integration)
+TELEGRAM_BOT_TOKEN=        # Token from @BotFather (format: 123456:ABC-DEF...)
+TELEGRAM_WEBHOOK_SECRET=   # Random string for X-Telegram-Bot-Api-Secret-Token (1-256 chars, [A-Za-z0-9_-])
+```
+
+These extend the existing `config.ts` Zod schema as optional fields, following the same pattern as `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN`.
+
+## User Identity Resolution for Telegram
+
+Critical architectural consideration. Telegram users are identified by numeric user ID (e.g., `12345678`), not phone number. The current system resolves users by phone (`body.From` in Twilio webhooks).
+
+**Recommended approach:**
+1. Add `telegramUserId` column to `users` table (nullable integer, unique).
+2. Telegram webhook resolves users by `update.message.from.id` -> look up `users.telegramUserId`.
+3. Admin links Telegram users to existing WadsMedia accounts via the admin dashboard (similar to existing Plex user linking).
+4. Alternatively, auto-create users on first Telegram message if `TELEGRAM_AUTO_REGISTER` is enabled.
+5. The `userPhone` field in ProcessConversationParams becomes `userIdentifier` (string that could be phone or Telegram user ID string).
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| Native `fetch()` for TMDB | tmdb-ts v2.0.2 | If TMDB API surface grows beyond ~10 endpoints and maintaining Zod schemas becomes burdensome. Currently not needed -- we need search + details only. |
-| Native `fetch()` for Plex | @ctrl/plex v4.0.0 | If Plex integration expands to media playback control, transcoding management, or account management. For read-only library queries, native fetch is simpler. |
-| Native `fetch()` for Tautulli | tautulli-api v1.0.2 | Never. Package is abandoned (7 years stale), no TypeScript types, no ESM support. |
-| Native `fetch()` for Brave Search | brave-search npm | Unnecessary wrapper around a simple GET request. Adds dependency for one HTTP call. |
-| Eta template engine | EJS | If team is more familiar with EJS syntax. Eta is faster, lighter, and has first-class TypeScript/ESM support. |
-| Eta template engine | Handlebars | If logic-less templates are preferred. Eta is more flexible (embedded JS) which suits an admin dashboard with conditional rendering and iteration. |
-| htmx + Alpine.js | React + Vite | If the dashboard grows into a full application with complex client-side state (e.g., real-time collaborative editing). For an admin dashboard with ~10 pages, htmx is dramatically simpler. |
-| Brave Search API | Google Custom Search | If search quality is critical and budget allows. Brave is sufficient for media discovery supplementation. |
-| Brave Search API | Tavily | If AI-optimized search results are needed. More expensive but better for LLM consumption. Consider if Brave search quality proves insufficient. |
-| @fastify/session | @fastify/secure-session | If stateless encrypted cookie sessions are preferred over server-side session storage. Secure-session stores all data in the cookie (encrypted), avoiding server-side storage. Good alternative if session data is small. |
-
----
+| grammy `Api` class | Raw `fetch()` + `@grammyjs/types` | Only if you want absolute zero runtime dependencies and are willing to maintain 200-300 lines of Telegram API wrapper code. Reasonable for a bot that only calls sendMessage. Not worth it for our feature set (inline keyboards, callback queries, photo sending, webhook management). |
+| grammy `Api` class | Telegraf | Only if you have an existing Telegraf codebase or want Telegraf's middleware to own your bot logic. Not our case -- WadsMedia has its own conversation engine. |
+| grammy `Api` class | `@eomm/fastify-telegram` | If you want Telegram as a Fastify plugin decorator. Poorly maintained, low npm downloads. WadsMedia wants provider-agnostic architecture, not another Fastify decoration. |
+| grammy `Api` class | GramIO | If you want the newest framework with auto-generated types. Smaller community, less battle-tested. grammy provides everything we need. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| tmdb-ts, moviedb-promise, or any TMDB wrapper | Adds dependency for what `fetch()` + Zod does better. The project already has a proven HTTP client pattern. These wrappers use their own type systems instead of Zod. | Build `TmdbClient` class using existing `media/http.ts` pattern |
-| @ctrl/plex | Introduces `ofetch` dependency, inconsistent with project's native `fetch()` approach | Build `PlexClient` class using existing pattern |
-| tautulli-api | Abandoned (last update ~2018), no TypeScript types, no ESM support | Build `TautulliClient` class using existing pattern |
-| Express-based admin frameworks (AdminJS, etc.) | Wrong framework. Project uses Fastify. AdminJS has heavy deps and opinionated UI. | Eta + htmx + Alpine.js with @fastify/view |
-| React, Vue, Angular, Svelte for dashboard | Requires build tooling, bundler, and frontend framework expertise. Doubles project complexity for an admin UI with ~10 pages. | Server-rendered Eta templates + htmx for dynamic updates |
-| Passport.js for dashboard auth | Express-focused, over-engineered for simple admin auth. Project needs password auth for a handful of admin users, not OAuth/social login. | @fastify/session + simple password check |
-| Socket.io for real-time dashboard | Heavy dependency for what htmx SSE/polling handles. Dashboard doesn't need bidirectional real-time communication. | htmx `hx-trigger="every 30s"` for polling, or htmx SSE extension |
-| brave-search npm package | Unnecessary wrapper around a simple GET request. Adds dependency for one HTTP call. | Direct `fetch()` to Brave Search API |
-| `axios` or `got` for API clients | Node 22 has native `fetch()`. The project already uses it exclusively. Adding an HTTP client library contradicts existing patterns. | Built-in `fetch()` via existing `media/http.ts` pattern |
-
----
-
-## Stack Patterns by Variant
-
-**If Plex integration grows to need real-time events (live session monitoring):**
-- Consider `@lukehagar/plexjs` which has WebSocket support for real-time events
-- Or use Tautulli's notification agents to POST to a WadsMedia webhook instead
-- Verify ESM compatibility before adopting any Plex library
-
-**If dashboard needs real-time streaming data (live transcoding stats, active sessions):**
-- Use htmx SSE extension (`hx-ext="sse"`) with Fastify SSE routes
-- No WebSocket library needed -- Fastify supports SSE natively via `reply.raw`
-
-**If search quality from Brave proves insufficient:**
-- Upgrade to Tavily ($0.01/search) for AI-optimized results
-- Or add Google Custom Search as secondary fallback
-- Keep the search interface abstract so providers can be swapped
-
-**If session management needs scale (multiple WadsMedia instances):**
-- Switch from SQLite session store to Redis via `connect-redis`
-- But for single-instance Docker deployment, SQLite sessions are fine
-
-**If Content Template management becomes complex:**
-- Create a `ContentTemplateService` that caches template SIDs and manages lifecycle
-- Templates rarely change -- seed them on app startup and cache the SIDs in memory
-
----
+| grammy `Bot` class + `bot.start()` | Takes over routing with its own middleware system. Conflicts with WadsMedia's Fastify webhook handling and conversation engine. Creates parallel routing that duplicates existing architecture. | grammy `Api` class for typed API calls + manual Fastify route for webhook |
+| `webhookCallback(bot, "fastify")` | Couples grammy's request lifecycle to your route. Hides secret_token validation. Inconsistent with Twilio webhook pattern. Makes the Telegram route work differently from every other webhook in the app. | Manual Fastify route: read `request.body` as `Update`, validate secret header, call TelegramMessagingProvider methods |
+| node-telegram-bot-api | Poor TypeScript, polling-centric, scales poorly | grammy |
+| Telegraf `bot.launch()` / `bot.handleUpdate()` | Forces updates through Telegraf's middleware chain. Cannot extract standalone API client. | grammy `Api` (usable standalone) |
+| Multiple Telegram libraries | Dependency bloat, conflicting types, confusion about which API to call | Pick one: grammy |
 
 ## Version Compatibility
 
 | Package | Compatible With | Notes |
 |---------|-----------------|-------|
-| @fastify/view ^11.x | Fastify ^5.x | Official plugin, actively maintained |
-| @fastify/static ^8.x | Fastify ^5.x | v8.x explicitly supports Fastify 5 per compatibility matrix |
-| @fastify/cookie ^11.x | Fastify ^5.x | Official plugin |
-| @fastify/session ^11.x | Fastify ^5.x, requires @fastify/cookie | Register cookie plugin before session plugin |
-| @fastify/csrf-protection ^7.x | Fastify ^5.x, requires @fastify/cookie or @fastify/session | Register session plugin before CSRF plugin |
-| eta ^4.5.1 | Node.js 20.11+ (for `import.meta.dirname`) | Project targets Node 22+, fully compatible |
-| htmx 2.x | Any (CDN script, no npm) | No npm install -- loaded via `<script>` tag or vendored |
-| Alpine.js 3.x | Any (CDN script, no npm) | No npm install -- loaded via `<script>` tag or vendored |
-
----
-
-## Environment Variables (New for v2.0)
-
-These extend the existing `config.ts` env schema:
-
-```bash
-# TMDB (required for smart discovery)
-TMDB_ACCESS_TOKEN=       # v3 API read access token (bearer auth)
-
-# Plex (optional, for library integration)
-PLEX_URL=                # e.g., http://plex:32400
-PLEX_TOKEN=              # X-Plex-Token value
-
-# Tautulli (optional, for watch stats)
-TAUTULLI_URL=            # e.g., http://tautulli:8181
-TAUTULLI_API_KEY=        # Tautulli API key
-
-# Brave Search (optional, for web search fallback)
-BRAVE_SEARCH_API_KEY=    # Brave Search API subscription token
-
-# Dashboard (required for web admin)
-DASHBOARD_SECRET=        # Session encryption key (min 32 chars)
-DASHBOARD_USERNAME=      # Admin login username
-DASHBOARD_PASSWORD_HASH= # bcrypt hash of admin password
-```
-
----
+| grammy@^1.40.0 | Node.js >= 18 | Uses native fetch internally. WadsMedia uses Node 22 -- fully compatible. |
+| grammy@^1.40.0 | TypeScript >= 5.0 | WadsMedia uses TS 5.9.3 -- fully compatible. |
+| grammy@^1.40.0 | ESM | grammy supports ESM imports natively. WadsMedia uses `"type": "module"` -- fully compatible. |
+| grammy@^1.40.0 | Telegram Bot API 9.4 | Latest Bot API version as of February 2026. |
+| grammy@^1.40.0 | Fastify 5 | No direct dependency. grammy Api class is framework-agnostic. Works alongside Fastify without conflict. |
 
 ## Sources
 
-- [TMDB API Getting Started](https://developer.themoviedb.org/reference/intro/getting-started) -- authentication, endpoints, response format (HIGH confidence)
-- [tmdb-ts GitHub](https://github.com/blakejoy/tmdb-ts) -- evaluated and rejected, v2.0.2, zero deps, native fetch (HIGH confidence)
-- [Plex Developer Portal](https://developer.plex.tv/) -- official API documentation (HIGH confidence)
-- [Plexopedia API Reference](https://www.plexopedia.com/plex-media-server/api/) -- endpoint patterns, auth method (MEDIUM confidence)
-- [Plex X-Plex-Token](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/) -- token authentication details (HIGH confidence)
-- [@ctrl/plex GitHub](https://github.com/scttcper/plex) -- evaluated and rejected, v4.0.0, uses ofetch (HIGH confidence)
-- [@lukehagar/plexjs GitHub](https://github.com/LukasParke/plexjs) -- evaluated, TypeScript SDK with WebSocket support (MEDIUM confidence)
-- [Tautulli API Reference](https://docs.tautulli.com/extending-tautulli/api-reference) -- endpoint catalog, auth, response format (HIGH confidence)
-- [tautulli-api npm](https://www.npmjs.com/package/tautulli-api) -- evaluated and rejected, v1.0.2, 7 years stale (HIGH confidence)
-- [Brave Search API](https://brave.com/search/api/) -- pricing, endpoints, free tier details (HIGH confidence)
-- [Twilio RCS Documentation](https://www.twilio.com/docs/rcs) -- RCS capabilities overview (HIGH confidence)
-- [Twilio Send RCS Messages](https://www.twilio.com/docs/rcs/send-an-rcs-message) -- ContentSid, rich cards, suggested replies, code examples (HIGH confidence)
-- [Twilio Content Template Builder](https://www.twilio.com/docs/content) -- template types, API structure (HIGH confidence)
-- [Twilio Content API Quickstart](https://www.twilio.com/docs/content/create-and-send-your-first-content-api-template) -- programmatic template creation (HIGH confidence)
-- [Twilio Getting Started with RCS + Node.js](https://www.twilio.com/en-us/blog/developers/tutorials/product/getting-started-with-rcs-node) -- Node.js implementation pattern (HIGH confidence)
-- [@fastify/view GitHub (point-of-view)](https://github.com/fastify/point-of-view) -- v11.x, template engine support, Fastify compatibility (HIGH confidence)
-- [@fastify/static GitHub](https://github.com/fastify/fastify-static) -- v8.x supports Fastify 5.x per compatibility matrix (HIGH confidence)
-- [Eta Template Engine](https://eta.js.org/) -- v4.5.1, TypeScript, ESM, lightweight (HIGH confidence)
-- [Eta + Fastify Integration Guide](https://eta.js.org/docs/4.x.x/resources/fastify) -- setup pattern with @fastify/view (HIGH confidence)
-- [htmx + Alpine.js Combination](https://www.infoworld.com/article/3856520/htmx-and-alpine-js-how-to-combine-two-great-lean-front-ends.html) -- architecture rationale (MEDIUM confidence)
-- [@fastify/session GitHub](https://github.com/fastify/session) -- session store interface, TypeScript support (HIGH confidence)
+- [grammy.dev/resources/comparison](https://grammy.dev/resources/comparison) -- Framework comparison: grammy vs Telegraf vs NTBA. TypeScript quality, Bot API coverage, maintenance cadence. HIGH confidence.
+- [grammy.dev/guide/deployment-types](https://grammy.dev/guide/deployment-types) -- Webhook vs long polling guide. webhookCallback adapter list (includes "fastify"). Timeout handling. HIGH confidence.
+- [grammy.dev/guide/api](https://grammy.dev/guide/api) -- Standalone Api class usage without Bot middleware. sendMessage/sendPhoto examples. Confirms Api can be used independently. HIGH confidence.
+- [grammy.dev/plugins/keyboard](https://grammy.dev/plugins/keyboard) -- InlineKeyboard builder class API. Callback data handling. HIGH confidence.
+- [grammy.dev/ref/core/webhookcallback](https://grammy.dev/ref/core/webhookcallback) -- webhookCallback API reference. Framework adapter parameter. HIGH confidence.
+- [github.com/grammyjs/grammY](https://github.com/grammyjs/grammY) -- Source code. Fastify adapter in frameworks.ts. 3.4k stars, MIT, Bot API 9.4. HIGH confidence.
+- [github.com/grammyjs/types](https://github.com/grammyjs/types) -- Types-only package. v3.23.0. Zero runtime code. Covers all Bot API objects/methods. HIGH confidence.
+- [core.telegram.org/bots/api](https://core.telegram.org/bots/api) -- Official Telegram Bot API reference. setWebhook, secret_token, sendMessage, sendPhoto, InlineKeyboardMarkup, Update object, callback_query. HIGH confidence.
+- [core.telegram.org/bots/features](https://core.telegram.org/bots/features) -- Bot privacy mode, group chat behavior, command scopes. HIGH confidence.
+- [npmtrends.com/grammy-vs-node-telegram-bot-api-vs-telegraf](https://npmtrends.com/grammy-vs-node-telegram-bot-api-vs-telegraf-vs-telegram-bot-api) -- Download comparison. grammy ~137k/week, telegraf ~138k/week, NTBA ~157k/week. MEDIUM confidence (snapshot).
+- [npmjs.com/package/grammy](https://www.npmjs.com/package/grammy) -- v1.40.0, published February 2026. HIGH confidence.
+- [npmjs.com/package/@grammyjs/types](https://www.npmjs.com/package/@grammyjs/types) -- v3.23.0, types-only. HIGH confidence.
 
 ---
-*Stack research for: WadsMedia v2.0 feature additions*
+*Stack research for: WadsMedia v2.1 Telegram Bot Integration*
 *Researched: 2026-02-14*
