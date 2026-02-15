@@ -10,15 +10,27 @@ export function findUserByPhone(db: DB, phone: string) {
   return db.select().from(users).where(eq(users.phone, phone)).get();
 }
 
+export function findUserByTelegramChatId(db: DB, telegramChatId: string) {
+  return db.select().from(users).where(eq(users.telegramChatId, telegramChatId)).get();
+}
+
 export function createUser(
   db: DB,
-  phone: string,
-  opts?: { displayName?: string; status?: UserStatus; isAdmin?: boolean },
+  phone: string | null,
+  opts?: {
+    displayName?: string;
+    status?: UserStatus;
+    isAdmin?: boolean;
+    telegramChatId?: string;
+    telegramUsername?: string;
+  },
 ) {
   return db
     .insert(users)
     .values({
       phone,
+      telegramChatId: opts?.telegramChatId,
+      telegramUsername: opts?.telegramUsername,
       displayName: opts?.displayName,
       status: opts?.status ?? "pending",
       isAdmin: opts?.isAdmin ?? false,
@@ -30,12 +42,20 @@ export function createUser(
 export function upsertUser(
   db: DB,
   phone: string,
-  opts?: { displayName?: string; status?: UserStatus; isAdmin?: boolean },
+  opts?: {
+    displayName?: string;
+    status?: UserStatus;
+    isAdmin?: boolean;
+    telegramChatId?: string;
+    telegramUsername?: string;
+  },
 ) {
   return db
     .insert(users)
     .values({
       phone,
+      telegramChatId: opts?.telegramChatId,
+      telegramUsername: opts?.telegramUsername,
       displayName: opts?.displayName,
       status: opts?.status ?? "pending",
       isAdmin: opts?.isAdmin ?? false,
@@ -43,6 +63,8 @@ export function upsertUser(
     .onConflictDoUpdate({
       target: users.phone,
       set: {
+        telegramChatId: opts?.telegramChatId,
+        telegramUsername: opts?.telegramUsername,
         status: opts?.status ?? "pending",
         isAdmin: opts?.isAdmin ?? false,
         updatedAt: new Date(),
@@ -61,11 +83,29 @@ export function updateUserStatus(db: DB, phone: string, status: UserStatus) {
     .get();
 }
 
+export function updateUserStatusById(db: DB, userId: number, status: UserStatus) {
+  return db
+    .update(users)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(users.id, userId))
+    .returning()
+    .get();
+}
+
 export function updateDisplayName(db: DB, phone: string, displayName: string) {
   return db
     .update(users)
     .set({ displayName, updatedAt: new Date() })
     .where(eq(users.phone, phone))
+    .returning()
+    .get();
+}
+
+export function updateDisplayNameById(db: DB, userId: number, displayName: string) {
+  return db
+    .update(users)
+    .set({ displayName, updatedAt: new Date() })
+    .where(eq(users.id, userId))
     .returning()
     .get();
 }

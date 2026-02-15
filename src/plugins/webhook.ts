@@ -104,7 +104,9 @@ export default fp(
         });
 
         if (onboardingReply) {
-          return reply.type("text/xml").send(fastify.messaging.formatWebhookResponse(onboardingReply));
+          return reply
+            .type("text/xml")
+            .send(fastify.messaging.formatWebhookResponse(onboardingReply));
         }
 
         // Fallback (should not reach here)
