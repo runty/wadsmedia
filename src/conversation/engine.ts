@@ -20,7 +20,6 @@ import {
   savePendingAction,
 } from "./confirmation.js";
 import { buildLLMMessages, getHistory, saveMessage } from "./history.js";
-import { formatAsRichCard } from "./message-formatter.js";
 import { buildSystemPrompt } from "./system-prompt.js";
 import { toolCallLoop } from "./tool-loop.js";
 import type { ToolRegistry } from "./tools.js";
@@ -29,7 +28,7 @@ type DB = BetterSQLite3Database<typeof schema>;
 
 interface ProcessConversationParams {
   userId: number;
-  userPhone: string;
+  replyAddress: string;
   displayName: string | null;
   isAdmin: boolean;
   messageBody: string;
@@ -63,7 +62,7 @@ interface ProcessConversationParams {
 export async function processConversation(params: ProcessConversationParams): Promise<void> {
   const {
     userId,
-    userPhone,
+    replyAddress,
     displayName,
     isAdmin,
     messageBody,
@@ -112,7 +111,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
               userId,
               isAdmin,
               displayName,
-              userPhone,
+              replyAddress,
               messaging,
               db,
             });
@@ -130,7 +129,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
           saveMessage(db, { userId, role: "assistant", content: resultText });
 
           await messaging.send({
-            to: userPhone,
+            to: replyAddress,
             body: resultText,
           });
         } else {
@@ -140,7 +139,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
           saveMessage(db, { userId, role: "user", content: messageBody });
           saveMessage(db, { userId, role: "assistant", content: errorText });
           await messaging.send({
-            to: userPhone,
+            to: replyAddress,
             body: errorText,
           });
         }
@@ -153,7 +152,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
         saveMessage(db, { userId, role: "user", content: messageBody });
         saveMessage(db, { userId, role: "assistant", content: cancelText });
         await messaging.send({
-          to: userPhone,
+          to: replyAddress,
           body: cancelText,
         });
         return;
@@ -189,7 +188,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
         userId,
         isAdmin,
         displayName,
-        userPhone,
+        replyAddress,
         messaging,
         db,
       },
@@ -225,7 +224,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
       const useMms = result.reply.length > SMS_MAX;
       log.info({ replyLength: result.reply.length, mms: useMms }, "Sending reply via messaging");
       await messaging.send({
-        to: userPhone,
+        to: replyAddress,
         body: result.reply,
         ...(useMms && config.MMS_PIXEL_URL ? { mediaUrl: [config.MMS_PIXEL_URL] } : {}),
       });
@@ -237,7 +236,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
     // Send fallback message
     try {
       await messaging.send({
-        to: userPhone,
+        to: replyAddress,
         body: "Sorry, something went wrong. Please try again.",
       });
     } catch (sendErr) {
@@ -268,47 +267,4 @@ function persistLLMMessage(db: DB, userId: number, msg: ChatCompletionMessagePar
     });
   }
   // user and system messages are not expected here (user was saved earlier, system is not persisted)
-}
-
-/**
- * Split a message into SMS-sized chunks (max chars per chunk).
- * Splits on newlines first, then on sentence boundaries, then hard-cuts.
- */
-function splitForSms(text: string, maxLen: number): string[] {
-  if (text.length <= maxLen) return [text];
-
-  const chunks: string[] = [];
-  const lines = text.split("\n");
-  let current = "";
-
-  for (const line of lines) {
-    const candidate = current ? `${current}\n${line}` : line;
-
-    if (candidate.length <= maxLen) {
-      current = candidate;
-    } else if (!current) {
-      // Single line exceeds maxLen — hard split
-      let remaining = line;
-      while (remaining.length > maxLen) {
-        chunks.push(remaining.slice(0, maxLen));
-        remaining = remaining.slice(maxLen);
-      }
-      current = remaining;
-    } else {
-      // Flush current, start new chunk with this line
-      chunks.push(current);
-      current = line.length <= maxLen ? line : "";
-      if (line.length > maxLen) {
-        let remaining = line;
-        while (remaining.length > maxLen) {
-          chunks.push(remaining.slice(0, maxLen));
-          remaining = remaining.slice(maxLen);
-        }
-        current = remaining;
-      }
-    }
-  }
-
-  if (current) chunks.push(current);
-  return chunks;
 }

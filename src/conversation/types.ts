@@ -46,7 +46,7 @@ export interface ToolContext {
   userId: number;
   isAdmin: boolean;
   displayName: string | null;
-  userPhone: string;
+  replyAddress: string;
   messaging?: import("../messaging/types.js").MessagingProvider;
   db?: import("drizzle-orm/better-sqlite3").BetterSQLite3Database<typeof import("../db/schema.js")>;
 }
