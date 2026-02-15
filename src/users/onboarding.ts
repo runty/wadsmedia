@@ -66,7 +66,7 @@ export async function handleOnboarding(params: {
         // Notify admin about the new SMS user
         await messaging.send({
           to: config.ADMIN_PHONE,
-          body: `New user request: ${trimmedName} (${replyAddress}). Approve via admin dashboard.`,
+          body: `New user request: ${trimmedName} (${replyAddress}). Reply "approve ${trimmedName}" to approve.`,
         });
 
         log.info({ phone: replyAddress, name: trimmedName }, "New user onboarding: admin notified");

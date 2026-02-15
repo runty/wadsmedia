@@ -11,6 +11,8 @@ import {
   getUpcomingEpisodesTool,
   getUpcomingMoviesTool,
   getWatchHistoryTool,
+  listPendingUsersTool,
+  manageUserTool,
   removeMovieTool,
   removeSeriesTool,
   searchMoviesTool,
@@ -51,6 +53,8 @@ export default fp(
     registry.register(getDownloadQueueTool);
     registry.register(discoverMediaTool);
     registry.register(webSearchTool);
+    registry.register(listPendingUsersTool);
+    registry.register(manageUserTool);
     registry.register(checkPlexLibraryTool);
     registry.register(getWatchHistoryTool);
 

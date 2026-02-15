@@ -182,7 +182,7 @@ export default fp(
             request.log.info({ chatId, name: firstName }, "New Telegram user created");
 
             // Notify admin about new Telegram user
-            const adminMsg = `New Telegram user: ${firstName}${username ? ` (@${username})` : ""} (chat: ${chatId}). Approve via admin dashboard.`;
+            const adminMsg = `New Telegram user: ${firstName}${username ? ` (@${username})` : ""} (chat: ${chatId}). Reply "approve ${firstName}" to approve.`;
 
             if (fastify.telegramMessaging && fastify.config.ADMIN_TELEGRAM_CHAT_ID) {
               fastify.telegramMessaging

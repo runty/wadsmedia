@@ -193,21 +193,26 @@ export async function processConversation(params: ProcessConversationParams): Pr
       clearPendingAction(db, userId);
     }
 
-    // 3. Save the user message to history
-    if (isGroupChat) {
-      // Group mode: prefix message with sender name for attribution, save with groupChatId
-      const attributedContent = senderDisplayName
-        ? `[${senderDisplayName}]: ${messageBody}`
-        : messageBody;
-      saveGroupMessage(db, { userId, groupChatId, role: "user", content: attributedContent });
-    } else {
-      saveMessage(db, { userId, role: "user", content: messageBody });
-    }
-
-    // 4. Load conversation history
+    // 3. Load conversation history (before saving new message to avoid orphans on failure)
     const history = isGroupChat
       ? getGroupHistory(db, groupChatId)
       : getHistory(db, userId);
+
+    // 4. Append the current user message in-memory (not yet persisted)
+    const userContent = isGroupChat && senderDisplayName
+      ? `[${senderDisplayName}]: ${messageBody}`
+      : messageBody;
+    history.push({
+      id: 0, // placeholder -- not yet persisted
+      userId,
+      groupChatId: groupChatId ?? null,
+      role: "user",
+      content: userContent,
+      toolCalls: null,
+      toolCallId: null,
+      name: null,
+      createdAt: new Date(),
+    });
 
     // 5. Build LLM messages with sliding window
     const systemPrompt = isGroupChat
@@ -240,15 +245,19 @@ export async function processConversation(params: ProcessConversationParams): Pr
       log,
     });
 
-    // 7. Persist new messages from the loop
-    // The messagesConsumed array contains the system prompt + history + new messages.
-    // New messages start after the messages we loaded from history (+ 1 for system prompt).
-    // We already saved the user message in step 3, so we need to save messages
-    // that were added during the loop (assistant messages with tool calls, tool results,
-    // and the final assistant text reply).
+    // 7. Persist user message + new messages from the loop.
+    // We deferred saving the user message until now to avoid orphaned messages on failure.
+    // The messagesConsumed array contains: system prompt + history (including user msg) + LLM messages.
+    // History includes the in-memory user message we appended in step 4, so LLM-generated
+    // messages start after it. We save the user message first, then the LLM messages.
+    if (isGroupChat && groupChatId) {
+      saveGroupMessage(db, { userId, groupChatId, role: "user", content: userContent });
+    } else {
+      saveMessage(db, { userId, role: "user", content: userContent });
+    }
     const historyLength = history.length;
-    // system prompt is at index 0, then history messages, then new messages from LLM
-    const newStartIndex = 1 + historyLength; // skip system + existing history
+    // system prompt is at index 0, then history messages (including user msg), then LLM messages
+    const newStartIndex = 1 + historyLength; // skip system + history (which includes user msg)
 
     for (let i = newStartIndex; i < result.messagesConsumed.length; i++) {
       const msg = result.messagesConsumed[i] as ChatCompletionMessageParam;
@@ -298,7 +307,8 @@ export async function processConversation(params: ProcessConversationParams): Pr
   } catch (err) {
     log.error({ err, userId }, "Conversation processing error");
 
-    // Send fallback message
+    // User message was not saved (deferred save), so no orphaned messages to clean up.
+    // Send fallback message to the user.
     try {
       await messaging.send({
         to: replyAddress,
