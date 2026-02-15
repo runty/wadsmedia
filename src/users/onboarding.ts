@@ -11,10 +11,15 @@ type DB = BetterSQLite3Database<typeof schema>;
 /**
  * Onboarding state machine for non-active users.
  *
+ * SMS users: Created with null displayName, go through name-asking flow.
+ * Telegram users: Created with displayName from Telegram first_name (non-null),
+ * so they skip name-asking and immediately hit "waiting for approval" state.
+ * Admin notification for new Telegram users is handled by the telegram-webhook plugin.
+ *
  * Routes based on user status and displayName:
- * - pending + null displayName: brand new unknown user, ask for name
- * - pending + empty string displayName: asked for name, awaiting response
- * - pending + non-empty displayName: name given, waiting for approval
+ * - pending + null displayName: brand new unknown SMS user, ask for name
+ * - pending + empty string displayName: asked for name, awaiting SMS response
+ * - pending + non-empty displayName: name given (SMS) or auto-set (Telegram), waiting for approval
  * - blocked: access revoked
  * - active: should not reach here; returns null to signal normal handling
  */
@@ -58,10 +63,10 @@ export async function handleOnboarding(params: {
         // Store the user's name
         updateDisplayName(db, replyAddress, trimmedName);
 
-        // Notify admin about the new user
+        // Notify admin about the new SMS user
         await messaging.send({
           to: config.ADMIN_PHONE,
-          body: `New user request: ${trimmedName} (${replyAddress}). Add their number to PHONE_WHITELIST to approve.`,
+          body: `New user request: ${trimmedName} (${replyAddress}). Approve via admin dashboard.`,
         });
 
         log.info({ phone: replyAddress, name: trimmedName }, "New user onboarding: admin notified");
