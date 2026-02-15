@@ -42,7 +42,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 **Milestone Goal:** Add Telegram as a second messaging channel (DMs + group chat with rich interactions) and polish SMS delivery and admin dashboard UX.
 
 - [x] **Phase 14: Provider Generalization + SMS Polish** (3/3 plans) -- completed 2026-02-15
-- [ ] **Phase 15: Telegram DM Integration** - Full Telegram DM experience with inline keyboards and poster images
+- [x] **Phase 15: Telegram DM Integration** (3/3 plans) -- completed 2026-02-15
 - [ ] **Phase 16: Telegram Group Chat** - Shared context group conversations with selective bot activation
 - [ ] **Phase 17: Admin Dashboard UX Polish** - Navigation clarity and Plex linking discoverability
 
@@ -77,9 +77,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 15-01-PLAN.md -- TelegramMessagingProvider, extended types, and Fastify plugin
-- [ ] 15-02-PLAN.md -- Telegram webhook route with user resolution and onboarding
-- [ ] 15-03-PLAN.md -- Provider-aware formatting, multi-provider notifications, admin channel routing
+- [x] 15-01-PLAN.md -- TelegramMessagingProvider, extended types, and Fastify plugin
+- [x] 15-02-PLAN.md -- Telegram webhook route with user resolution and onboarding
+- [x] 15-03-PLAN.md -- Provider-aware formatting, multi-provider notifications, admin channel routing
 
 ### Phase 16: Telegram Group Chat
 **Goal**: Users can interact with the bot in Telegram group chats with shared context and selective activation
@@ -131,6 +131,6 @@ Phase 17 can execute after Phase 14 (independent of Telegram phases 15-16).
 | 12. Web Admin Dashboard | v2.0 | 3/3 | Complete | 2026-02-15 |
 | 13. RCS Rich Messaging + Personality | v2.0 | 2/2 | Complete | 2026-02-15 |
 | 14. Provider Generalization + SMS Polish | v2.1 | 3/3 | Complete | 2026-02-15 |
-| 15. Telegram DM Integration | v2.1 | 0/3 | Planned | - |
+| 15. Telegram DM Integration | v2.1 | 3/3 | Complete | 2026-02-15 |
 | 16. Telegram Group Chat | v2.1 | 0/TBD | Not started | - |
 | 17. Admin Dashboard UX Polish | v2.1 | 0/TBD | Not started | - |

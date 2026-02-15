@@ -9,12 +9,12 @@ Requirements for v2.1 Telegram & Polish milestone. Each maps to roadmap phases.
 
 ### Telegram Integration
 
-- [ ] **TELE-01**: User can chat with the bot via Telegram DM with the same capabilities as SMS (search, add, remove, status, upcoming, discover, Plex check, watch history)
+- [x] **TELE-01**: User can chat with the bot via Telegram DM with the same capabilities as SMS (search, add, remove, status, upcoming, discover, Plex check, watch history)
 - [ ] **TELE-02**: Bot operates in a Telegram group chat with shared conversation context (anyone can say "add that" and it refers to the last group search)
 - [ ] **TELE-03**: Bot responds to @mentions and obvious media requests in group chat (not every message)
-- [ ] **TELE-04**: Search results display poster images inline with response text in Telegram
-- [ ] **TELE-05**: Quick-action inline keyboard buttons appear for common actions (Add this, Next result, Check Plex)
-- [ ] **TELE-06**: User identity is resolved from Telegram user ID and linked to existing WadsMedia user record
+- [x] **TELE-04**: Search results display poster images inline with response text in Telegram
+- [x] **TELE-05**: Quick-action inline keyboard buttons appear for common actions (Add this, Next result, Check Plex)
+- [x] **TELE-06**: User identity is resolved from Telegram user ID and linked to existing WadsMedia user record
 
 ### SMS/MMS Polish
 
@@ -63,12 +63,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TELE-01 | Phase 15 | Pending |
+| TELE-01 | Phase 15 | Complete |
 | TELE-02 | Phase 16 | Pending |
 | TELE-03 | Phase 16 | Pending |
-| TELE-04 | Phase 15 | Pending |
-| TELE-05 | Phase 15 | Pending |
-| TELE-06 | Phase 15 | Pending |
+| TELE-04 | Phase 15 | Complete |
+| TELE-05 | Phase 15 | Complete |
+| TELE-06 | Phase 15 | Complete |
 | SMS-01 | Phase 14 | Complete |
 | SMS-02 | Phase 14 | Complete |
 | ADMN-07 | Phase 17 | Pending |
