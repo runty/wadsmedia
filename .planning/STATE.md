@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** v2.1 Telegram & Polish -- Phase 16 complete, Phase 17 next
+**Current focus:** v2.1 Telegram & Polish -- Phase 17 complete, milestone DONE
 
 ## Current Position
 
-Phase: 16 of 17 (Telegram Group Chat) -- COMPLETE
-Plan: 2 of 2 (16-02 complete)
-Status: Phase Complete
-Last activity: 2026-02-15 -- 16-02 complete (Group chat webhook handling)
+Phase: 17 of 17 (Admin Dashboard UX Polish) -- COMPLETE
+Plan: 1 of 1 (17-01 complete)
+Status: Milestone Complete
+Last activity: 2026-02-15 -- 17-01 complete (Admin dashboard UX polish)
 
-Progress: [█████████████████████████████░░░] 4/4 phases (v2.1 milestone 16 done)
+Progress: [████████████████████████████████] 5/5 phases (v2.1 milestone complete)
 
 ## Performance Metrics
 
@@ -33,8 +33,11 @@ Progress: [███████████████████████
 **v2.1 Velocity (Phase 16):**
 - Plans: 2/2 | Execution time: ~3min (16-01), ~2min (16-02)
 
+**v2.1 Velocity (Phase 17):**
+- Plans: 1/1 | Execution time: ~2min (17-01)
+
 **Combined:**
-- Total plans completed: 37 (across 16 phases)
+- Total plans completed: 38 (across 17 phases)
 - Total execution time: ~1.5 hours
 
 ## Accumulated Context
@@ -73,6 +76,8 @@ Recent decisions affecting current work:
 - 16-02: Sender identity extracted from raw update from.id (not parseInbound chat.id) for group user resolution
 - 16-02: In-memory rate limiting with Map<groupChatId, timestamps[]> -- 15/60s cap below Telegram 20/min limit
 - 16-02: TELEGRAM_BOT_USERNAME static env var rather than dynamic getMe() call at startup
+- 17-01: tautulliStatus uses string union type instead of boolean/null for explicit three-state branching
+- 17-01: Error state uses red styling matching flash-error; not-configured uses amber for visual distinction
 
 ### Pending Todos
 
@@ -87,5 +92,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Completed 16-02-PLAN.md (Group chat webhook handling) -- Phase 16 complete
+Stopped at: Completed 17-01-PLAN.md (Admin dashboard UX polish) -- Phase 17 complete, v2.1 milestone complete
 Resume file: None
