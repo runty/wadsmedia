@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** v2.1 Telegram & Polish -- Phase 15 executing
+**Current focus:** v2.1 Telegram & Polish -- Phase 15 complete
 
 ## Current Position
 
 Phase: 15 of 17 (Telegram DM Integration)
-Plan: 2 of 3 (complete)
-Status: Executing
-Last activity: 2026-02-15 -- 15-02 complete (Telegram webhook route)
+Plan: 3 of 3 (complete)
+Status: Phase Complete
+Last activity: 2026-02-15 -- 15-03 complete (Provider-aware formatting and notifications)
 
-Progress: [████████████████████░░░░░░░░░░░░] 2.3/4 phases
+Progress: [█████████████████████████░░░░░░░] 3/4 phases
 
 ## Performance Metrics
 
@@ -28,10 +28,10 @@ Progress: [████████████████████░░░
 - Plans: 3 | Execution time: ~3min (14-01), ~2min (14-02), ~3min (14-03)
 
 **v2.1 Velocity (Phase 15):**
-- Plans: 2/3 | Execution time: ~2min (15-01), ~2min (15-02)
+- Plans: 3/3 | Execution time: ~2min (15-01), ~2min (15-02), ~3min (15-03)
 
 **Combined:**
-- Total plans completed: 34 (across 15 phases)
+- Total plans completed: 35 (across 15 phases)
 - Total execution time: ~1.5 hours
 
 ## Accumulated Context
@@ -58,6 +58,10 @@ Recent decisions affecting current work:
 - 15-02: Telegram users created with displayName from first_name, skip onboarding name-asking steps
 - 15-02: Admin notification for Telegram users sent from webhook plugin (not onboarding.ts)
 - 15-02: Telegram webhook plugin gracefully skips when telegramMessaging not available
+- 15-03: System prompt addendum pattern for provider-specific formatting (append, don't branch)
+- 15-03: providerName derived from messaging.providerName with explicit param fallback
+- 15-03: Admin notifications prefer ADMIN_TELEGRAM_CHAT_ID via Telegram, fall back to ADMIN_PHONE via SMS
+- 15-03: telegramMessaging wired through both Twilio and Telegram webhook routes for cross-provider access
 
 ### Pending Todos
 
@@ -72,5 +76,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Completed 15-02-PLAN.md (Telegram webhook route)
+Stopped at: Completed 15-03-PLAN.md (Provider-aware formatting and notifications) -- Phase 15 complete
 Resume file: None
