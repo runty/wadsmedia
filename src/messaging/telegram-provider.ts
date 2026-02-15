@@ -24,6 +24,11 @@ export class TelegramMessagingProvider implements MessagingProvider {
     // Build inline keyboard markup if present
     const replyMarkup = this.buildInlineKeyboard(message.inlineKeyboard);
 
+    // Build reply_parameters for threading (group chat replies)
+    const replyParameters = message.replyToMessageId
+      ? { message_id: Number(message.replyToMessageId) }
+      : undefined;
+
     if (message.photoUrl) {
       // Photo message with optional caption and inline keyboard
       const caption = message.body
@@ -33,6 +38,7 @@ export class TelegramMessagingProvider implements MessagingProvider {
         caption,
         parse_mode: message.parseMode,
         reply_markup: replyMarkup,
+        reply_parameters: replyParameters,
       });
       return {
         providerMessageId: String(result.message_id),
@@ -44,6 +50,7 @@ export class TelegramMessagingProvider implements MessagingProvider {
     const result = await this.api.sendMessage(chatId, message.body ?? "", {
       parse_mode: message.parseMode,
       reply_markup: replyMarkup,
+      reply_parameters: replyParameters,
     });
     return {
       providerMessageId: String(result.message_id),

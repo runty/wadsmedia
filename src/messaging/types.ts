@@ -27,6 +27,8 @@ export interface OutboundMessage {
   photoUrl?: string;
   /** Parse mode for message formatting (Telegram: 'HTML') */
   parseMode?: 'HTML';
+  /** Telegram message ID to reply to (for threading in groups) */
+  replyToMessageId?: string;
 }
 
 export interface SendResult {

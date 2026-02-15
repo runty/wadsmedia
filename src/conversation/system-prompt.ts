@@ -104,12 +104,31 @@ IMPORTANT FORMAT OVERRIDE -- You are chatting on Telegram, NOT SMS:
 - When presenting search results, format each result clearly with title in <b>bold</b> and year
 - Inline buttons will appear for common actions -- you don't need to tell users to type commands for Add, Next, or Check Plex`;
 
-export function buildSystemPrompt(displayName?: string | null, provider?: string): string {
+export const GROUP_CHAT_ADDENDUM = `
+
+IMPORTANT CONTEXT -- You are in a GROUP CHAT with multiple users:
+- Messages are prefixed with [Username] to show who said what
+- Address the person who just sent the message by name
+- When someone says "add that" or "the second one", it refers to the last search result shown to the GROUP (shared context)
+- Multiple people may be having overlapping conversations -- use context clues to figure out what each person means
+- Keep responses concise -- you're in a group, not a 1-on-1 chat
+- Reply to the specific person's request, don't recap the whole conversation`;
+
+export function buildSystemPrompt(
+  displayName?: string | null,
+  provider?: string,
+  opts?: { isGroup?: boolean; senderName?: string },
+): string {
   let prompt = SYSTEM_PROMPT;
   if (provider === "telegram") {
     prompt += TELEGRAM_ADDENDUM;
   }
-  if (displayName && displayName.trim().length > 0) {
+  if (opts?.isGroup) {
+    prompt += GROUP_CHAT_ADDENDUM;
+  }
+  if (opts?.senderName) {
+    prompt += `\n\nThe current message is from ${opts.senderName}.`;
+  } else if (displayName && displayName.trim().length > 0) {
     prompt += `\n\nThe user's name is ${displayName.trim()}.`;
   }
   return prompt;

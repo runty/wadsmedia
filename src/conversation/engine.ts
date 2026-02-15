@@ -19,7 +19,7 @@ import {
   isDenial,
   savePendingAction,
 } from "./confirmation.js";
-import { buildLLMMessages, getHistory, saveMessage } from "./history.js";
+import { buildLLMMessages, getGroupHistory, getHistory, saveGroupMessage, saveMessage } from "./history.js";
 import { buildSystemPrompt } from "./system-prompt.js";
 import { toolCallLoop } from "./tool-loop.js";
 import type { ToolRegistry } from "./tools.js";
@@ -46,6 +46,12 @@ interface ProcessConversationParams {
   telegramMessaging?: MessagingProvider;
   /** Provider name for format-aware prompts ('twilio' | 'telegram') */
   providerName?: string;
+  /** Phase 16: Group chat ID -- when set, use shared group history instead of per-user history */
+  groupChatId?: string;
+  /** Phase 16: Display name of the person who sent this message (for attribution in group context) */
+  senderDisplayName?: string;
+  /** Phase 16: Telegram message ID to reply to (for threading in groups) */
+  replyToMessageId?: string;
   config: AppConfig;
   log: FastifyBaseLogger;
 }
@@ -81,11 +87,15 @@ export async function processConversation(params: ProcessConversationParams): Pr
     tautulli,
     messaging,
     telegramMessaging,
+    groupChatId,
+    senderDisplayName,
+    replyToMessageId,
     config,
     log,
   } = params;
 
   const providerName = params.providerName ?? messaging.providerName;
+  const isGroupChat = !!groupChatId;
 
   try {
     // 1. Opportunistic cleanup of expired pending actions
@@ -171,13 +181,26 @@ export async function processConversation(params: ProcessConversationParams): Pr
     }
 
     // 3. Save the user message to history
-    saveMessage(db, { userId, role: "user", content: messageBody });
+    if (isGroupChat) {
+      // Group mode: prefix message with sender name for attribution, save with groupChatId
+      const attributedContent = senderDisplayName
+        ? `[${senderDisplayName}]: ${messageBody}`
+        : messageBody;
+      saveGroupMessage(db, { userId, groupChatId, role: "user", content: attributedContent });
+    } else {
+      saveMessage(db, { userId, role: "user", content: messageBody });
+    }
 
     // 4. Load conversation history
-    const history = getHistory(db, userId);
+    const history = isGroupChat
+      ? getGroupHistory(db, groupChatId)
+      : getHistory(db, userId);
 
     // 5. Build LLM messages with sliding window
-    const llmMessages = buildLLMMessages(buildSystemPrompt(displayName, providerName), history, 20);
+    const systemPrompt = isGroupChat
+      ? buildSystemPrompt(displayName, providerName, { isGroup: true, senderName: senderDisplayName })
+      : buildSystemPrompt(displayName, providerName);
+    const llmMessages = buildLLMMessages(systemPrompt, history, 20);
 
     // 6. Run tool call loop
     const result = await toolCallLoop({
@@ -216,7 +239,11 @@ export async function processConversation(params: ProcessConversationParams): Pr
 
     for (let i = newStartIndex; i < result.messagesConsumed.length; i++) {
       const msg = result.messagesConsumed[i] as ChatCompletionMessageParam;
-      persistLLMMessage(db, userId, msg);
+      if (isGroupChat) {
+        persistLLMMessage(db, userId, msg, groupChatId);
+      } else {
+        persistLLMMessage(db, userId, msg);
+      }
     }
 
     // Save pending confirmation if any
@@ -227,11 +254,12 @@ export async function processConversation(params: ProcessConversationParams): Pr
     // Send the reply -- format depends on provider
     if (providerName === "telegram") {
       // Telegram: use HTML parse mode, no MMS pixel needed
-      log.info({ replyLength: result.reply.length }, "Sending reply via Telegram");
+      log.info({ replyLength: result.reply.length, group: isGroupChat }, "Sending reply via Telegram");
       await messaging.send({
         to: replyAddress,
         body: result.reply,
         parseMode: "HTML",
+        replyToMessageId,
       });
     } else {
       // SMS: existing behavior with MMS pixel for long messages
@@ -262,24 +290,35 @@ export async function processConversation(params: ProcessConversationParams): Pr
 
 /**
  * Persist an LLM message (from the tool call loop) to the messages table.
+ * When groupChatId is provided, saves using saveGroupMessage for shared context.
  */
-function persistLLMMessage(db: DB, userId: number, msg: ChatCompletionMessageParam): void {
+function persistLLMMessage(db: DB, userId: number, msg: ChatCompletionMessageParam, groupChatId?: string): void {
   if (msg.role === "assistant") {
     const assistantMsg = msg as Extract<ChatCompletionMessageParam, { role: "assistant" }>;
-    saveMessage(db, {
+    const params = {
       userId,
-      role: "assistant",
+      role: "assistant" as const,
       content: typeof assistantMsg.content === "string" ? assistantMsg.content : null,
       toolCalls: assistantMsg.tool_calls ? JSON.stringify(assistantMsg.tool_calls) : null,
-    });
+    };
+    if (groupChatId) {
+      saveGroupMessage(db, { ...params, groupChatId });
+    } else {
+      saveMessage(db, params);
+    }
   } else if (msg.role === "tool") {
     const toolMsg = msg as Extract<ChatCompletionMessageParam, { role: "tool" }>;
-    saveMessage(db, {
+    const params = {
       userId,
-      role: "tool",
+      role: "tool" as const,
       content: typeof toolMsg.content === "string" ? toolMsg.content : null,
       toolCallId: toolMsg.tool_call_id,
-    });
+    };
+    if (groupChatId) {
+      saveGroupMessage(db, { ...params, groupChatId });
+    } else {
+      saveMessage(db, params);
+    }
   }
   // user and system messages are not expected here (user was saved earlier, system is not persisted)
 }
