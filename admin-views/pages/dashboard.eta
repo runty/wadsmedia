@@ -1,0 +1,48 @@
+<% layout("layouts/main", { title: "Dashboard", page: "dashboard" }) %>
+
+<div class="page-header">
+  <h1>Dashboard</h1>
+  <p>System overview and media request statistics</p>
+</div>
+
+<%~ include("partials/stats-cards", { stats: it.stats }) %>
+
+<h2 class="section-title">System Health</h2>
+<div id="health-panel"
+     hx-get="/admin/api/health"
+     hx-trigger="every 60s"
+     hx-swap="innerHTML">
+  <%~ include("partials/health-status", { health: it.health }) %>
+</div>
+
+<div class="section-card">
+  <h2 class="section-title" style="margin-top:0">Recent Additions</h2>
+  <% if (it.recentAdditions && it.recentAdditions.length > 0) { %>
+    <div class="table-container" style="box-shadow:none">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Year</th>
+            <th>Type</th>
+            <th>Added By</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% it.recentAdditions.forEach(item => { %>
+            <tr>
+              <td><%= item.title %></td>
+              <td><%= item.year || "-" %></td>
+              <td><span class="badge badge-<%= item.mediaType === 'movie' ? 'active' : 'pending' %>"><%= item.mediaType %></span></td>
+              <td><%= item.displayName || item.phone || "-" %></td>
+              <td><%= item.addedAt ? new Date(item.addedAt).toLocaleDateString() : "-" %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty-state"><p>No media additions yet.</p></div>
+  <% } %>
+</div>

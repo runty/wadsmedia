@@ -34,7 +34,7 @@ export function loginHandler(fastify: FastifyInstance) {
     const password = body?.password;
 
     if (!password || password !== fastify.config.ADMIN_PASSWORD) {
-      return reply.code(401).send({ error: "Invalid password" });
+      return reply.code(401).viewAsync("pages/login", { error: "Invalid password" });
     }
 
     request.session.set("adminUserId", "admin");

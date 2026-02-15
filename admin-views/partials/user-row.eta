@@ -1,0 +1,24 @@
+<tr id="user-<%= it.user.id %>">
+  <td><%= it.user.displayName || "-" %></td>
+  <td><%= it.user.phone %></td>
+  <td><span class="badge badge-<%= it.user.status %>"><%= it.user.status %></span></td>
+  <td><span class="badge badge-<%= it.user.isAdmin ? 'yes' : 'no' %>"><%= it.user.isAdmin ? 'Yes' : 'No' %></span></td>
+  <td>
+    <div class="actions">
+      <button class="btn btn-secondary btn-sm"
+              hx-get="/admin/api/users/<%= it.user.id %>?edit=true"
+              hx-target="#user-<%= it.user.id %>"
+              hx-swap="outerHTML">
+        Edit
+      </button>
+      <button class="btn btn-danger btn-sm"
+              hx-post="/admin/api/users/<%= it.user.id %>/delete"
+              hx-confirm="Are you sure you want to remove this user?"
+              hx-target="#user-<%= it.user.id %>"
+              hx-swap="outerHTML">
+        Delete
+      </button>
+      <a href="/admin/users/<%= it.user.id %>" class="btn btn-link btn-sm">View Chat</a>
+    </div>
+  </td>
+</tr>

@@ -17,10 +17,11 @@ export default fp(
     }
 
     // Template engine (Eta)
-    const eta = new Eta();
+    const viewsDir = path.join(process.cwd(), "admin-views");
+    const eta = new Eta({ views: viewsDir, autoEscape: true });
     await fastify.register(view, {
       engine: { eta },
-      root: path.join(process.cwd(), "admin-views"),
+      root: viewsDir,
       viewExt: "eta",
     });
 

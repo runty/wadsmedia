@@ -1,0 +1,28 @@
+<div class="stats-grid">
+  <div class="card">
+    <div class="card-title">Total Requests</div>
+    <div class="card-value"><%= it.stats ? it.stats.totalRequests : 0 %></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Last 7 Days</div>
+    <div class="card-value"><%= it.stats ? it.stats.last7Days : 0 %></div>
+  </div>
+  <%
+    let movieCount = 0;
+    let seriesCount = 0;
+    if (it.stats && it.stats.byMediaType) {
+      it.stats.byMediaType.forEach(item => {
+        if (item.mediaType === 'movie') movieCount = item.count;
+        if (item.mediaType === 'series') seriesCount = item.count;
+      });
+    }
+  %>
+  <div class="card">
+    <div class="card-title">Movies Added</div>
+    <div class="card-value"><%= movieCount %></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Series Added</div>
+    <div class="card-value"><%= seriesCount %></div>
+  </div>
+</div>

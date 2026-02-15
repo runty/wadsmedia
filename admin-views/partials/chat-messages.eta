@@ -1,0 +1,97 @@
+<% if (!it.messages || it.messages.length === 0) { %>
+  <div class="no-messages">No chat history for this user.</div>
+<% } else { %>
+  <div class="chat-container">
+    <%
+      // Build a map of toolCallId -> tool message for grouping
+      const toolResults = new Map();
+      it.messages.forEach(msg => {
+        if (msg.role === 'tool' && msg.toolCallId) {
+          toolResults.set(msg.toolCallId, msg);
+        }
+      });
+
+      // Track which tool results have been rendered with their parent assistant
+      const renderedToolIds = new Set();
+    %>
+    <% it.messages.forEach(msg => { %>
+      <% if (msg.role === 'user') { %>
+        <div class="chat-bubble chat-bubble-user">
+          <%= msg.content || "" %>
+          <div class="chat-timestamp"><%= msg.createdAt ? new Date(msg.createdAt).toLocaleString() : "" %></div>
+        </div>
+
+      <% } else if (msg.role === 'assistant') { %>
+        <% if (msg.content) { %>
+          <div class="chat-bubble chat-bubble-assistant">
+            <%= msg.content %>
+            <div class="chat-timestamp"><%= msg.createdAt ? new Date(msg.createdAt).toLocaleString() : "" %></div>
+          </div>
+        <% } %>
+
+        <%
+          // If assistant message has toolCalls, render them with their results
+          let toolCalls = [];
+          if (msg.toolCalls) {
+            try { toolCalls = JSON.parse(msg.toolCalls); } catch(e) { toolCalls = []; }
+          }
+        %>
+        <% if (toolCalls.length > 0) { %>
+          <div class="tool-call-group">
+            <% toolCalls.forEach(tc => { %>
+              <%
+                const fnName = tc.function?.name || 'unknown';
+                const fnArgs = tc.function?.arguments || '{}';
+                let argsSummary = '';
+                try {
+                  const parsed = JSON.parse(fnArgs);
+                  const keys = Object.keys(parsed);
+                  argsSummary = keys.slice(0, 3).map(k => k + '=' + JSON.stringify(parsed[k])).join(', ');
+                  if (keys.length > 3) argsSummary += ', ...';
+                } catch(e) {
+                  argsSummary = fnArgs.substring(0, 60);
+                }
+                const toolResult = toolResults.get(tc.id);
+                if (toolResult) renderedToolIds.add(tc.id);
+              %>
+              <details class="tool-details">
+                <summary>Called: <%= fnName %>(<%= argsSummary %>)</summary>
+                <% if (toolResult && toolResult.content) { %>
+                  <pre><%= toolResult.content %></pre>
+                <% } else { %>
+                  <pre>(no result)</pre>
+                <% } %>
+              </details>
+            <% }) %>
+          </div>
+        <% } %>
+
+      <% } else if (msg.role === 'tool') { %>
+        <%
+          // Only render orphaned tool messages (not already grouped under an assistant)
+          if (!renderedToolIds.has(msg.toolCallId)) {
+        %>
+          <details class="tool-details">
+            <summary>Tool: <%= msg.name || msg.toolCallId || "unknown" %></summary>
+            <% if (msg.content) { %>
+              <pre><%= msg.content %></pre>
+            <% } %>
+          </details>
+        <% } %>
+
+      <% } %>
+      <%/* Skip system messages entirely */%>
+    <% }) %>
+  </div>
+
+  <% if (it.hasMore) { %>
+    <div class="load-more">
+      <button class="btn btn-secondary"
+              hx-get="/admin/api/users/<%= it.userId %>/messages?offset=<%= it.nextOffset %>"
+              hx-target="#chat-history"
+              hx-swap="innerHTML">
+        Load more messages
+      </button>
+    </div>
+  <% } %>
+<% } %>

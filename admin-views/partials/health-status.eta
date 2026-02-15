@@ -1,0 +1,28 @@
+<div class="health-grid">
+  <% const services = ['sonarr', 'radarr', 'plex', 'tautulli']; %>
+  <% const labels = { sonarr: 'Sonarr', radarr: 'Radarr', plex: 'Plex', tautulli: 'Tautulli' }; %>
+  <% services.forEach(svc => { %>
+    <% const info = it.health && it.health[svc]; %>
+    <div class="health-card">
+      <% if (!info || !info.configured) { %>
+        <div class="health-dot unconfigured"></div>
+        <div class="health-info">
+          <div class="health-name"><%= labels[svc] %></div>
+          <div class="health-status">Not Configured</div>
+        </div>
+      <% } else if (info.healthy) { %>
+        <div class="health-dot healthy"></div>
+        <div class="health-info">
+          <div class="health-name"><%= labels[svc] %></div>
+          <div class="health-status">Healthy</div>
+        </div>
+      <% } else { %>
+        <div class="health-dot unhealthy"></div>
+        <div class="health-info">
+          <div class="health-name"><%= labels[svc] %></div>
+          <div class="health-status">Unreachable</div>
+        </div>
+      <% } %>
+    </div>
+  <% }) %>
+</div>

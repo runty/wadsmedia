@@ -1,0 +1,36 @@
+<tr id="user-<%= it.user.id %>" class="edit-row">
+  <td>
+    <input type="text" name="displayName" value="<%= it.user.displayName || '' %>" placeholder="Display name">
+  </td>
+  <td><%= it.user.phone %></td>
+  <td>
+    <select name="status">
+      <option value="active" <% if (it.user.status === 'active') { %>selected<% } %>>active</option>
+      <option value="pending" <% if (it.user.status === 'pending') { %>selected<% } %>>pending</option>
+      <option value="blocked" <% if (it.user.status === 'blocked') { %>selected<% } %>>blocked</option>
+    </select>
+  </td>
+  <td>
+    <label class="checkbox-label">
+      <input type="checkbox" name="isAdmin" value="true" <% if (it.user.isAdmin) { %>checked<% } %>>
+      Admin
+    </label>
+  </td>
+  <td>
+    <div class="actions">
+      <button class="btn btn-primary btn-sm"
+              hx-post="/admin/api/users/<%= it.user.id %>"
+              hx-include="closest tr"
+              hx-target="#user-<%= it.user.id %>"
+              hx-swap="outerHTML">
+        Save
+      </button>
+      <button class="btn btn-secondary btn-sm"
+              hx-get="/admin/api/users/<%= it.user.id %>"
+              hx-target="#user-<%= it.user.id %>"
+              hx-swap="outerHTML">
+        Cancel
+      </button>
+    </div>
+  </td>
+</tr>

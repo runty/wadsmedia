@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= it.title ? it.title + " - " : "" %>WadsMedia Admin</title>
+  <link rel="stylesheet" href="/admin/assets/style.css">
+  <script src="/admin/assets/htmx.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">WadsMedia Admin</div>
+      <ul class="sidebar-nav">
+        <li><a href="/admin" <% if (it.page === "dashboard") { %>class="active"<% } %>>Dashboard</a></li>
+        <li><a href="/admin/users" <% if (it.page === "users") { %>class="active"<% } %>>Users</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <form method="POST" action="/admin/logout">
+          <button type="submit" class="btn-logout">Log out</button>
+        </form>
+      </div>
+    </aside>
+    <div class="main-content">
+      <%~ it.body %>
+    </div>
+  </div>
+</body>
+</html>

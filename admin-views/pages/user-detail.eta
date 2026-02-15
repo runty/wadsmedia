@@ -1,0 +1,81 @@
+<% layout("layouts/main", { title: (it.user.displayName || it.user.phone) + " - User Detail", page: "users" }) %>
+
+<div class="page-header">
+  <h1><%= it.user.displayName || it.user.phone %></h1>
+  <p><a href="/admin/users">Back to Users</a></p>
+</div>
+
+<div class="user-info-card">
+  <div class="user-info-grid">
+    <div class="user-info-item">
+      <label>Display Name</label>
+      <div class="value"><%= it.user.displayName || "-" %></div>
+    </div>
+    <div class="user-info-item">
+      <label>Phone</label>
+      <div class="value"><%= it.user.phone %></div>
+    </div>
+    <div class="user-info-item">
+      <label>Status</label>
+      <div class="value">
+        <span class="badge badge-<%= it.user.status %>"><%= it.user.status %></span>
+      </div>
+    </div>
+    <div class="user-info-item">
+      <label>Admin</label>
+      <div class="value">
+        <span class="badge badge-<%= it.user.isAdmin ? 'yes' : 'no' %>"><%= it.user.isAdmin ? 'Yes' : 'No' %></span>
+      </div>
+    </div>
+    <div class="user-info-item">
+      <label>Registered</label>
+      <div class="value"><%= it.user.createdAt ? new Date(it.user.createdAt).toLocaleDateString() : "-" %></div>
+    </div>
+    <div class="user-info-item">
+      <label>Plex User ID</label>
+      <div class="value"><%= it.user.plexUserId || "Not linked" %></div>
+    </div>
+  </div>
+</div>
+
+<% if (it.plexUsers) { %>
+<div class="plex-section">
+  <h2 class="section-title" style="margin-top:0">Plex Account Linking</h2>
+  <% if (it.linkedPlexUser) { %>
+    <p style="margin-bottom:0.75rem">
+      Linked to: <strong><%= it.linkedPlexUser %></strong>
+    </p>
+    <button class="btn btn-danger btn-sm"
+            hx-post="/admin/api/users/<%= it.user.id %>/link-plex"
+            hx-vals='{"plexUserId": null}'
+            hx-target="closest .plex-section"
+            hx-swap="outerHTML"
+            hx-confirm="Unlink this Plex user?">
+      Unlink
+    </button>
+  <% } else { %>
+    <form class="form-inline"
+          hx-post="/admin/api/users/<%= it.user.id %>/link-plex"
+          hx-target="closest .plex-section"
+          hx-swap="outerHTML">
+      <select name="plexUserId">
+        <option value="">Select a Plex user...</option>
+        <% if (it.plexUsers && it.plexUsers.length > 0) { %>
+          <% it.plexUsers.forEach(pu => { %>
+            <option value="<%= pu.user_id %>"><%= pu.friendly_name || pu.username %></option>
+          <% }) %>
+        <% } %>
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm">Link</button>
+    </form>
+  <% } %>
+</div>
+<% } %>
+
+<h2 class="section-title">Chat History</h2>
+<div id="chat-history"
+     hx-get="/admin/api/users/<%= it.user.id %>/messages"
+     hx-trigger="revealed"
+     hx-swap="innerHTML">
+  <div class="empty-state"><span class="spinner"></span> Loading chat history...</div>
+</div>
