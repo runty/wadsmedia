@@ -19,11 +19,53 @@ import {
   isDenial,
   savePendingAction,
 } from "./confirmation.js";
-import { buildLLMMessages, getGroupHistory, getHistory, saveGroupMessage, saveMessage } from "./history.js";
+import {
+  buildLLMMessages,
+  getGroupHistory,
+  getHistory,
+  saveGroupMessage,
+  saveMessage,
+} from "./history.js";
 import { extractLatestSearchResult } from "./message-formatter.js";
 import { buildSystemPrompt } from "./system-prompt.js";
 import { toolCallLoop } from "./tool-loop.js";
 import type { ToolRegistry } from "./tools.js";
+
+// ── Per-user / per-group conversation lock ──────────────────────────
+// Prevents concurrent processConversation calls for the same user/group
+// from interleaving DB reads/writes and producing duplicate tool calls.
+// Each lock key chains promises so calls execute sequentially.
+const conversationLocks = new Map<string, Promise<void>>();
+
+/**
+ * Serialize async work per lock key using promise chaining.
+ *
+ * Concurrent calls with the **same** key execute sequentially (the second
+ * waits for the first to settle). Calls with **different** keys run in
+ * parallel. The map entry is cleaned up once the chain settles to avoid
+ * unbounded memory growth.
+ */
+export function withConversationLock<T>(lockKey: string, fn: () => Promise<T>): Promise<T> {
+  const prev = conversationLocks.get(lockKey) ?? Promise.resolve();
+  const execute = (): Promise<T> => fn();
+  const next = prev.then(execute, execute);
+  // Store as Promise<void> in the map (we only care about sequencing, not values)
+  const voidNext = next.then(
+    () => {},
+    () => {},
+  );
+  conversationLocks.set(lockKey, voidNext);
+  // Clean up after completion to avoid memory leak
+  voidNext.then(() => {
+    if (conversationLocks.get(lockKey) === voidNext) {
+      conversationLocks.delete(lockKey);
+    }
+  });
+  return next;
+}
+
+// Export for test inspection
+export { conversationLocks };
 
 /**
  * Convert markdown bold/italic to HTML for Telegram.
@@ -110,221 +152,238 @@ export async function processConversation(params: ProcessConversationParams): Pr
   const providerName = params.providerName ?? messaging.providerName;
   const isGroupChat = !!groupChatId;
 
-  try {
-    // 1. Opportunistic cleanup of expired pending actions
-    clearExpiredActions(db);
+  // Determine lock key: group conversations lock on groupChatId, DMs on userId
+  const lockKey = isGroupChat ? `group:${groupChatId}` : `user:${userId}`;
+  log.debug({ lockKey }, "Acquiring conversation lock");
 
-    // 2. Check for pending confirmation
-    const pendingAction = getPendingAction(db, userId);
-    if (pendingAction) {
-      if (isConfirmation(messageBody)) {
-        // Execute the confirmed tool
-        const tool = registry.get(pendingAction.functionName);
-        if (tool) {
-          let parsedArgs: unknown;
-          try {
-            parsedArgs = JSON.parse(pendingAction.arguments);
-          } catch {
-            parsedArgs = {};
-          }
+  return withConversationLock(lockKey, async () => {
+    log.debug({ lockKey }, "Conversation lock acquired");
+    try {
+      // 1. Opportunistic cleanup of expired pending actions
+      clearExpiredActions(db);
 
-          let resultText: string;
-          try {
-            const result = await tool.execute(parsedArgs, {
-              sonarr,
-              radarr,
-              tmdb,
-              brave,
-              plex,
-              tautulli,
-              config,
-              userId,
-              isAdmin,
-              displayName,
-              replyAddress,
-              messaging,
-              telegramMessaging,
-              db,
+      // 2. Check for pending confirmation
+      const pendingAction = getPendingAction(db, userId);
+      if (pendingAction) {
+        if (isConfirmation(messageBody)) {
+          // Execute the confirmed tool
+          const tool = registry.get(pendingAction.functionName);
+          if (tool) {
+            let parsedArgs: unknown;
+            try {
+              parsedArgs = JSON.parse(pendingAction.arguments);
+            } catch {
+              parsedArgs = {};
+            }
+
+            let resultText: string;
+            try {
+              const result = await tool.execute(parsedArgs, {
+                sonarr,
+                radarr,
+                tmdb,
+                brave,
+                plex,
+                tautulli,
+                config,
+                userId,
+                isAdmin,
+                displayName,
+                replyAddress,
+                messaging,
+                telegramMessaging,
+                db,
+              });
+              resultText = `Done! ${typeof result === "object" ? JSON.stringify(result) : String(result)}`;
+            } catch (err) {
+              const errorMsg = err instanceof Error ? err.message : "Unknown error";
+              resultText = `Sorry, that failed: ${errorMsg}`;
+              log.error(
+                { err, tool: pendingAction.functionName },
+                "Confirmed tool execution failed",
+              );
+            }
+
+            clearPendingAction(db, userId);
+
+            // Save user message ("yes") and assistant reply to history
+            saveMessage(db, { userId, role: "user", content: messageBody });
+            saveMessage(db, { userId, role: "assistant", content: resultText });
+
+            await messaging.send({
+              to: replyAddress,
+              body: resultText,
             });
-            resultText = `Done! ${typeof result === "object" ? JSON.stringify(result) : String(result)}`;
-          } catch (err) {
-            const errorMsg = err instanceof Error ? err.message : "Unknown error";
-            resultText = `Sorry, that failed: ${errorMsg}`;
-            log.error({ err, tool: pendingAction.functionName }, "Confirmed tool execution failed");
+          } else {
+            // Tool no longer registered -- clear and inform
+            clearPendingAction(db, userId);
+            const errorText = "Sorry, that action is no longer available.";
+            saveMessage(db, { userId, role: "user", content: messageBody });
+            saveMessage(db, { userId, role: "assistant", content: errorText });
+            await messaging.send({
+              to: replyAddress,
+              body: errorText,
+            });
           }
-
-          clearPendingAction(db, userId);
-
-          // Save user message ("yes") and assistant reply to history
-          saveMessage(db, { userId, role: "user", content: messageBody });
-          saveMessage(db, { userId, role: "assistant", content: resultText });
-
-          await messaging.send({
-            to: replyAddress,
-            body: resultText,
-          });
-        } else {
-          // Tool no longer registered -- clear and inform
-          clearPendingAction(db, userId);
-          const errorText = "Sorry, that action is no longer available.";
-          saveMessage(db, { userId, role: "user", content: messageBody });
-          saveMessage(db, { userId, role: "assistant", content: errorText });
-          await messaging.send({
-            to: replyAddress,
-            body: errorText,
-          });
+          return;
         }
-        return;
+
+        if (isDenial(messageBody)) {
+          clearPendingAction(db, userId);
+          const cancelText = "OK, cancelled.";
+          saveMessage(db, { userId, role: "user", content: messageBody });
+          saveMessage(db, { userId, role: "assistant", content: cancelText });
+          await messaging.send({
+            to: replyAddress,
+            body: cancelText,
+          });
+          return;
+        }
+
+        // Unrelated message -- clear stale pending action and fall through
+        clearPendingAction(db, userId);
       }
 
-      if (isDenial(messageBody)) {
-        clearPendingAction(db, userId);
-        const cancelText = "OK, cancelled.";
-        saveMessage(db, { userId, role: "user", content: messageBody });
-        saveMessage(db, { userId, role: "assistant", content: cancelText });
+      // 3. Load conversation history (before saving new message to avoid orphans on failure)
+      const history = isGroupChat ? getGroupHistory(db, groupChatId) : getHistory(db, userId);
+
+      // 4. Append the current user message in-memory (not yet persisted)
+      const userContent =
+        isGroupChat && senderDisplayName ? `[${senderDisplayName}]: ${messageBody}` : messageBody;
+      history.push({
+        id: 0, // placeholder -- not yet persisted
+        userId,
+        groupChatId: groupChatId ?? null,
+        role: "user",
+        content: userContent,
+        toolCalls: null,
+        toolCallId: null,
+        name: null,
+        createdAt: new Date(),
+      });
+
+      // 5. Build LLM messages with sliding window
+      const systemPrompt = isGroupChat
+        ? buildSystemPrompt(displayName, providerName, {
+            isGroup: true,
+            senderName: senderDisplayName,
+          })
+        : buildSystemPrompt(displayName, providerName);
+      const llmMessages = buildLLMMessages(systemPrompt, history, 20);
+
+      // 6. Run tool call loop
+      const result = await toolCallLoop({
+        client: llmClient,
+        model: config.LLM_MODEL,
+        messages: llmMessages,
+        registry,
+        context: {
+          sonarr,
+          radarr,
+          tmdb,
+          brave,
+          plex,
+          tautulli,
+          config,
+          userId,
+          isAdmin,
+          displayName,
+          replyAddress,
+          messaging,
+          telegramMessaging,
+          db,
+        },
+        log,
+      });
+
+      // 7. Persist user message + new messages from the loop.
+      // We deferred saving the user message until now to avoid orphaned messages on failure.
+      // The messagesConsumed array contains: system prompt + history (including user msg) + LLM messages.
+      // History includes the in-memory user message we appended in step 4, so LLM-generated
+      // messages start after it. We save the user message first, then the LLM messages.
+      if (isGroupChat && groupChatId) {
+        saveGroupMessage(db, { userId, groupChatId, role: "user", content: userContent });
+      } else {
+        saveMessage(db, { userId, role: "user", content: userContent });
+      }
+      const historyLength = history.length;
+      // system prompt is at index 0, then history messages (including user msg), then LLM messages
+      const newStartIndex = 1 + historyLength; // skip system + history (which includes user msg)
+
+      for (let i = newStartIndex; i < result.messagesConsumed.length; i++) {
+        const msg = result.messagesConsumed[i] as ChatCompletionMessageParam;
+        if (isGroupChat) {
+          persistLLMMessage(db, userId, msg, groupChatId);
+        } else {
+          persistLLMMessage(db, userId, msg);
+        }
+      }
+
+      // Save pending confirmation if any
+      if (result.pendingConfirmation) {
+        savePendingAction(db, result.pendingConfirmation);
+      }
+
+      // Send the reply -- format depends on provider
+      if (providerName === "telegram") {
+        // Telegram: convert any leftover markdown to HTML, attach poster if available
+        const htmlReply = markdownToHtml(result.reply);
+        // Only scan messages from the current turn (not history) to avoid stale posters
+        const currentTurnMessages = result.messagesConsumed.slice(newStartIndex);
+        const searchResult = extractLatestSearchResult(currentTurnMessages);
+        const photoUrl = searchResult?.posterUrl ?? undefined;
+        log.info(
+          { replyLength: htmlReply.length, group: isGroupChat, hasPoster: !!photoUrl },
+          "Sending reply via Telegram",
+        );
         await messaging.send({
           to: replyAddress,
-          body: cancelText,
+          body: htmlReply,
+          parseMode: "HTML",
+          photoUrl,
+          replyToMessageId,
         });
-        return;
-      }
-
-      // Unrelated message -- clear stale pending action and fall through
-      clearPendingAction(db, userId);
-    }
-
-    // 3. Load conversation history (before saving new message to avoid orphans on failure)
-    const history = isGroupChat
-      ? getGroupHistory(db, groupChatId)
-      : getHistory(db, userId);
-
-    // 4. Append the current user message in-memory (not yet persisted)
-    const userContent = isGroupChat && senderDisplayName
-      ? `[${senderDisplayName}]: ${messageBody}`
-      : messageBody;
-    history.push({
-      id: 0, // placeholder -- not yet persisted
-      userId,
-      groupChatId: groupChatId ?? null,
-      role: "user",
-      content: userContent,
-      toolCalls: null,
-      toolCallId: null,
-      name: null,
-      createdAt: new Date(),
-    });
-
-    // 5. Build LLM messages with sliding window
-    const systemPrompt = isGroupChat
-      ? buildSystemPrompt(displayName, providerName, { isGroup: true, senderName: senderDisplayName })
-      : buildSystemPrompt(displayName, providerName);
-    const llmMessages = buildLLMMessages(systemPrompt, history, 20);
-
-    // 6. Run tool call loop
-    const result = await toolCallLoop({
-      client: llmClient,
-      model: config.LLM_MODEL,
-      messages: llmMessages,
-      registry,
-      context: {
-        sonarr,
-        radarr,
-        tmdb,
-        brave,
-        plex,
-        tautulli,
-        config,
-        userId,
-        isAdmin,
-        displayName,
-        replyAddress,
-        messaging,
-        telegramMessaging,
-        db,
-      },
-      log,
-    });
-
-    // 7. Persist user message + new messages from the loop.
-    // We deferred saving the user message until now to avoid orphaned messages on failure.
-    // The messagesConsumed array contains: system prompt + history (including user msg) + LLM messages.
-    // History includes the in-memory user message we appended in step 4, so LLM-generated
-    // messages start after it. We save the user message first, then the LLM messages.
-    if (isGroupChat && groupChatId) {
-      saveGroupMessage(db, { userId, groupChatId, role: "user", content: userContent });
-    } else {
-      saveMessage(db, { userId, role: "user", content: userContent });
-    }
-    const historyLength = history.length;
-    // system prompt is at index 0, then history messages (including user msg), then LLM messages
-    const newStartIndex = 1 + historyLength; // skip system + history (which includes user msg)
-
-    for (let i = newStartIndex; i < result.messagesConsumed.length; i++) {
-      const msg = result.messagesConsumed[i] as ChatCompletionMessageParam;
-      if (isGroupChat) {
-        persistLLMMessage(db, userId, msg, groupChatId);
       } else {
-        persistLLMMessage(db, userId, msg);
+        // SMS: existing behavior with MMS pixel for long messages
+        const SMS_MAX = 300;
+        const useMms = result.reply.length > SMS_MAX;
+        log.info({ replyLength: result.reply.length, mms: useMms }, "Sending reply via messaging");
+        await messaging.send({
+          to: replyAddress,
+          body: result.reply,
+          ...(useMms && config.MMS_PIXEL_URL ? { mediaUrl: [config.MMS_PIXEL_URL] } : {}),
+        });
       }
-    }
+      log.info("Reply sent");
+    } catch (err) {
+      log.error({ err, userId }, "Conversation processing error");
 
-    // Save pending confirmation if any
-    if (result.pendingConfirmation) {
-      savePendingAction(db, result.pendingConfirmation);
+      // User message was not saved (deferred save), so no orphaned messages to clean up.
+      // Send fallback message to the user.
+      try {
+        await messaging.send({
+          to: replyAddress,
+          body: "Sorry, something went wrong. Please try again.",
+        });
+      } catch (sendErr) {
+        log.error({ err: sendErr }, "Failed to send fallback error message");
+      }
+    } finally {
+      log.debug({ lockKey }, "Conversation lock released");
     }
-
-    // Send the reply -- format depends on provider
-    if (providerName === "telegram") {
-      // Telegram: convert any leftover markdown to HTML, attach poster if available
-      const htmlReply = markdownToHtml(result.reply);
-      // Only scan messages from the current turn (not history) to avoid stale posters
-      const currentTurnMessages = result.messagesConsumed.slice(newStartIndex);
-      const searchResult = extractLatestSearchResult(currentTurnMessages);
-      const photoUrl = searchResult?.posterUrl ?? undefined;
-      log.info(
-        { replyLength: htmlReply.length, group: isGroupChat, hasPoster: !!photoUrl },
-        "Sending reply via Telegram",
-      );
-      await messaging.send({
-        to: replyAddress,
-        body: htmlReply,
-        parseMode: "HTML",
-        photoUrl,
-        replyToMessageId,
-      });
-    } else {
-      // SMS: existing behavior with MMS pixel for long messages
-      const SMS_MAX = 300;
-      const useMms = result.reply.length > SMS_MAX;
-      log.info({ replyLength: result.reply.length, mms: useMms }, "Sending reply via messaging");
-      await messaging.send({
-        to: replyAddress,
-        body: result.reply,
-        ...(useMms && config.MMS_PIXEL_URL ? { mediaUrl: [config.MMS_PIXEL_URL] } : {}),
-      });
-    }
-    log.info("Reply sent");
-  } catch (err) {
-    log.error({ err, userId }, "Conversation processing error");
-
-    // User message was not saved (deferred save), so no orphaned messages to clean up.
-    // Send fallback message to the user.
-    try {
-      await messaging.send({
-        to: replyAddress,
-        body: "Sorry, something went wrong. Please try again.",
-      });
-    } catch (sendErr) {
-      log.error({ err: sendErr }, "Failed to send fallback error message");
-    }
-  }
+  });
 }
 
 /**
  * Persist an LLM message (from the tool call loop) to the messages table.
  * When groupChatId is provided, saves using saveGroupMessage for shared context.
  */
-function persistLLMMessage(db: DB, userId: number, msg: ChatCompletionMessageParam, groupChatId?: string): void {
+function persistLLMMessage(
+  db: DB,
+  userId: number,
+  msg: ChatCompletionMessageParam,
+  groupChatId?: string,
+): void {
   if (msg.role === "assistant") {
     const assistantMsg = msg as Extract<ChatCompletionMessageParam, { role: "assistant" }>;
     const params = {
