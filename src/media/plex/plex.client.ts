@@ -105,6 +105,22 @@ export class PlexClient {
     return this.libraryCache.get(`tvdb:${tvdbId}`);
   }
 
+  /** Title search across cached library items. Tries type-filtered first, then any type. */
+  findByTitle(title: string, type?: "movie" | "show"): PlexLibraryItem | undefined {
+    const needle = title.toLowerCase();
+    // Try with type filter first
+    if (type) {
+      for (const item of this.libraryCache.values()) {
+        if (item.type === type && item.title.toLowerCase() === needle) return item;
+      }
+    }
+    // Fallback: search all types (LLM often guesses wrong type)
+    for (const item of this.libraryCache.values()) {
+      if (item.title.toLowerCase() === needle) return item;
+    }
+    return undefined;
+  }
+
   /**
    * Get season-level availability for a TV show by its Plex ratingKey.
    * Returns an array of season info (season number, episode count, viewed count).

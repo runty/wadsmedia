@@ -18,6 +18,8 @@ export interface OutboundMessage {
   contentSid?: string;
   /** JSON string of template variables: {"1": "val", "2": "val", ...} */
   contentVariables?: string;
+  /** Media URLs to attach (forces MMS) */
+  mediaUrl?: string[];
   messagingServiceSid?: string;
   from?: string;
 }

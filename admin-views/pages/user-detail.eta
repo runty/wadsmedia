@@ -1,4 +1,4 @@
-<% layout("layouts/main", { title: (it.user.displayName || it.user.phone) + " - User Detail", page: "users" }) %>
+<% layout("/layouts/main", { title: (it.user.displayName || it.user.phone) + " - User Detail", page: "users" }) %>
 
 <div class="page-header">
   <h1><%= it.user.displayName || it.user.phone %></h1>

@@ -144,7 +144,7 @@ export async function toolCallLoop(params: ToolCallLoopParams): Promise<ToolCall
           content: JSON.stringify(result),
         });
 
-        log.info({ tool: functionName }, "Tool executed");
+        log.info({ tool: functionName, args: validation.data, result }, "Tool executed");
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Tool execution failed";
 

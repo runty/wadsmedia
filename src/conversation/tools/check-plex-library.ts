@@ -34,6 +34,11 @@ export const checkPlexLibraryTool = defineTool(
       item = context.plex.findByTmdbId(tmdbId);
     }
 
+    // Fallback: title-based search when no ID provided or ID lookup missed
+    if (!item) {
+      item = context.plex.findByTitle(title, type);
+    }
+
     if (!item) {
       return {
         found: false,
@@ -43,14 +48,14 @@ export const checkPlexLibraryTool = defineTool(
       };
     }
 
-    if (type === "movie") {
+    if (item.type === "movie") {
       return {
         found: true,
         title: item.title,
         year: item.year,
         type: "movie",
         library: item.sectionTitle,
-        message: `${item.title} (${item.year ?? "unknown year"}) is in your Plex library`,
+        message: `The movie ${item.title} (${item.year ?? "unknown year"}) is in your Plex library`,
       };
     }
 

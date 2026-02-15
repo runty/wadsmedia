@@ -221,39 +221,17 @@ export async function processConversation(params: ProcessConversationParams): Pr
 
     // Send the reply to the user
     // Attempt rich card send for search/discover results
-    let sent = false;
-    if (config.TWILIO_ACCOUNT_SID && config.TWILIO_AUTH_TOKEN) {
-      const richCard = await formatAsRichCard(
-        result.messagesConsumed,
-        result.reply,
-        userPhone,
-        {
-          accountSid: config.TWILIO_ACCOUNT_SID,
-          authToken: config.TWILIO_AUTH_TOKEN,
-          messagingServiceSid: config.TWILIO_MESSAGING_SERVICE_SID,
-          phoneNumber: config.TWILIO_PHONE_NUMBER,
-        },
-      );
-
-      if (richCard) {
-        try {
-          log.info("Sending rich card reply");
-          await messaging.send(richCard.outboundMessage);
-          sent = true;
-          log.info("Rich card sent");
-        } catch (richErr) {
-          log.warn({ err: richErr }, "Rich card send failed, falling back to text");
-          // Fall through to plain text send
-        }
-      }
-    }
-
-    if (!sent) {
-      log.info({ replyLength: result.reply.length }, "Sending reply via messaging");
+    // Rich card sending disabled — requires RCS brand approval
+    // TODO: Re-enable when RCS is set up
+    {
+      const SMS_MAX = 300;
+      const useMms = result.reply.length > SMS_MAX;
+      log.info({ replyLength: result.reply.length, mms: useMms }, "Sending reply via messaging");
       await messaging.send({
         to: userPhone,
         body: result.reply,
         from: config.TWILIO_PHONE_NUMBER,
+        ...(useMms ? { mediaUrl: [`https://wadsmedia.runty.net/admin/assets/pixel.png`] } : {}),
       });
       log.info("Reply sent");
     }
@@ -295,4 +273,47 @@ function persistLLMMessage(db: DB, userId: number, msg: ChatCompletionMessagePar
     });
   }
   // user and system messages are not expected here (user was saved earlier, system is not persisted)
+}
+
+/**
+ * Split a message into SMS-sized chunks (max chars per chunk).
+ * Splits on newlines first, then on sentence boundaries, then hard-cuts.
+ */
+function splitForSms(text: string, maxLen: number): string[] {
+  if (text.length <= maxLen) return [text];
+
+  const chunks: string[] = [];
+  const lines = text.split("\n");
+  let current = "";
+
+  for (const line of lines) {
+    const candidate = current ? `${current}\n${line}` : line;
+
+    if (candidate.length <= maxLen) {
+      current = candidate;
+    } else if (!current) {
+      // Single line exceeds maxLen — hard split
+      let remaining = line;
+      while (remaining.length > maxLen) {
+        chunks.push(remaining.slice(0, maxLen));
+        remaining = remaining.slice(maxLen);
+      }
+      current = remaining;
+    } else {
+      // Flush current, start new chunk with this line
+      chunks.push(current);
+      current = line.length <= maxLen ? line : "";
+      if (line.length > maxLen) {
+        let remaining = line;
+        while (remaining.length > maxLen) {
+          chunks.push(remaining.slice(0, maxLen));
+          remaining = remaining.slice(maxLen);
+        }
+        current = remaining;
+      }
+    }
+  }
+
+  if (current) chunks.push(current);
+  return chunks;
 }

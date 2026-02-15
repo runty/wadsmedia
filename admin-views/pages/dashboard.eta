@@ -1,18 +1,18 @@
-<% layout("layouts/main", { title: "Dashboard", page: "dashboard" }) %>
+<% layout("/layouts/main", { title: "Dashboard", page: "dashboard" }) %>
 
 <div class="page-header">
   <h1>Dashboard</h1>
   <p>System overview and media request statistics</p>
 </div>
 
-<%~ include("partials/stats-cards", { stats: it.stats }) %>
+<%~ include("/partials/stats-cards", { stats: it.stats }) %>
 
 <h2 class="section-title">System Health</h2>
 <div id="health-panel"
      hx-get="/admin/api/health"
      hx-trigger="every 60s"
      hx-swap="innerHTML">
-  <%~ include("partials/health-status", { health: it.health }) %>
+  <%~ include("/partials/health-status", { health: it.health }) %>
 </div>
 
 <div class="section-card">

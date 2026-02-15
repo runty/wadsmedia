@@ -27,10 +27,11 @@ export class TwilioMessagingProvider implements MessagingProvider {
       return { sid: result.sid, status: result.status };
     }
 
-    // Plain text (existing behavior)
+    // Plain text (or MMS with media)
     const result = await this.client.messages.create({
       body: message.body ?? "",
       to: message.to,
+      ...(message.mediaUrl?.length ? { mediaUrl: message.mediaUrl } : {}),
       ...(message.messagingServiceSid
         ? { messagingServiceSid: message.messagingServiceSid }
         : { from: message.from }),

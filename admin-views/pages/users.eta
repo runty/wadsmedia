@@ -1,4 +1,4 @@
-<% layout("layouts/main", { title: "Users", page: "users" }) %>
+<% layout("/layouts/main", { title: "Users", page: "users" }) %>
 
 <div class="page-header">
   <h1>Users</h1>
@@ -19,7 +19,7 @@
     <tbody id="user-list">
       <% if (it.users && it.users.length > 0) { %>
         <% it.users.forEach(user => { %>
-          <%~ include("partials/user-row", { user }) %>
+          <%~ include("/partials/user-row", { user }) %>
         <% }) %>
       <% } else { %>
         <tr><td colspan="5" class="empty-state"><p>No users found.</p></td></tr>
