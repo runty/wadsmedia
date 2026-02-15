@@ -1,5 +1,5 @@
 import { Api, InlineKeyboard } from "grammy";
-import type { Update } from "@grammyjs/types";
+import type { Update, WebhookInfo } from "@grammyjs/types";
 import type {
   InboundMessage,
   MessagingProvider,
@@ -125,6 +125,10 @@ export class TelegramMessagingProvider implements MessagingProvider {
 
   async setWebhook(url: string, secretToken: string): Promise<void> {
     await this.api.setWebhook(url, { secret_token: secretToken });
+  }
+
+  async getWebhookInfo(): Promise<WebhookInfo> {
+    return this.api.getWebhookInfo();
   }
 
   async getMe(): Promise<{ username: string }> {
