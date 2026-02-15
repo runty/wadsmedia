@@ -5,6 +5,7 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 import type { AppConfig } from "../config.js";
 import type * as schema from "../db/schema.js";
 import type { BraveSearchClient } from "../media/brave/brave.client.js";
+import type { PlexClient } from "../media/plex/plex.client.js";
 import type { RadarrClient } from "../media/radarr/radarr.client.js";
 import type { SonarrClient } from "../media/sonarr/sonarr.client.js";
 import type { TmdbClient } from "../media/tmdb/tmdb.client.js";
@@ -37,6 +38,7 @@ interface ProcessConversationParams {
   radarr?: RadarrClient;
   tmdb?: TmdbClient;
   brave?: BraveSearchClient;
+  plex?: PlexClient;
   messaging: MessagingProvider;
   config: AppConfig;
   log: FastifyBaseLogger;
@@ -69,6 +71,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
     radarr,
     tmdb,
     brave,
+    plex,
     messaging,
     config,
     log,
@@ -99,6 +102,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
               radarr,
               tmdb,
               brave,
+              plex,
               config,
               userId,
               isAdmin,
@@ -177,6 +181,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
         radarr,
         tmdb,
         brave,
+        plex,
         config,
         userId,
         isAdmin,

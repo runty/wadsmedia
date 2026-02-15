@@ -40,6 +40,9 @@ export interface ToolContext {
   radarr?: import("../media/radarr/radarr.client.js").RadarrClient;
   tmdb?: import("../media/tmdb/tmdb.client.js").TmdbClient;
   brave?: import("../media/brave/brave.client.js").BraveSearchClient;
+  plex?: import("../media/plex/plex.client.js").PlexClient;
+  // tautulli will be added by Plan 11-02 when the module is created
+  tautulli?: unknown;
   config?: import("../config.js").AppConfig;
   userId: number;
   isAdmin: boolean;

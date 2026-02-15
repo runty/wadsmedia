@@ -65,6 +65,7 @@ export default fp(
               radarr: fastify.radarr,
               tmdb: fastify.tmdb,
               brave: fastify.brave,
+              plex: fastify.plex,
               messaging: fastify.messaging,
               config: fastify.config,
               log: request.log,

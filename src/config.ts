@@ -32,6 +32,14 @@ const envSchema = z.object({
   // Brave Search (optional, for web search fallback)
   BRAVE_SEARCH_API_KEY: z.string().min(1).optional(),
 
+  // Plex (optional, for library awareness)
+  PLEX_URL: z.string().url().optional(),
+  PLEX_TOKEN: z.string().min(1).optional(),
+
+  // Tautulli (optional, for watch history)
+  TAUTULLI_URL: z.string().url().optional(),
+  TAUTULLI_API_KEY: z.string().min(1).optional(),
+
   // Notifications (optional, for webhook security)
   NOTIFICATION_SECRET: z.string().min(1).optional(),
 

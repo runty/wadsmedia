@@ -7,6 +7,7 @@ import databasePlugin from "./plugins/database.js";
 import healthPlugin from "./plugins/health.js";
 import messagingPlugin from "./plugins/messaging.js";
 import notificationsPlugin from "./plugins/notifications.js";
+import plexPlugin from "./plugins/plex.js";
 import radarrPlugin from "./plugins/radarr.js";
 import sonarrPlugin from "./plugins/sonarr.js";
 import tmdbPlugin from "./plugins/tmdb.js";
@@ -44,6 +45,7 @@ export async function buildServer(config: AppConfig) {
   await fastify.register(radarrPlugin);
   await fastify.register(tmdbPlugin);
   await fastify.register(bravePlugin);
+  await fastify.register(plexPlugin);
   await fastify.register(conversationPlugin);
   await fastify.register(formbody);
   await fastify.register(messagingPlugin);
