@@ -23,6 +23,7 @@ const envSchema = z.object({
   TELEGRAM_WEBHOOK_SECRET: z.string().min(1).optional(),
   TELEGRAM_WEBHOOK_URL: z.string().url().optional(),
   ADMIN_TELEGRAM_CHAT_ID: z.string().min(1).optional(),
+  TELEGRAM_BOT_USERNAME: z.string().min(1).optional(),
 
   // LLM (optional in Phase 1, required starting Phase 5)
   LLM_API_KEY: z.string().min(1).optional(),

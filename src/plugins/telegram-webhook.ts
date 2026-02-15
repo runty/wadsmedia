@@ -4,6 +4,107 @@ import { processConversation } from "../conversation/engine.js";
 import { handleOnboarding } from "../users/onboarding.js";
 import { createUser, findUserByTelegramChatId } from "../users/user.service.js";
 
+// --- Group chat activation detection helpers ---
+
+/**
+ * Check if the message text contains an @mention of the bot.
+ * Also checks Telegram's entities array for mention entities (more reliable than text matching).
+ */
+export function isBotMention(
+  text: string,
+  botUsername: string,
+  entities?: Array<{ type: string; offset: number; length: number }>,
+): boolean {
+  // Check Telegram entities first (more reliable)
+  if (entities) {
+    const mentionText = `@${botUsername}`.toLowerCase();
+    for (const entity of entities) {
+      if (entity.type === "mention") {
+        const entityText = text.slice(entity.offset, entity.offset + entity.length).toLowerCase();
+        if (entityText === mentionText) return true;
+      }
+    }
+  }
+  // Fallback: text matching (case-insensitive)
+  return text.toLowerCase().includes(`@${botUsername.toLowerCase()}`);
+}
+
+/**
+ * Check if this update is a reply to one of the bot's own messages.
+ */
+export function isReplyToBot(update: Record<string, unknown>, botUsername: string): boolean {
+  // Callback queries are always directed at the bot
+  if (update.callback_query) return true;
+
+  const message = update.message as Record<string, unknown> | undefined;
+  if (!message) return false;
+
+  const replyTo = message.reply_to_message as Record<string, unknown> | undefined;
+  if (!replyTo) return false;
+
+  const from = replyTo.from as Record<string, unknown> | undefined;
+  if (!from) return false;
+
+  return String(from.username ?? "").toLowerCase() === botUsername.toLowerCase();
+}
+
+/**
+ * Detect if the message text looks like an obvious media request.
+ * Leans toward precision over recall -- false negatives are acceptable
+ * (users can always @mention the bot), but false positives waste API calls.
+ */
+export function isObviousMediaRequest(text: string): boolean {
+  const lower = text.toLowerCase();
+
+  const patterns: RegExp[] = [
+    // Action verbs that imply a media request
+    /\bsearch\s+for\b/i,
+    /\bfind\s+me\b/i,
+    /\blook\s+up\b/i,
+    /\badd\s+\S/i,
+    /\bdownload\s+\S/i,
+    /\bgrab\s+\S/i,
+    // Direct query patterns
+    /\bhave\s+you\s+seen\b/i,
+    /\banyone\s+seen\b/i,
+    /\bis\s+.+\s+on\s+plex\b/i,
+    /\bwhat\s+about\s+\S/i,
+    // Media nouns combined with action context
+    /\b(?:search|find|add|download|grab|get)\b.*\b(?:movie|show|series|anime|film)\b/i,
+    /\b(?:movie|show|series|anime|film)\b.*\b(?:search|find|add|download|grab|get)\b/i,
+  ];
+
+  return patterns.some((p) => p.test(lower));
+}
+
+/**
+ * Single activation gate for group messages.
+ * Returns true if the bot should respond to this message.
+ */
+export function shouldActivateInGroup(
+  text: string,
+  update: Record<string, unknown>,
+  botUsername: string,
+  entities?: Array<{ type: string; offset: number; length: number }>,
+): boolean {
+  return (
+    isBotMention(text, botUsername, entities) ||
+    isReplyToBot(update, botUsername) ||
+    isObviousMediaRequest(text)
+  );
+}
+
+/**
+ * Remove @botUsername from message text so the LLM doesn't see it as part of the query.
+ */
+export function stripBotMention(text: string, botUsername: string): string {
+  // Remove all variations of the mention (case-insensitive)
+  return text.replace(new RegExp(`@${botUsername}`, "gi"), "").trim();
+}
+
+// --- Rate limiting for group chats ---
+const groupMessageTimestamps = new Map<string, number[]>();
+
 export default fp(
   async (fastify: FastifyInstance) => {
     if (!fastify.telegramMessaging) {
