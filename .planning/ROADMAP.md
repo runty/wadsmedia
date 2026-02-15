@@ -103,11 +103,11 @@ Plans:
   1. Search results display as RCS rich cards with poster images, title, year, and overview (with automatic SMS text fallback on non-RCS devices)
   2. Quick-action suggested reply buttons appear below search results for common actions ("Add this", "Next result", "Check Plex")
   3. Assistant responses use a fun, edgy, slightly spicy personality with emojis throughout all conversations
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 13-01: RCS content templates and rich card sending
-- [ ] 13-02: Suggested reply buttons and personality update
+- [ ] 13-01-PLAN.md -- Messaging infrastructure: content template types, Twilio provider rich card support, content template management, posterUrl in search tools (wave 1)
+- [ ] 13-02-PLAN.md -- Engine integration: message formatter, rich card sending in conversation engine, personality system prompt rewrite (wave 2, depends on 13-01)
 
 ## Progress
 
