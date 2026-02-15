@@ -4,6 +4,7 @@
 
 - v1.0 MVP -- Phases 1-8 (shipped 2026-02-14)
 - v2.0 Smart Discovery & Admin -- Phases 9-13 (shipped 2026-02-15)
+- v2.1 Telegram & Polish -- Phases 14-17 (in progress)
 
 ## Phases
 
@@ -36,7 +37,82 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 
 </details>
 
+### v2.1 Telegram & Polish (In Progress)
+
+**Milestone Goal:** Add Telegram as a second messaging channel (DMs + group chat with rich interactions) and polish SMS delivery and admin dashboard UX.
+
+- [ ] **Phase 14: Provider Generalization + SMS Polish** - Refactor messaging architecture to be provider-agnostic and clean up SMS tech debt
+- [ ] **Phase 15: Telegram DM Integration** - Full Telegram DM experience with inline keyboards and poster images
+- [ ] **Phase 16: Telegram Group Chat** - Shared context group conversations with selective bot activation
+- [ ] **Phase 17: Admin Dashboard UX Polish** - Navigation clarity and Plex linking discoverability
+
+## Phase Details
+
+### Phase 14: Provider Generalization + SMS Polish
+**Goal**: The messaging architecture supports multiple providers without SMS-specific assumptions
+**Depends on**: Phase 13 (v2.0 complete)
+**Requirements**: SMS-01, SMS-02
+**Success Criteria** (what must be TRUE):
+  1. MMS pixel URL is read from an environment variable, not hardcoded to wadsmedia.runty.net
+  2. No dead splitForSms() code remains in the conversation engine
+  3. MessagingProvider interface methods are provider-agnostic (no TwiML-specific method names or Twilio-specific fields in shared types)
+  4. User model supports optional Telegram user ID alongside phone number (schema migration applied)
+**Plans**: TBD
+
+Plans:
+- [ ] 14-01: TBD
+- [ ] 14-02: TBD
+
+### Phase 15: Telegram DM Integration
+**Goal**: Users can chat with the bot via Telegram DM with the same capabilities as SMS
+**Depends on**: Phase 14
+**Requirements**: TELE-01, TELE-04, TELE-05, TELE-06
+**Success Criteria** (what must be TRUE):
+  1. User can send a Telegram DM to the bot and receive a response through the conversation engine (search, add, remove, status, upcoming, discover, Plex check, watch history all work)
+  2. Search results display poster images inline with the response text in Telegram
+  3. Inline keyboard buttons appear for common actions (Add this, Next result, Check Plex) and function correctly when tapped
+  4. Telegram user is resolved to a WadsMedia user record, with new users created or linked from Telegram user ID
+  5. Bot validates incoming Telegram webhooks with secret token and rejects forged requests
+**Plans**: TBD
+
+Plans:
+- [ ] 15-01: TBD
+- [ ] 15-02: TBD
+- [ ] 15-03: TBD
+
+### Phase 16: Telegram Group Chat
+**Goal**: Users can interact with the bot in Telegram group chats with shared context and selective activation
+**Depends on**: Phase 15
+**Requirements**: TELE-02, TELE-03
+**Success Criteria** (what must be TRUE):
+  1. Bot responds to @mentions in a group chat with full conversational capabilities
+  2. Bot detects and responds to obvious media requests in group chat without requiring @mention
+  3. Group chat maintains shared conversation context so any member can reference previous search results ("add that one" refers to the last group search)
+  4. Each message in group chat is attributed to the correct WadsMedia user
+**Plans**: TBD
+
+Plans:
+- [ ] 16-01: TBD
+- [ ] 16-02: TBD
+
+### Phase 17: Admin Dashboard UX Polish
+**Goal**: Admin dashboard navigation and Plex linking are intuitive and transparent
+**Depends on**: Phase 14 (independent of Telegram phases, depends only on generalized provider interface)
+**Requirements**: ADMN-07, ADMN-08
+**Success Criteria** (what must be TRUE):
+  1. User detail page is accessible via a clearly labeled link in the user list (not hidden behind "View Chat")
+  2. Plex linking section is prominently displayed on the user detail page with clear instructions
+  3. When Tautulli is unavailable, Plex linking section shows an explicit error state explaining why linking is unavailable (not silently hidden)
+**Plans**: TBD
+
+Plans:
+- [ ] 17-01: TBD
+
 ## Progress
+
+**Execution Order:**
+Phases 14 through 16 execute sequentially (each depends on the previous).
+Phase 17 can execute after Phase 14 (independent of Telegram phases 15-16).
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -53,3 +129,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 | 11. Plex + Tautulli Integration | v2.0 | 2/2 | Complete | 2026-02-15 |
 | 12. Web Admin Dashboard | v2.0 | 3/3 | Complete | 2026-02-15 |
 | 13. RCS Rich Messaging + Personality | v2.0 | 2/2 | Complete | 2026-02-15 |
+| 14. Provider Generalization + SMS Polish | v2.1 | 0/TBD | Not started | - |
+| 15. Telegram DM Integration | v2.1 | 0/TBD | Not started | - |
+| 16. Telegram Group Chat | v2.1 | 0/TBD | Not started | - |
+| 17. Admin Dashboard UX Polish | v2.1 | 0/TBD | Not started | - |

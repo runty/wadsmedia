@@ -63,22 +63,22 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TELE-01 | TBD | Pending |
-| TELE-02 | TBD | Pending |
-| TELE-03 | TBD | Pending |
-| TELE-04 | TBD | Pending |
-| TELE-05 | TBD | Pending |
-| TELE-06 | TBD | Pending |
-| SMS-01 | TBD | Pending |
-| SMS-02 | TBD | Pending |
-| ADMN-07 | TBD | Pending |
-| ADMN-08 | TBD | Pending |
+| TELE-01 | Phase 15 | Pending |
+| TELE-02 | Phase 16 | Pending |
+| TELE-03 | Phase 16 | Pending |
+| TELE-04 | Phase 15 | Pending |
+| TELE-05 | Phase 15 | Pending |
+| TELE-06 | Phase 15 | Pending |
+| SMS-01 | Phase 14 | Pending |
+| SMS-02 | Phase 14 | Pending |
+| ADMN-07 | Phase 17 | Pending |
+| ADMN-08 | Phase 17 | Pending |
 
 **Coverage:**
 - v2.1 requirements: 10 total
-- Mapped to phases: 0
-- Unmapped: 10
+- Mapped to phases: 10
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-15*
-*Last updated: 2026-02-15 after initial definition*
+*Last updated: 2026-02-14 after roadmap creation*
