@@ -24,6 +24,7 @@ export const searchSeriesTool = defineTool(
 
     const results = searchResults.slice(0, 10).map((series) => {
       const librarySerie = librarySeriesMap.get(series.tvdbId);
+      const posterImage = series.images?.find((img) => img.coverType === "poster");
       return {
         title: series.title,
         year: series.year,
@@ -37,6 +38,7 @@ export const searchSeriesTool = defineTool(
         inLibrary: !!librarySerie,
         libraryId: librarySerie?.id ?? null,
         status: series.status,
+        posterUrl: posterImage?.remoteUrl ?? null,
       };
     });
 

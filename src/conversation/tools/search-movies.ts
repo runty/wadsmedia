@@ -24,6 +24,7 @@ export const searchMoviesTool = defineTool(
 
     const results = searchResults.slice(0, 10).map((movie) => {
       const libraryMovie = libraryMovieMap.get(movie.tmdbId);
+      const posterImage = movie.images?.find((img) => img.coverType === "poster");
       return {
         title: movie.title,
         year: movie.year,
@@ -36,6 +37,7 @@ export const searchMoviesTool = defineTool(
         libraryId: libraryMovie?.id ?? null,
         status: movie.status,
         studio: movie.studio ?? null,
+        posterUrl: posterImage?.remoteUrl ?? null,
       };
     });
 
