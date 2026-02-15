@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** v2.1 Telegram & Polish -- Phase 15 ready to plan
+**Current focus:** v2.1 Telegram & Polish -- Phase 15 executing
 
 ## Current Position
 
 Phase: 15 of 17 (Telegram DM Integration)
-Plan: --
-Status: Ready to plan
-Last activity: 2026-02-15 -- Phase 14 complete (3/3 plans, verification passed)
+Plan: 1 of 3 (complete)
+Status: Executing
+Last activity: 2026-02-15 -- 15-01 complete (Telegram messaging provider)
 
-Progress: [████████░░░░░░░░░░░░░░░░░░░░░░░░] 1/4 phases
+Progress: [████████████░░░░░░░░░░░░░░░░░░░░] 1.3/4 phases
 
 ## Performance Metrics
 
@@ -27,8 +27,11 @@ Progress: [████████░░░░░░░░░░░░░░░
 **v2.1 Velocity (Phase 14):**
 - Plans: 3 | Execution time: ~3min (14-01), ~2min (14-02), ~3min (14-03)
 
+**v2.1 Velocity (Phase 15):**
+- Plans: 1/3 | Execution time: ~2min (15-01)
+
 **Combined:**
-- Total plans completed: 33 (across 14 phases)
+- Total plans completed: 34 (across 15 phases)
 - Total execution time: ~1.5 hours
 
 ## Accumulated Context
@@ -49,6 +52,9 @@ Recent decisions affecting current work:
 - 14-03: Kept phone-based update functions for backward compat; added ID-based alternatives for Telegram
 - 14-02: replyAddress replaces userPhone everywhere (provider-agnostic destination identifier)
 - 14-02: Notification plugin guards removed; messaging dependency declaration handles availability
+- 15-01: Used grammy Api class directly (not Bot framework) for typed Telegram HTTP client
+- 15-01: Extended OutboundMessage with optional Telegram fields (inlineKeyboard, photoUrl, parseMode) rather than subtype
+- 15-01: Plugin gracefully skips when TELEGRAM_BOT_TOKEN or TELEGRAM_WEBHOOK_SECRET not set
 
 ### Pending Todos
 
@@ -63,5 +69,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Phase 14 complete, verification passed
+Stopped at: Completed 15-01-PLAN.md (Telegram messaging provider)
 Resume file: None
