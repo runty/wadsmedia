@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** Phase 19: Webhook Server Resilience (v2.2 Stability & Polish)
+**Current focus:** Phase 19 complete. Ready for Phase 20 (v2.2 Stability & Polish)
 
 ## Current Position
 
 Phase: 19 of 21 (Webhook Server Resilience)
-Plan: 1 of 2 in current phase
-Status: In Progress
-Last activity: 2026-02-15 -- Completed 19-01 webhook retry with exponential backoff
+Plan: 2 of 2 in current phase
+Status: Phase Complete
+Last activity: 2026-02-15 -- Completed 19-02 structured health checks
 
-Progress: [==================..] 86% (18/21 phases complete)
+Progress: [===================.] 90% (19/21 phases complete)
 
 ## Performance Metrics
 
@@ -28,11 +28,11 @@ Progress: [==================..] 86% (18/21 phases complete)
 - Plans: 9 | Execution time: ~22min
 
 **v2.2 Velocity (Phases 18-19):**
-- Plans: 3 | Execution time: ~7min
+- Plans: 4 | Execution time: ~10min
 
 **Combined:**
-- Total plans completed: 42 (across 19 phases)
-- Total execution time: ~1.85 hours
+- Total plans completed: 43 (across 19 phases)
+- Total execution time: ~1.9 hours
 
 ## Accumulated Context
 
@@ -46,6 +46,8 @@ Recent decisions affecting current work:
 - 18-02: Promise chaining lock (no external deps) serializes same-user/group conversations; confirmation flows inside lock
 - 19-01: Foreground retry blocks server start (max 30s worst-case) to ensure webhook ready before accepting traffic
 - 19-01: getWebhookInfo returns full grammy WebhookInfo type for maximum downstream flexibility in health checks
+- 19-02: Promise.race timeout for grammy webhook check; OpenAI SDK timeout for LLM check (both 5s)
+- 19-02: Non-configured services report not_configured without degrading overall health status
 
 ### Pending Todos
 
@@ -60,5 +62,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Completed 19-01-PLAN.md (webhook retry with exponential backoff)
+Stopped at: Completed 19-02-PLAN.md (structured health checks) -- Phase 19 complete
 Resume file: None
