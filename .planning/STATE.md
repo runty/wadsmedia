@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-14)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** Phase 11 -- Plex + Tautulli Integration
+**Current focus:** Phase 12 -- Web Admin Dashboard
 
 ## Current Position
 
-Phase: 11 of 13 (Plex + Tautulli Integration) -- COMPLETE
-Plan: 2 of 2 in current phase -- COMPLETE
-Status: Phase 11 Complete
-Last activity: 2026-02-15 -- 11-02 complete (Tautulli client, get_watch_history tool, server wiring)
+Phase: 12 of 13 (Web Admin Dashboard)
+Plan: 1 of 3 in current phase
+Status: Executing Phase 12
+Last activity: 2026-02-15 -- 12-01 complete (admin backend infrastructure, auth, service layer, routes)
 
-Progress: [##########################....] 26/30 plans
+Progress: [###########################...] 27/30 plans
 
 ## Performance Metrics
 
 **v1.0 Velocity:**
-- Total plans completed: 26
+- Total plans completed: 27
 - Average duration: 3min
-- Total execution time: 1.06 hours
+- Total execution time: 1.14 hours
 
 **By Phase:**
 
@@ -38,6 +38,7 @@ Progress: [##########################....] 26/30 plans
 | 09-tmdb-discovery-library-routing | 3 | 14min | 5min |
 | 10-permissions-user-tracking | 1 | 4min | 4min |
 | 11-plex-tautulli-integration | 2 | 6min | 3min |
+| 12-web-admin-dashboard | 1 | 5min | 5min |
 
 ## Accumulated Context
 
@@ -65,6 +66,9 @@ Recent decisions affecting v2.0:
 - Tautulli config vars and ToolContext field pre-added in 11-01 to avoid config churn in 11-02
 - Tautulli API always returns HTTP 200; success determined by response.result wrapper field
 - Global watch history in Phase 11 (no userId filter); per-user filtering deferred to Phase 12
+- Admin dashboard opt-in via ADMIN_SESSION_SECRET + ADMIN_PASSWORD; plugin skips registration when not set
+- Dockerfile COPY paths use repo-root admin-views/admin-assets/ matching process.cwd() in plugin
+- Route generics on fastify.get<T>()/post<T>() for Fastify 5 strict typing compatibility
 
 ### Pending Todos
 
@@ -78,5 +82,5 @@ Recent decisions affecting v2.0:
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Completed 11-02-PLAN.md (Tautulli client, get_watch_history tool, Phase 11 complete)
+Stopped at: Completed 12-01-PLAN.md (admin backend infrastructure, auth, service layer, routes)
 Resume file: None
