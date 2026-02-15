@@ -90,11 +90,11 @@ Plans:
   2. Bot detects and responds to obvious media requests in group chat without requiring @mention
   3. Group chat maintains shared conversation context so any member can reference previous search results ("add that one" refers to the last group search)
   4. Each message in group chat is attributed to the correct WadsMedia user
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 16-01: TBD
-- [ ] 16-02: TBD
+- [ ] 16-01-PLAN.md -- Group conversation history schema, engine group mode, and system prompt
+- [ ] 16-02-PLAN.md -- Group chat activation filtering and webhook route handler
 
 ### Phase 17: Admin Dashboard UX Polish
 **Goal**: Admin dashboard navigation and Plex linking are intuitive and transparent
@@ -132,5 +132,5 @@ Phase 17 can execute after Phase 14 (independent of Telegram phases 15-16).
 | 13. RCS Rich Messaging + Personality | v2.0 | 2/2 | Complete | 2026-02-15 |
 | 14. Provider Generalization + SMS Polish | v2.1 | 3/3 | Complete | 2026-02-15 |
 | 15. Telegram DM Integration | v2.1 | 3/3 | Complete | 2026-02-15 |
-| 16. Telegram Group Chat | v2.1 | 0/TBD | Not started | - |
+| 16. Telegram Group Chat | v2.1 | 0/2 | Not started | - |
 | 17. Admin Dashboard UX Polish | v2.1 | 0/TBD | Not started | - |
