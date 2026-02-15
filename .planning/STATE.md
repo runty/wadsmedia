@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 
 ## Current Position
 
-Phase: 11 of 13 (Plex + Tautulli Integration)
-Plan: 1 of 2 in current phase -- COMPLETE
-Status: In Progress
-Last activity: 2026-02-15 -- 11-01 complete (Plex client, library cache, check_plex_library tool)
+Phase: 11 of 13 (Plex + Tautulli Integration) -- COMPLETE
+Plan: 2 of 2 in current phase -- COMPLETE
+Status: Phase 11 Complete
+Last activity: 2026-02-15 -- 11-02 complete (Tautulli client, get_watch_history tool, server wiring)
 
-Progress: [#########################.....] 25/30 plans
+Progress: [##########################....] 26/30 plans
 
 ## Performance Metrics
 
 **v1.0 Velocity:**
-- Total plans completed: 25
+- Total plans completed: 26
 - Average duration: 3min
-- Total execution time: 1.01 hours
+- Total execution time: 1.06 hours
 
 **By Phase:**
 
@@ -37,7 +37,7 @@ Progress: [#########################.....] 25/30 plans
 | 08-status-and-notifications | 2 | 4min | 2min |
 | 09-tmdb-discovery-library-routing | 3 | 14min | 5min |
 | 10-permissions-user-tracking | 1 | 4min | 4min |
-| 11-plex-tautulli-integration | 1 | 3min | 3min |
+| 11-plex-tautulli-integration | 2 | 6min | 3min |
 
 ## Accumulated Context
 
@@ -63,6 +63,8 @@ Recent decisions affecting v2.0:
 - Plex GUID regex parsing for provider-agnostic cache keys (tmdb:ID, tvdb:ID, imdb:ID)
 - Async non-blocking cache load on startup with 15min periodic refresh
 - Tautulli config vars and ToolContext field pre-added in 11-01 to avoid config churn in 11-02
+- Tautulli API always returns HTTP 200; success determined by response.result wrapper field
+- Global watch history in Phase 11 (no userId filter); per-user filtering deferred to Phase 12
 
 ### Pending Todos
 
@@ -76,5 +78,5 @@ Recent decisions affecting v2.0:
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Completed 11-01-PLAN.md (Plex client, library cache, check_plex_library tool)
+Stopped at: Completed 11-02-PLAN.md (Tautulli client, get_watch_history tool, Phase 11 complete)
 Resume file: None
