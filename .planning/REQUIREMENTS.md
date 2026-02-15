@@ -23,8 +23,8 @@ Requirements for v2.1 Telegram & Polish milestone. Each maps to roadmap phases.
 
 ### Admin Dashboard UX
 
-- [ ] **ADMN-07**: User detail page is accessible via clearly labeled navigation (not "View Chat")
-- [ ] **ADMN-08**: Plex linking section is prominently displayed and shows error state when Tautulli is unavailable (not silently hidden)
+- [x] **ADMN-07**: User detail page is accessible via clearly labeled navigation (not "View Chat")
+- [x] **ADMN-08**: Plex linking section is prominently displayed and shows error state when Tautulli is unavailable (not silently hidden)
 
 ## Future Requirements
 
@@ -71,8 +71,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TELE-06 | Phase 15 | Complete |
 | SMS-01 | Phase 14 | Complete |
 | SMS-02 | Phase 14 | Complete |
-| ADMN-07 | Phase 17 | Pending |
-| ADMN-08 | Phase 17 | Pending |
+| ADMN-07 | Phase 17 | Complete |
+| ADMN-08 | Phase 17 | Complete |
 
 **Coverage:**
 - v2.1 requirements: 10 total
