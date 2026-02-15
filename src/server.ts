@@ -8,6 +8,7 @@ import databasePlugin from "./plugins/database.js";
 import healthPlugin from "./plugins/health.js";
 import messagingPlugin from "./plugins/messaging.js";
 import notificationsPlugin from "./plugins/notifications.js";
+import telegramMessagingPlugin from "./plugins/telegram-messaging.js";
 import plexPlugin from "./plugins/plex.js";
 import radarrPlugin from "./plugins/radarr.js";
 import sonarrPlugin from "./plugins/sonarr.js";
@@ -52,6 +53,7 @@ export async function buildServer(config: AppConfig) {
   await fastify.register(conversationPlugin);
   await fastify.register(formbody);
   await fastify.register(messagingPlugin);
+  await fastify.register(telegramMessagingPlugin);
   await fastify.register(userResolverPlugin);
   await fastify.register(webhookPlugin);
   await fastify.register(notificationsPlugin);
