@@ -27,6 +27,9 @@ export async function notifyAllActiveUsers(
     .all();
 
   for (const user of activeUsers) {
+    // Skip users without a phone number (e.g., Telegram-only users)
+    if (!user.phone) continue;
+
     try {
       await messaging.send({
         to: user.phone,

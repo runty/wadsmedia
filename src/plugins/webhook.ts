@@ -5,26 +5,20 @@ import { handleOnboarding } from "../users/onboarding.js";
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    const validateTwilioSignature = async (request: FastifyRequest, reply: FastifyReply) => {
-      const signature = request.headers["x-twilio-signature"];
-      if (typeof signature !== "string") {
-        reply.code(403).send({ error: "Missing Twilio signature" });
-        return;
-      }
-
-      // Reconstruct the URL Twilio used (handle reverse proxy / SSL termination)
+    const validateWebhookSignature = async (request: FastifyRequest, reply: FastifyReply) => {
+      // Reconstruct the URL the provider used (handle reverse proxy / SSL termination)
       const protocol = (request.headers["x-forwarded-proto"] as string) ?? "http";
       const host = request.headers.host ?? "localhost";
       const url = `${protocol}://${host}${request.url}`;
 
       const isValid = fastify.messaging.validateWebhook({
-        signature,
+        headers: request.headers as Record<string, string | string[] | undefined>,
         url,
-        body: request.body as Record<string, string>,
+        body: request.body,
       });
 
       if (!isValid) {
-        request.log.warn("Invalid Twilio webhook signature");
+        request.log.warn("Invalid webhook signature");
         reply.code(403).send({ error: "Invalid signature" });
         return;
       }
@@ -32,29 +26,32 @@ export default fp(
 
     fastify.post(
       "/webhook/twilio",
-      { preHandler: [validateTwilioSignature, fastify.resolveUser] },
+      { preHandler: [validateWebhookSignature, fastify.resolveUser] },
       async (request, reply) => {
-        const message = fastify.messaging.parseInbound(request.body as Record<string, string>);
+        const message = fastify.messaging.parseInbound(request.body);
         request.log.info({ from: message.from, body: message.body }, "Incoming message");
 
         const user = request.user;
 
         // If user resolution failed (no From field), acknowledge silently
         if (!user) {
-          return reply.type("text/xml").send(fastify.messaging.formatEmptyReply());
+          return reply.type("text/xml").send(fastify.messaging.formatWebhookResponse());
         }
 
-        // Active users: respond immediately with empty TwiML, then process async
+        // Active users: respond immediately with empty response, then process async
         if (user.status === "active") {
-          // Respond immediately to Twilio to avoid 15-second timeout
-          reply.type("text/xml").send(fastify.messaging.formatEmptyReply());
+          // Respond immediately to avoid provider timeout
+          reply.type("text/xml").send(fastify.messaging.formatWebhookResponse());
 
-          // Process conversation asynchronously (fire-and-forget from Twilio's perspective)
+          // Twilio webhook users always have a phone number
+          const userPhone = user.phone as string;
+
+          // Process conversation asynchronously (fire-and-forget from provider's perspective)
           // Only if conversation engine is configured
           if (fastify.llm && fastify.toolRegistry) {
             processConversation({
               userId: user.id,
-              userPhone: user.phone,
+              userPhone,
               displayName: user.displayName,
               isAdmin: user.isAdmin,
               messageBody: message.body,
@@ -74,9 +71,8 @@ export default fp(
               request.log.error({ err }, "Conversation processing failed");
               fastify.messaging
                 .send({
-                  to: user.phone,
+                  to: userPhone,
                   body: "Sorry, something went wrong. Please try again.",
-                  from: fastify.config.TWILIO_PHONE_NUMBER,
                 })
                 .catch((sendErr) => {
                   request.log.error({ err: sendErr }, "Failed to send error message");
@@ -86,9 +82,8 @@ export default fp(
             // LLM not configured -- send a helpful message
             fastify.messaging
               .send({
-                to: user.phone,
+                to: userPhone,
                 body: "The conversation engine is not configured yet. Please set LLM_API_KEY and LLM_MODEL environment variables.",
-                from: fastify.config.TWILIO_PHONE_NUMBER,
               })
               .catch((sendErr) => {
                 request.log.error({ err: sendErr }, "Failed to send config message");
@@ -109,11 +104,11 @@ export default fp(
         });
 
         if (onboardingReply) {
-          return reply.type("text/xml").send(fastify.messaging.formatReply(onboardingReply));
+          return reply.type("text/xml").send(fastify.messaging.formatWebhookResponse(onboardingReply));
         }
 
         // Fallback (should not reach here)
-        return reply.type("text/xml").send(fastify.messaging.formatEmptyReply());
+        return reply.type("text/xml").send(fastify.messaging.formatWebhookResponse());
       },
     );
   },

@@ -10,9 +10,12 @@ export const appMetadata = sqliteTable("app_metadata", {
 });
 
 // Phase 3: User identity and authorization
+// Phase 14: Added telegramChatId/telegramUsername, made phone nullable for Telegram-only users
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  phone: text("phone").notNull().unique(),
+  phone: text("phone").unique(),
+  telegramChatId: text("telegram_chat_id").unique(),
+  telegramUsername: text("telegram_username"),
   displayName: text("display_name"),
   status: text("status", { enum: ["active", "pending", "blocked"] })
     .notNull()
