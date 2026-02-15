@@ -57,11 +57,12 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
   2. No dead splitForSms() code remains in the conversation engine
   3. MessagingProvider interface methods are provider-agnostic (no TwiML-specific method names or Twilio-specific fields in shared types)
   4. User model supports optional Telegram user ID alongside phone number (schema migration applied)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 14-01: TBD
-- [ ] 14-02: TBD
+- [ ] 14-01-PLAN.md -- Generalize MessagingProvider interface and update Twilio provider
+- [ ] 14-02-PLAN.md -- Update engine and all callers to use generalized interface
+- [ ] 14-03-PLAN.md -- Add Telegram identity columns to user schema
 
 ### Phase 15: Telegram DM Integration
 **Goal**: Users can chat with the bot via Telegram DM with the same capabilities as SMS
@@ -129,7 +130,7 @@ Phase 17 can execute after Phase 14 (independent of Telegram phases 15-16).
 | 11. Plex + Tautulli Integration | v2.0 | 2/2 | Complete | 2026-02-15 |
 | 12. Web Admin Dashboard | v2.0 | 3/3 | Complete | 2026-02-15 |
 | 13. RCS Rich Messaging + Personality | v2.0 | 2/2 | Complete | 2026-02-15 |
-| 14. Provider Generalization + SMS Polish | v2.1 | 0/TBD | Not started | - |
+| 14. Provider Generalization + SMS Polish | v2.1 | 0/3 | Not started | - |
 | 15. Telegram DM Integration | v2.1 | 0/TBD | Not started | - |
 | 16. Telegram Group Chat | v2.1 | 0/TBD | Not started | - |
 | 17. Admin Dashboard UX Polish | v2.1 | 0/TBD | Not started | - |
