@@ -96,9 +96,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ROUT-02 | Phase 9 | Done |
 | ROUT-03 | Phase 9 | Done |
 | ROUT-04 | Phase 9 | Done |
-| MSG-01 | Phase 13 | Pending |
-| MSG-02 | Phase 13 | Pending |
-| MSG-03 | Phase 13 | Pending |
+| MSG-01 | Phase 13 | Done |
+| MSG-02 | Phase 13 | Done |
+| MSG-03 | Phase 13 | Done |
 
 **Coverage:**
 - v2.0 requirements: 20 total
