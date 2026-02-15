@@ -20,6 +20,7 @@ import {
   savePendingAction,
 } from "./confirmation.js";
 import { buildLLMMessages, getHistory, saveMessage } from "./history.js";
+import { formatAsRichCard } from "./message-formatter.js";
 import { buildSystemPrompt } from "./system-prompt.js";
 import { toolCallLoop } from "./tool-loop.js";
 import type { ToolRegistry } from "./tools.js";
@@ -219,13 +220,43 @@ export async function processConversation(params: ProcessConversationParams): Pr
     }
 
     // Send the reply to the user
-    log.info({ replyLength: result.reply.length }, "Sending reply via messaging");
-    await messaging.send({
-      to: userPhone,
-      body: result.reply,
-      from: config.TWILIO_PHONE_NUMBER,
-    });
-    log.info("Reply sent");
+    // Attempt rich card send for search/discover results
+    let sent = false;
+    if (config.TWILIO_ACCOUNT_SID && config.TWILIO_AUTH_TOKEN) {
+      const richCard = await formatAsRichCard(
+        result.messagesConsumed,
+        result.reply,
+        userPhone,
+        {
+          accountSid: config.TWILIO_ACCOUNT_SID,
+          authToken: config.TWILIO_AUTH_TOKEN,
+          messagingServiceSid: config.TWILIO_MESSAGING_SERVICE_SID,
+          phoneNumber: config.TWILIO_PHONE_NUMBER,
+        },
+      );
+
+      if (richCard) {
+        try {
+          log.info("Sending rich card reply");
+          await messaging.send(richCard.outboundMessage);
+          sent = true;
+          log.info("Rich card sent");
+        } catch (richErr) {
+          log.warn({ err: richErr }, "Rich card send failed, falling back to text");
+          // Fall through to plain text send
+        }
+      }
+    }
+
+    if (!sent) {
+      log.info({ replyLength: result.reply.length }, "Sending reply via messaging");
+      await messaging.send({
+        to: userPhone,
+        body: result.reply,
+        from: config.TWILIO_PHONE_NUMBER,
+      });
+      log.info("Reply sent");
+    }
   } catch (err) {
     log.error({ err, userId }, "Conversation processing error");
 
