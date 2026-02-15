@@ -14,26 +14,31 @@ export async function notifyAllActiveUsers(
   _config: AppConfig,
   message: string,
   log: FastifyBaseLogger,
+  telegramMessaging?: MessagingProvider,
 ): Promise<void> {
   const activeUsers = db
-    .select({ phone: users.phone })
+    .select({ phone: users.phone, telegramChatId: users.telegramChatId })
     .from(users)
     .where(eq(users.status, "active"))
     .all();
 
+  let sentCount = 0;
   for (const user of activeUsers) {
-    // Skip users without a phone number (e.g., Telegram-only users)
-    if (!user.phone) continue;
-
     try {
-      await messaging.send({
-        to: user.phone,
-        body: message,
-      });
+      if (user.telegramChatId && telegramMessaging) {
+        // Telegram user: send via Telegram provider
+        await telegramMessaging.send({ to: user.telegramChatId, body: message });
+        sentCount++;
+      } else if (user.phone) {
+        // SMS user: send via Twilio provider
+        await messaging.send({ to: user.phone, body: message });
+        sentCount++;
+      }
+      // Skip users with neither phone nor telegramChatId
     } catch (err) {
-      log.error({ err, phone: user.phone }, "Failed to send notification");
+      log.error({ err, phone: user.phone, chatId: user.telegramChatId }, "Failed to send notification");
     }
   }
 
-  log.info({ userCount: activeUsers.length, message }, "Notification dispatched");
+  log.info({ userCount: activeUsers.length, sentCount, message }, "Notification dispatched");
 }

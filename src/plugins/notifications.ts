@@ -33,6 +33,7 @@ export default fp(
           fastify.config,
           message,
           request.log,
+          fastify.telegramMessaging,
         ).catch((err) => request.log.error({ err }, "Sonarr notification dispatch failed"));
       }
 
@@ -51,6 +52,7 @@ export default fp(
           fastify.config,
           message,
           request.log,
+          fastify.telegramMessaging,
         ).catch((err) => request.log.error({ err }, "Radarr notification dispatch failed"));
       }
 

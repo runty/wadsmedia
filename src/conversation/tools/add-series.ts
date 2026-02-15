@@ -126,14 +126,16 @@ export const addSeriesTool = defineTool(
     }
 
     // Phase 10: Notify admin when non-admin adds media
-    if (!context.isAdmin && context.messaging && context.config?.ADMIN_PHONE) {
+    if (!context.isAdmin) {
       const who = context.displayName || "A user";
-      context.messaging
-        .send({
-          to: context.config.ADMIN_PHONE,
-          body: `${who} added series: ${added.title} (${added.year ?? "N/A"}) [${routingReason}]`,
-        })
-        .catch(() => {}); // Fire-and-forget
+      const msg = `${who} added series: ${added.title} (${added.year ?? "N/A"}) [${routingReason}]`;
+
+      // Send to admin via their preferred channel
+      if (context.config?.ADMIN_TELEGRAM_CHAT_ID && context.telegramMessaging) {
+        context.telegramMessaging.send({ to: context.config.ADMIN_TELEGRAM_CHAT_ID, body: msg }).catch(() => {});
+      } else if (context.config?.ADMIN_PHONE && context.messaging) {
+        context.messaging.send({ to: context.config.ADMIN_PHONE, body: msg }).catch(() => {});
+      }
     }
 
     return {
