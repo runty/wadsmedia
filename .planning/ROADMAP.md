@@ -70,11 +70,11 @@ Full details: [milestones/v2.1-ROADMAP.md](milestones/v2.1-ROADMAP.md)
   2. When an LLM call fails or errors out, the user's message is NOT persisted to the database (deferred persistence verified and documented)
   3. The sliding window selects the most relevant recent messages, avoiding patterns that cause the LLM to repeat itself or give confused responses
   4. A user sending multiple messages rapidly (before LLM responds) does not corrupt the conversation context
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 18-01: TBD
-- [ ] 18-02: TBD
+- [ ] 18-01-PLAN.md -- TDD: Orphaned user message pruning and sliding window optimization
+- [ ] 18-02-PLAN.md -- Per-user conversation lock and deferred persistence verification
 
 ### Phase 19: Webhook & Server Resilience
 **Goal**: The system self-heals after downtime and operators can observe system health at a glance
@@ -140,7 +140,7 @@ Phases execute in numeric order: 18 -> 19 -> 20 -> 21
 | 15. Telegram DM Integration | v2.1 | 3/3 | Complete | 2026-02-15 |
 | 16. Telegram Group Chat | v2.1 | 2/2 | Complete | 2026-02-15 |
 | 17. Admin Dashboard UX Polish | v2.1 | 1/1 | Complete | 2026-02-15 |
-| 18. Conversation Reliability | v2.2 | 0/? | Not started | - |
+| 18. Conversation Reliability | v2.2 | 0/2 | Not started | - |
 | 19. Webhook & Server Resilience | v2.2 | 0/? | Not started | - |
 | 20. Notification Polish | v2.2 | 0/? | Not started | - |
 | 21. Admin Experience | v2.2 | 0/? | Not started | - |
