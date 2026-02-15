@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 ## Current Position
 
 Phase: 12 of 13 (Web Admin Dashboard)
-Plan: 1 of 3 in current phase
-Status: Executing Phase 12
-Last activity: 2026-02-15 -- 12-01 complete (admin backend infrastructure, auth, service layer, routes)
+Plan: 3 of 3 in current phase
+Status: Phase 12 complete
+Last activity: 2026-02-15 -- 12-03 complete (per-user Plex watch history filtering)
 
-Progress: [###########################...] 27/30 plans
+Progress: [#############################.] 29/30 plans
 
 ## Performance Metrics
 
 **v1.0 Velocity:**
-- Total plans completed: 27
+- Total plans completed: 29
 - Average duration: 3min
-- Total execution time: 1.14 hours
+- Total execution time: 1.17 hours
 
 **By Phase:**
 
@@ -38,7 +38,7 @@ Progress: [###########################...] 27/30 plans
 | 09-tmdb-discovery-library-routing | 3 | 14min | 5min |
 | 10-permissions-user-tracking | 1 | 4min | 4min |
 | 11-plex-tautulli-integration | 2 | 6min | 3min |
-| 12-web-admin-dashboard | 1 | 5min | 5min |
+| 12-web-admin-dashboard | 3 | 6min | 2min |
 
 ## Accumulated Context
 
@@ -69,6 +69,7 @@ Recent decisions affecting v2.0:
 - Admin dashboard opt-in via ADMIN_SESSION_SECRET + ADMIN_PASSWORD; plugin skips registration when not set
 - Dockerfile COPY paths use repo-root admin-views/admin-assets/ matching process.cwd() in plugin
 - Route generics on fastify.get<T>()/post<T>() for Fastify 5 strict typing compatibility
+- Per-user watch history: tool queries plexUserId from DB at execution time (not in ToolContext) for simplicity
 
 ### Pending Todos
 
@@ -82,5 +83,5 @@ Recent decisions affecting v2.0:
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Completed 12-01-PLAN.md (admin backend infrastructure, auth, service layer, routes)
+Stopped at: Completed 12-03-PLAN.md (per-user Plex watch history filtering -- Phase 12 complete)
 Resume file: None
