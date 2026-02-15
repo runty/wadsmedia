@@ -44,14 +44,14 @@ export default fp(
           reply.type("text/xml").send(fastify.messaging.formatWebhookResponse());
 
           // Twilio webhook users always have a phone number
-          const userPhone = user.phone as string;
+          const replyAddress = user.phone as string;
 
           // Process conversation asynchronously (fire-and-forget from provider's perspective)
           // Only if conversation engine is configured
           if (fastify.llm && fastify.toolRegistry) {
             processConversation({
               userId: user.id,
-              userPhone,
+              replyAddress,
               displayName: user.displayName,
               isAdmin: user.isAdmin,
               messageBody: message.body,
@@ -71,7 +71,7 @@ export default fp(
               request.log.error({ err }, "Conversation processing failed");
               fastify.messaging
                 .send({
-                  to: userPhone,
+                  to: replyAddress,
                   body: "Sorry, something went wrong. Please try again.",
                 })
                 .catch((sendErr) => {
@@ -82,7 +82,7 @@ export default fp(
             // LLM not configured -- send a helpful message
             fastify.messaging
               .send({
-                to: userPhone,
+                to: replyAddress,
                 body: "The conversation engine is not configured yet. Please set LLM_API_KEY and LLM_MODEL environment variables.",
               })
               .catch((sendErr) => {

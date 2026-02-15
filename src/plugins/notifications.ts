@@ -6,12 +6,6 @@ import type { RadarrWebhookPayload, SonarrWebhookPayload } from "../notification
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    // Skip registration if messaging is not configured (same graceful-skip pattern as sonarr/radarr plugins)
-    if (!fastify.config.TWILIO_PHONE_NUMBER) {
-      fastify.log.warn("Notifications disabled: TWILIO_PHONE_NUMBER not configured");
-      return;
-    }
-
     const notificationSecret = fastify.config.NOTIFICATION_SECRET;
 
     // Token validation preHandler

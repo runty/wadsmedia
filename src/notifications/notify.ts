@@ -11,15 +11,10 @@ type DB = BetterSQLite3Database<typeof schema>;
 export async function notifyAllActiveUsers(
   db: DB,
   messaging: MessagingProvider,
-  config: AppConfig,
+  _config: AppConfig,
   message: string,
   log: FastifyBaseLogger,
 ): Promise<void> {
-  if (!config.TWILIO_PHONE_NUMBER) {
-    log.warn("Cannot send notifications: TWILIO_PHONE_NUMBER not configured");
-    return;
-  }
-
   const activeUsers = db
     .select({ phone: users.phone })
     .from(users)

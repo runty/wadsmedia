@@ -38,12 +38,12 @@ export async function handleOnboarding(params: {
 
     case "pending": {
       // Onboarding requires a phone number (SMS users); Telegram onboarding handled separately
-      const userPhone = user.phone as string;
+      const replyAddress = user.phone as string;
 
       // Brand new unknown user: displayName is null
       if (user.displayName === null) {
         // Mark as "asked for name" by setting displayName to empty string
-        updateDisplayName(db, userPhone, "");
+        updateDisplayName(db, replyAddress, "");
         return "Hey there! I don't recognize your number. What's your name?";
       }
 
@@ -56,15 +56,15 @@ export async function handleOnboarding(params: {
         }
 
         // Store the user's name
-        updateDisplayName(db, userPhone, trimmedName);
+        updateDisplayName(db, replyAddress, trimmedName);
 
         // Notify admin about the new user
         await messaging.send({
           to: config.ADMIN_PHONE,
-          body: `New user request: ${trimmedName} (${userPhone}). Add their number to PHONE_WHITELIST to approve.`,
+          body: `New user request: ${trimmedName} (${replyAddress}). Add their number to PHONE_WHITELIST to approve.`,
         });
 
-        log.info({ phone: userPhone, name: trimmedName }, "New user onboarding: admin notified");
+        log.info({ phone: replyAddress, name: trimmedName }, "New user onboarding: admin notified");
 
         return `Thanks ${trimmedName}! I've sent a request to the admin for approval. You'll be able to use the app once approved.`;
       }
