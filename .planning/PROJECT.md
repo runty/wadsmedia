@@ -42,16 +42,21 @@ Users can manage their media libraries through natural conversation -- text a me
 - ✓ RCS rich cards with posters for search results -- v2.0
 - ✓ RCS suggested reply buttons for quick actions ("Add this", "Next result") -- v2.0
 - ✓ Fun, edgy, slightly spicy assistant personality with emojis -- v2.0
+- ✓ Telegram bot integration with DM and group chat support -- v2.1
+- ✓ Telegram inline keyboards for quick actions -- v2.1
+- ✓ Telegram poster images in search results -- v2.1
+- ✓ Telegram group chat with shared context and @mention detection -- v2.1
+- ✓ Telegram user identity resolution and WadsMedia user linking -- v2.1
+- ✓ Configurable MMS pixel URL -- v2.1
+- ✓ Admin dashboard UX improvements for Plex user linking discoverability -- v2.1
+- ✓ Admin user approval/blocking via SMS and Telegram LLM tools -- v2.1
 
 ### Active
 
-- [ ] Telegram bot integration with DM and group chat support
-- [ ] Telegram inline keyboards for quick actions
-- [ ] Telegram poster images in search results
-- [ ] Telegram group chat with shared context and @mention detection
-- [ ] Telegram user identity resolution and WadsMedia user linking
-- [ ] Configurable MMS pixel URL (remove hardcoded URL)
-- [ ] Admin dashboard UX improvements for Plex user linking discoverability
+- [ ] Conversation resilience: error recovery, deferred message persistence, webhook reconnection
+- [ ] LLM response quality: history pruning, context management, reduce confused responses
+- [ ] Notification reliability: delivery confirmation, formatting, timing
+- [ ] Admin experience: user management tools in dashboard, monitoring improvements
 
 ### Out of Scope
 
@@ -63,16 +68,15 @@ Users can manage their media libraries through natural conversation -- text a me
 - Per-user request quotas -- whitelisted users are trusted
 - OAuth/SSO for web dashboard -- simple auth sufficient for admin-only interface
 
-## Current Milestone: v2.1 Telegram & Polish
+## Current Milestone: v2.2 Stability & Polish
 
-**Goal:** Add Telegram as a second messaging channel (DMs + group chat with rich interactions) and polish SMS delivery and admin dashboard UX.
+**Goal:** Harden conversation reliability, improve LLM response quality, polish notifications and admin experience.
 
 **Target features:**
-- Telegram bot with DM and group chat support
-- Inline keyboards and poster images in Telegram
-- Group chat with shared context, @mention + obvious request detection
-- SMS/MMS cleanup (configurable pixel URL, dead code removal)
-- Admin dashboard UX fixes (Plex linking discoverability)
+- Conversation resilience (error recovery, webhook reconnection, deferred message persistence)
+- LLM context quality (history pruning, reducing confused/repetitive responses)
+- Notification improvements (formatting, delivery reliability)
+- Admin experience polish (dashboard integration of new tools, monitoring)
 
 ## Context
 
@@ -82,14 +86,16 @@ Tech stack: Node.js 22, TypeScript (strict ESM), Fastify 5, SQLite via better-sq
 
 Architecture: Twilio webhook -> user resolution -> onboarding or LLM conversation engine -> tool call loop -> media API clients (Sonarr/Radarr/TMDB/Plex/Tautulli/Brave Search). Proactive notifications via Sonarr/Radarr webhook receivers with template-based SMS dispatch. Admin dashboard via Fastify plugin with session-based auth and Eta/htmx UI.
 
-14 LLM tools: search_series, search_movies, add_series, add_movie, remove_series, remove_movie, get_download_queue, get_upcoming_episodes, get_upcoming_movies, discover_media, web_search, check_plex_library, get_watch_history, get_calendar.
+16 LLM tools: search_series, search_movies, add_series, add_movie, remove_series, remove_movie, get_download_queue, get_upcoming_episodes, get_upcoming_movies, discover_media, web_search, check_plex_library, get_watch_history, check_status, list_pending_users, manage_user.
 
 Key patterns: fire-and-forget webhook response (avoids Twilio 15s timeout), sliding window conversation history (last 20 messages with atomic tool call pairs), destructive action confirmation via pending actions table, graceful degradation when media servers unavailable, O(1) Plex library cache with GUID-indexed lookups, smart library routing via pure functions, MMS for long messages (>300 chars).
 
 Known issues from live testing:
 - RCS rich cards require brand approval (disabled, SMS/MMS fallback active)
 - LLM sometimes guesses wrong media type (movie vs show) -- mitigated with type-agnostic Plex fallback search
-- Hardcoded pixel.png URL for MMS forcing should be made configurable
+- LLM (gpt-4o-mini) sometimes gives confused responses when history has many consecutive user messages
+- Telegram webhook stops delivering after server downtime until tunnel is re-established
+- Admin user management tools (list_pending_users, manage_user) added outside GSD, need dashboard integration
 
 ## Constraints
 
@@ -121,8 +127,10 @@ Known issues from live testing:
 | Plex GUID-indexed in-memory cache | O(1) lookups by TMDB/TVDB/IMDB ID with 15min refresh | ✓ Good -- fast, reliable |
 | Admin dashboard opt-in via env vars | ADMIN_SESSION_SECRET + ADMIN_PASSWORD, skips if not set | ✓ Good -- zero overhead when disabled |
 | Eta + htmx for admin UI | Server-rendered, no build step, lightweight | ✓ Good -- simple and functional |
-| MMS for long messages via pixel.png | Transparent pixel forces MMS mode for messages >300 chars | ⚠️ Revisit -- hardcoded URL, should be configurable |
+| MMS for long messages via pixel.png | Transparent pixel forces MMS mode for messages >300 chars | ✓ Good -- now configurable via MMS_PIXEL_URL |
 | RCS rich cards via Content Templates | Poster images, quick-reply buttons | ⚠️ Revisit -- requires brand approval, currently disabled |
+| Deferred user message persistence | Save user message to DB only after LLM responds successfully | ✓ Good -- prevents orphaned messages on error |
+| Admin user management via LLM tools | Approve/block users from SMS/Telegram instead of dashboard only | ✓ Good -- natural workflow for admin |
 
 ---
-*Last updated: 2026-02-15 after v2.1 milestone started*
+*Last updated: 2026-02-15 after v2.2 milestone started*
