@@ -78,21 +78,21 @@ Requirements for stability and polish milestone. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CONV-01 | TBD | Pending |
-| CONV-02 | TBD | Pending |
-| CONV-03 | TBD | Pending |
-| RESIL-01 | TBD | Pending |
-| RESIL-02 | TBD | Pending |
-| NOTIF-01 | TBD | Pending |
-| NOTIF-02 | TBD | Pending |
-| ADMIN-01 | TBD | Pending |
-| ADMIN-02 | TBD | Pending |
+| CONV-01 | Phase 18 | Pending |
+| CONV-02 | Phase 18 | Pending (verify existing implementation) |
+| CONV-03 | Phase 18 | Pending |
+| RESIL-01 | Phase 19 | Pending |
+| RESIL-02 | Phase 19 | Pending |
+| NOTIF-01 | Phase 20 | Pending |
+| NOTIF-02 | Phase 20 | Pending |
+| ADMIN-01 | Phase 21 | Pending |
+| ADMIN-02 | Phase 21 | Pending |
 
 **Coverage:**
 - v2.2 requirements: 9 total
-- Mapped to phases: 0
-- Unmapped: 9
+- Mapped to phases: 9
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-15*
-*Last updated: 2026-02-15 after initial definition*
+*Last updated: 2026-02-15 after roadmap creation*
