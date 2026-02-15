@@ -104,6 +104,75 @@ export function getGroupHistory(db: DB, groupChatId: string, limit = 50): ChatMe
 }
 
 /**
+ * Remove consecutive orphaned user messages from conversation history.
+ *
+ * When multiple user messages appear in a row with no assistant response between
+ * them (caused by errors, rapid sends, or history corruption), keep only the
+ * LAST user message in each consecutive run. This prevents gpt-4o-mini from
+ * producing confused/repetitive responses.
+ *
+ * Rules:
+ * 1. Multiple consecutive user messages -> keep only the last one in the run
+ * 2. Tool messages do NOT break a consecutive user run (they belong to their parent assistant)
+ * 3. Assistant messages (with or without tool_calls) break a consecutive user run
+ * 4. Operates on a copy -- does NOT mutate the input array
+ * 5. Empty input returns empty output
+ * 6. A single user message is never pruned
+ */
+export function pruneOrphanedUserMessages(history: ChatMessage[]): ChatMessage[] {
+  if (history.length === 0) return [];
+
+  const result: ChatMessage[] = [];
+
+  // Track runs of consecutive user messages (tool messages don't break runs)
+  let userRunStart = -1; // index into `history` where current user run began
+
+  for (let i = 0; i < history.length; i++) {
+    const msg = history[i] as ChatMessage;
+
+    if (msg.role === "user") {
+      if (userRunStart === -1) {
+        userRunStart = i;
+      }
+      // Continue accumulating user messages
+    } else if (msg.role === "assistant") {
+      // Assistant breaks a user run -- flush it (keep only the last user message)
+      if (userRunStart !== -1) {
+        // Find the last user message in the run (skip any tool messages in between)
+        for (let j = i - 1; j >= userRunStart; j--) {
+          if ((history[j] as ChatMessage).role === "user") {
+            result.push(history[j] as ChatMessage);
+            break;
+          }
+        }
+        userRunStart = -1;
+      }
+      result.push(msg);
+    } else {
+      // tool or system messages -- pass through, don't break user run
+      if (userRunStart === -1) {
+        // Not in a user run, just include the message
+        result.push(msg);
+      }
+      // If in a user run, tool messages are skipped (they're orphaned too,
+      // since tool messages should follow an assistant, not be between users)
+    }
+  }
+
+  // Flush any trailing user run (end of array)
+  if (userRunStart !== -1) {
+    for (let j = history.length - 1; j >= userRunStart; j--) {
+      if ((history[j] as ChatMessage).role === "user") {
+        result.push(history[j] as ChatMessage);
+        break;
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
  * Convert stored ChatMessage rows into OpenAI ChatCompletionMessageParam array
  * with a sliding window that never splits tool call pairs.
  *
@@ -125,6 +194,11 @@ export function buildLLMMessages(
   if (history.length === 0) {
     return [{ role: "system", content: systemPrompt }];
   }
+
+  // Phase 18: Prune orphaned consecutive user messages before windowing
+  // so the LLM never sees fragmented conversation flow and the window
+  // budget is not wasted on messages that would confuse the model.
+  history = pruneOrphanedUserMessages(history);
 
   // Build a set of included indices using the sliding window
   const included = new Set<number>();

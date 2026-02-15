@@ -5,7 +5,7 @@ import { pruneOrphanedUserMessages, buildLLMMessages } from "./history.js";
 /** Helper to create a minimal ChatMessage for testing. */
 function msg(
   role: ChatMessage["role"],
-  content: string,
+  content: string | null,
   extra?: Partial<ChatMessage>,
 ): ChatMessage {
   return {
