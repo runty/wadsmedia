@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 ## Current Position
 
 Phase: 15 of 17 (Telegram DM Integration)
-Plan: 1 of 3 (complete)
+Plan: 2 of 3 (complete)
 Status: Executing
-Last activity: 2026-02-15 -- 15-01 complete (Telegram messaging provider)
+Last activity: 2026-02-15 -- 15-02 complete (Telegram webhook route)
 
-Progress: [████████████░░░░░░░░░░░░░░░░░░░░] 1.3/4 phases
+Progress: [████████████████████░░░░░░░░░░░░] 2.3/4 phases
 
 ## Performance Metrics
 
@@ -28,7 +28,7 @@ Progress: [████████████░░░░░░░░░░░
 - Plans: 3 | Execution time: ~3min (14-01), ~2min (14-02), ~3min (14-03)
 
 **v2.1 Velocity (Phase 15):**
-- Plans: 1/3 | Execution time: ~2min (15-01)
+- Plans: 2/3 | Execution time: ~2min (15-01), ~2min (15-02)
 
 **Combined:**
 - Total plans completed: 34 (across 15 phases)
@@ -55,6 +55,9 @@ Recent decisions affecting current work:
 - 15-01: Used grammy Api class directly (not Bot framework) for typed Telegram HTTP client
 - 15-01: Extended OutboundMessage with optional Telegram fields (inlineKeyboard, photoUrl, parseMode) rather than subtype
 - 15-01: Plugin gracefully skips when TELEGRAM_BOT_TOKEN or TELEGRAM_WEBHOOK_SECRET not set
+- 15-02: Telegram users created with displayName from first_name, skip onboarding name-asking steps
+- 15-02: Admin notification for Telegram users sent from webhook plugin (not onboarding.ts)
+- 15-02: Telegram webhook plugin gracefully skips when telegramMessaging not available
 
 ### Pending Todos
 
@@ -69,5 +72,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Completed 15-01-PLAN.md (Telegram messaging provider)
+Stopped at: Completed 15-02-PLAN.md (Telegram webhook route)
 Resume file: None
