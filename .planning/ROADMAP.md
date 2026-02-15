@@ -43,7 +43,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 
 - [x] **Phase 14: Provider Generalization + SMS Polish** (3/3 plans) -- completed 2026-02-15
 - [x] **Phase 15: Telegram DM Integration** (3/3 plans) -- completed 2026-02-15
-- [ ] **Phase 16: Telegram Group Chat** - Shared context group conversations with selective bot activation
+- [x] **Phase 16: Telegram Group Chat** (2/2 plans) -- completed 2026-02-15
 - [ ] **Phase 17: Admin Dashboard UX Polish** - Navigation clarity and Plex linking discoverability
 
 ## Phase Details
@@ -93,8 +93,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 16-01-PLAN.md -- Group conversation history schema, engine group mode, and system prompt
-- [ ] 16-02-PLAN.md -- Group chat activation filtering and webhook route handler
+- [x] 16-01-PLAN.md -- Group conversation history schema, engine group mode, and system prompt
+- [x] 16-02-PLAN.md -- Group chat activation filtering and webhook route handler
 
 ### Phase 17: Admin Dashboard UX Polish
 **Goal**: Admin dashboard navigation and Plex linking are intuitive and transparent
@@ -132,5 +132,5 @@ Phase 17 can execute after Phase 14 (independent of Telegram phases 15-16).
 | 13. RCS Rich Messaging + Personality | v2.0 | 2/2 | Complete | 2026-02-15 |
 | 14. Provider Generalization + SMS Polish | v2.1 | 3/3 | Complete | 2026-02-15 |
 | 15. Telegram DM Integration | v2.1 | 3/3 | Complete | 2026-02-15 |
-| 16. Telegram Group Chat | v2.1 | 0/2 | Not started | - |
+| 16. Telegram Group Chat | v2.1 | 2/2 | Complete | 2026-02-15 |
 | 17. Admin Dashboard UX Polish | v2.1 | 0/TBD | Not started | - |
