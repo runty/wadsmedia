@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import type * as schema from "../db/schema.js";
@@ -42,10 +42,60 @@ export function saveMessage(
 export function getHistory(db: DB, userId: number, limit = 50): ChatMessage[] {
   // Subquery to get the most recent N messages, then order ASC
   // Drizzle doesn't have a clean subquery orderBy flip, so we fetch desc then reverse
+  // Phase 16: Filter to DM-only messages (groupChatId IS NULL) to prevent group messages leaking in
   const rows = db
     .select()
     .from(messages)
-    .where(eq(messages.userId, userId))
+    .where(and(eq(messages.userId, userId), isNull(messages.groupChatId)))
+    .orderBy(asc(messages.createdAt), asc(messages.id))
+    .all();
+
+  // Take the last `limit` rows (oldest first, newest last)
+  return rows.slice(-limit) as ChatMessage[];
+}
+
+/**
+ * Insert a message row into the messages table for a group chat.
+ * Like saveMessage but with a groupChatId linking it to shared context.
+ * The userId is still recorded for attribution.
+ */
+export function saveGroupMessage(
+  db: DB,
+  params: {
+    userId: number;
+    groupChatId: string;
+    role: "user" | "assistant" | "tool" | "system";
+    content: string | null;
+    toolCalls?: string | null;
+    toolCallId?: string | null;
+    name?: string | null;
+  },
+): ChatMessage {
+  return db
+    .insert(messages)
+    .values({
+      userId: params.userId,
+      groupChatId: params.groupChatId,
+      role: params.role,
+      content: params.content,
+      toolCalls: params.toolCalls ?? null,
+      toolCallId: params.toolCallId ?? null,
+      name: params.name ?? null,
+    })
+    .returning()
+    .get() as ChatMessage;
+}
+
+/**
+ * Retrieve the last N messages for a group chat ordered by createdAt ASC, id ASC.
+ * Returns shared history across all group members.
+ * Default limit = 50 (raw retrieval limit, not the LLM window).
+ */
+export function getGroupHistory(db: DB, groupChatId: string, limit = 50): ChatMessage[] {
+  const rows = db
+    .select()
+    .from(messages)
+    .where(eq(messages.groupChatId, groupChatId))
     .orderBy(asc(messages.createdAt), asc(messages.id))
     .all();
 

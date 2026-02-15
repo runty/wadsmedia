@@ -36,6 +36,7 @@ export const messages = sqliteTable("messages", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id),
+  groupChatId: text("group_chat_id"), // Phase 16: null = DM (per-user history), non-null = group chat (shared history)
   role: text("role", { enum: ["user", "assistant", "tool", "system"] }).notNull(),
   content: text("content"),
   toolCalls: text("tool_calls"),

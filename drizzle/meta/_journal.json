@@ -43,6 +43,13 @@
       "when": 1771165502801,
       "tag": "0005_chubby_longshot",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1771178484717,
+      "tag": "0006_hard_redwing",
+      "breakpoints": true
     }
   ]
 }

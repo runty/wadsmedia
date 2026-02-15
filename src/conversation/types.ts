@@ -11,6 +11,7 @@ export type { ChatCompletionFunctionTool, ChatCompletionMessageParam, ChatComple
 export interface ChatMessage {
   id: number;
   userId: number;
+  groupChatId: string | null; // Phase 16: null = DM, non-null = group chat
   role: "user" | "assistant" | "tool" | "system";
   content: string | null;
   toolCalls: string | null; // JSON stringified
