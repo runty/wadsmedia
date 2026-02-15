@@ -86,9 +86,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLEX-02 | Phase 11 | Pending |
 | PLEX-03 | Phase 11 | Pending |
 | PLEX-04 | Phase 12 | Pending |
-| ADMN-01 | Phase 10 | Pending |
-| ADMN-02 | Phase 10 | Pending |
-| ADMN-03 | Phase 10 | Pending |
+| ADMN-01 | Phase 10 | Done |
+| ADMN-02 | Phase 10 | Done |
+| ADMN-03 | Phase 10 | Done |
 | ADMN-04 | Phase 12 | Pending |
 | ADMN-05 | Phase 12 | Pending |
 | ADMN-06 | Phase 12 | Pending |
