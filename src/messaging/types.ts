@@ -1,51 +1,52 @@
 export interface InboundMessage {
-  messageSid: string;
+  providerMessageId: string;
   from: string;
   to: string;
   body: string;
   numMedia: number;
-  /** Button id from RCS/rich messaging quick-reply tap (Twilio ButtonPayload param) */
+  /** Button id from RCS/rich messaging quick-reply tap (maps to Twilio ButtonPayload, Telegram callback_data) */
   buttonPayload: string | null;
-  /** Button title from RCS/rich messaging quick-reply tap (Twilio ButtonText param) */
+  /** Button title from RCS/rich messaging quick-reply tap (maps to Twilio ButtonText) */
   buttonText: string | null;
 }
 
 export interface OutboundMessage {
   to: string;
-  /** Plain text message body (mutually exclusive with contentSid) */
+  /** Plain text message body */
   body?: string;
-  /** Content Template SID for rich card sends (mutually exclusive with body) */
-  contentSid?: string;
-  /** JSON string of template variables: {"1": "val", "2": "val", ...} */
-  contentVariables?: string;
-  /** Media URLs to attach (forces MMS) */
+  /** Media URLs to attach (forces MMS on Twilio) */
   mediaUrl?: string[];
-  messagingServiceSid?: string;
-  from?: string;
 }
 
 export interface SendResult {
-  sid: string;
+  providerMessageId: string;
   status: string;
 }
 
+export interface WebhookValidationParams {
+  headers: Record<string, string | string[] | undefined>;
+  url: string;
+  body: unknown;
+}
+
 export interface MessagingProvider {
+  readonly providerName: string;
+
   /** Send an outbound message */
   send(message: OutboundMessage): Promise<SendResult>;
 
   /** Validate an incoming webhook request is authentic */
-  validateWebhook(params: {
-    signature: string;
-    url: string;
-    body: Record<string, string>;
-  }): boolean;
+  validateWebhook(params: WebhookValidationParams): boolean;
 
-  /** Parse raw webhook body params into a normalized InboundMessage */
-  parseInbound(body: Record<string, string>): InboundMessage;
+  /** Parse raw webhook body into a normalized InboundMessage */
+  parseInbound(body: unknown): InboundMessage;
 
-  /** Generate a TwiML response string for an immediate reply */
-  formatReply(text: string): string;
-
-  /** Generate an empty TwiML response (acknowledge without replying) */
-  formatEmptyReply(): string;
+  /**
+   * Format a webhook response for the provider.
+   * Returns the response body string, or null for providers that don't reply inline
+   * (e.g. Telegram sends via API, not webhook response).
+   * When text is undefined/empty, returns empty response (for Twilio: empty TwiML).
+   * When text is provided, returns response with message (for Twilio: TwiML with message).
+   */
+  formatWebhookResponse(text?: string): string | null;
 }
