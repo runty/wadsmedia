@@ -657,6 +657,38 @@ label {
   min-width: 200px;
 }
 
+/* Plex unavailable states */
+.plex-unavailable {
+  padding: 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.plex-unavailable p + p {
+  margin-top: 0.35rem;
+}
+
+.plex-unavailable code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-family: "SF Mono", Menlo, Monaco, monospace;
+}
+
+.plex-unavailable-error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
+
+.plex-unavailable-not-configured {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
+
 /* === Recent Additions Table === */
 .section-card {
   background: #fff;

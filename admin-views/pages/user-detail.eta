@@ -38,39 +38,53 @@
   </div>
 </div>
 
-<% if (it.plexUsers) { %>
 <div class="plex-section">
   <h2 class="section-title" style="margin-top:0">Plex Account Linking</h2>
-  <% if (it.linkedPlexUser) { %>
-    <p style="margin-bottom:0.75rem">
-      Linked to: <strong><%= it.linkedPlexUser %></strong>
-    </p>
-    <button class="btn btn-danger btn-sm"
+
+  <% if (it.tautulliStatus === "available") { %>
+    <% if (it.linkedPlexUser) { %>
+      <p style="margin-bottom:0.75rem">
+        Linked to: <strong><%= it.linkedPlexUser %></strong>
+      </p>
+      <button class="btn btn-danger btn-sm"
+              hx-post="/admin/api/users/<%= it.user.id %>/link-plex"
+              hx-vals='{"plexUserId": null}'
+              hx-target="closest .plex-section"
+              hx-swap="outerHTML"
+              hx-confirm="Unlink this Plex user?">
+        Unlink
+      </button>
+    <% } else { %>
+      <form class="form-inline"
             hx-post="/admin/api/users/<%= it.user.id %>/link-plex"
-            hx-vals='{"plexUserId": null}'
             hx-target="closest .plex-section"
-            hx-swap="outerHTML"
-            hx-confirm="Unlink this Plex user?">
-      Unlink
-    </button>
+            hx-swap="outerHTML">
+        <select name="plexUserId">
+          <option value="">Select a Plex user...</option>
+          <% if (it.plexUsers && it.plexUsers.length > 0) { %>
+            <% it.plexUsers.forEach(pu => { %>
+              <option value="<%= pu.user_id %>"><%= pu.friendly_name || pu.username %></option>
+            <% }) %>
+          <% } %>
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm">Link</button>
+      </form>
+    <% } %>
+
+  <% } else if (it.tautulliStatus === "error") { %>
+    <div class="plex-unavailable plex-unavailable-error">
+      <p><strong>Tautulli is not responding.</strong></p>
+      <p>Plex user linking requires a connection to Tautulli to fetch the list of Plex users. Check that Tautulli is running and accessible, then reload this page.</p>
+    </div>
+
   <% } else { %>
-    <form class="form-inline"
-          hx-post="/admin/api/users/<%= it.user.id %>/link-plex"
-          hx-target="closest .plex-section"
-          hx-swap="outerHTML">
-      <select name="plexUserId">
-        <option value="">Select a Plex user...</option>
-        <% if (it.plexUsers && it.plexUsers.length > 0) { %>
-          <% it.plexUsers.forEach(pu => { %>
-            <option value="<%= pu.user_id %>"><%= pu.friendly_name || pu.username %></option>
-          <% }) %>
-        <% } %>
-      </select>
-      <button type="submit" class="btn btn-primary btn-sm">Link</button>
-    </form>
+    <div class="plex-unavailable plex-unavailable-not-configured">
+      <p><strong>Tautulli is not configured.</strong></p>
+      <p>Plex user linking requires a Tautulli connection. Set the <code>TAUTULLI_URL</code> and <code>TAUTULLI_API_KEY</code> environment variables to enable this feature.</p>
+    </div>
+
   <% } %>
 </div>
-<% } %>
 
 <h2 class="section-title">Chat History</h2>
 <div id="chat-history"
