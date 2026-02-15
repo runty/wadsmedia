@@ -28,14 +28,30 @@ export const getUpcomingEpisodesTool = defineTool(
       return { episodes: [], message: "No upcoming episodes" };
     }
 
-    const results = episodes.map((ep) => ({
-      seriesTitle: seriesMap.get(ep.seriesId) ?? "Unknown Series",
-      title: ep.title ?? null,
-      seasonNumber: ep.seasonNumber,
-      episodeNumber: ep.episodeNumber,
-      airDateUtc: ep.airDateUtc ?? null,
-      hasFile: ep.hasFile ?? false,
-    }));
+    const tz = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const results = episodes.map((ep) => {
+      let airDateLocal: string | null = null;
+      if (ep.airDateUtc) {
+        const d = new Date(ep.airDateUtc);
+        airDateLocal = d.toLocaleString("en-US", {
+          timeZone: tz,
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          timeZoneName: "short",
+        });
+      }
+      return {
+        seriesTitle: seriesMap.get(ep.seriesId) ?? "Unknown Series",
+        title: ep.title ?? null,
+        seasonNumber: ep.seasonNumber,
+        episodeNumber: ep.episodeNumber,
+        airDate: airDateLocal,
+        hasFile: ep.hasFile ?? false,
+      };
+    });
 
     return { episodes: results };
   },

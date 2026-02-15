@@ -205,13 +205,71 @@ export function buildLLMMessages(
   // Convert included messages to ChatCompletionMessageParam in order
   const sortedIndices = [...included].sort((a, b) => a - b);
 
-  // Ensure window starts at a user message or the beginning of a tool call sequence
-  // (not a lone tool result or bare assistant response mid-conversation)
   const result: ChatCompletionMessageParam[] = [{ role: "system", content: systemPrompt }];
 
   for (const idx of sortedIndices) {
     const msg = history[idx] as ChatMessage;
     result.push(toCompletionMessage(msg));
+  }
+
+  // Sanitize: ensure every tool message has a preceding assistant with matching
+  // tool_calls, and every assistant with tool_calls has all its results present.
+  // The sliding window or DB-level truncation can orphan tool call sequences.
+  return sanitizeToolCallSequences(result);
+}
+
+/**
+ * Strip orphaned tool messages and assistant messages with incomplete tool results.
+ *
+ * OpenAI requires:
+ * - Every tool message must follow an assistant message whose tool_calls contains
+ *   a matching tool_call_id.
+ * - Every assistant message with tool_calls must have all corresponding tool
+ *   result messages present after it.
+ *
+ * The sliding window or DB history truncation can violate these rules by cutting
+ * in the middle of a tool call sequence. This function drops any messages that
+ * would cause a 400 error from the API.
+ */
+function sanitizeToolCallSequences(
+  msgs: ChatCompletionMessageParam[],
+): ChatCompletionMessageParam[] {
+  // Collect all tool result IDs present in the array
+  const presentResultIds = new Set<string>();
+  for (const msg of msgs) {
+    if (msg.role === "tool") {
+      const id = (msg as { tool_call_id?: string }).tool_call_id;
+      if (id) presentResultIds.add(id);
+    }
+  }
+
+  // Forward pass: emit assistant messages with tool_calls only if all their
+  // results are present; emit tool messages only if their parent was emitted.
+  const emittedToolCallIds = new Set<string>();
+  const result: ChatCompletionMessageParam[] = [];
+
+  for (const msg of msgs) {
+    if (msg.role === "assistant" && "tool_calls" in msg && msg.tool_calls) {
+      const allPresent = msg.tool_calls.every((tc) =>
+        presentResultIds.has(tc.id),
+      );
+      if (allPresent) {
+        for (const tc of msg.tool_calls) {
+          emittedToolCallIds.add(tc.id);
+        }
+        result.push(msg);
+      }
+      // Drop assistant with incomplete tool results (its orphaned tool
+      // messages will be caught by the tool-message check below)
+    } else if (msg.role === "tool") {
+      const toolCallId = (msg as { tool_call_id?: string }).tool_call_id;
+      if (toolCallId && emittedToolCallIds.has(toolCallId)) {
+        result.push(msg);
+      }
+      // Drop orphaned tool messages
+    } else {
+      result.push(msg);
+    }
   }
 
   return result;

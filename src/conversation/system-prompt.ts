@@ -126,10 +126,24 @@ export function buildSystemPrompt(
   if (opts?.isGroup) {
     prompt += GROUP_CHAT_ADDENDUM;
   }
+  // Include current local time so the LLM uses the correct timezone for dates
+  const now = new Date();
+  const localTime = now.toLocaleString("en-US", {
+    timeZone: process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone,
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  prompt += `\n\nCurrent date and time: ${localTime}.`;
+
   if (opts?.senderName) {
-    prompt += `\n\nThe current message is from ${opts.senderName}.`;
+    prompt += ` The current message is from ${opts.senderName}.`;
   } else if (displayName && displayName.trim().length > 0) {
-    prompt += `\n\nThe user's name is ${displayName.trim()}.`;
+    prompt += ` The user's name is ${displayName.trim()}.`;
   }
   return prompt;
 }

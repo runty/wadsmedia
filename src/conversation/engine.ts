@@ -268,7 +268,9 @@ export async function processConversation(params: ProcessConversationParams): Pr
     if (providerName === "telegram") {
       // Telegram: convert any leftover markdown to HTML, attach poster if available
       const htmlReply = markdownToHtml(result.reply);
-      const searchResult = extractLatestSearchResult(result.messagesConsumed);
+      // Only scan messages from the current turn (not history) to avoid stale posters
+      const currentTurnMessages = result.messagesConsumed.slice(newStartIndex);
+      const searchResult = extractLatestSearchResult(currentTurnMessages);
       const photoUrl = searchResult?.posterUrl ?? undefined;
       log.info(
         { replyLength: htmlReply.length, group: isGroupChat, hasPoster: !!photoUrl },

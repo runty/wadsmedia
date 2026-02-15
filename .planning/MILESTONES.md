@@ -30,3 +30,13 @@
 
 ---
 
+
+## v2.1 Telegram & Polish (Shipped: 2026-02-15)
+
+**Phases completed:** 17 phases, 39 plans, 0 tasks
+
+**Key accomplishments:**
+- (none recorded)
+
+---
+
