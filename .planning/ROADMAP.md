@@ -88,12 +88,12 @@ Plans:
   2. Admin can click on any user and read their full chat history with the assistant
   3. Admin can see request counts, recent media additions, and system health (Sonarr/Radarr/Plex connectivity) on a dashboard home page
   4. Admin can link a WadsMedia user to their Plex account, enabling per-user watch history in Tautulli queries
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 12-01: Dashboard backend API and auth
-- [ ] 12-02: Dashboard frontend (user management + chat history)
-- [ ] 12-03: Dashboard stats and Plex user linking
+- [ ] 12-01-PLAN.md -- Backend infrastructure: admin plugin, session auth, service layer, routes, healthCheck gap closure, schema migration (wave 1)
+- [ ] 12-02-PLAN.md -- Frontend templates: Eta views, htmx interactions, CSS, user management + chat history UI (wave 2, depends on 12-01)
+- [ ] 12-03-PLAN.md -- Per-user watch history: plexUserId lookup in get_watch_history tool, system prompt update (wave 2, depends on 12-01)
 
 ### Phase 13: RCS Rich Messaging + Personality
 **Goal**: Search results are visually rich with poster images and quick-action buttons, and the assistant has a distinct personality
