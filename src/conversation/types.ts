@@ -48,6 +48,8 @@ export interface ToolContext {
   displayName: string | null;
   replyAddress: string;
   messaging?: import("../messaging/types.js").MessagingProvider;
+  /** Optional Telegram provider for cross-provider admin notifications */
+  telegramMessaging?: import("../messaging/types.js").MessagingProvider;
   db?: import("drizzle-orm/better-sqlite3").BetterSQLite3Database<typeof import("../db/schema.js")>;
 }
 

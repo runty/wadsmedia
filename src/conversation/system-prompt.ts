@@ -93,9 +93,24 @@ Permissions:
 - Suggest what they CAN do instead: search, add, view upcoming, check downloads, discover media.
 - Never attempt to circumvent permission restrictions.`;
 
-export function buildSystemPrompt(displayName?: string | null): string {
-  if (displayName && displayName.trim().length > 0) {
-    return `${SYSTEM_PROMPT}\n\nThe user's name is ${displayName.trim()}.`;
+const TELEGRAM_ADDENDUM = `
+
+IMPORTANT FORMAT OVERRIDE -- You are chatting on Telegram, NOT SMS:
+- Use HTML formatting: <b>bold</b> for titles, <i>italic</i> for descriptions, <code>code</code> for IDs/technical info
+- You can write longer messages (up to 4096 chars) -- still be concise but don't aggressively truncate like SMS
+- Only escape <, >, & in text (HTML parse mode)
+- Do NOT use markdown formatting (no **, no *, no #, no -)
+- Poster images are sent automatically with search results -- reference them naturally ("check out the poster")
+- When presenting search results, format each result clearly with title in <b>bold</b> and year
+- Inline buttons will appear for common actions -- you don't need to tell users to type commands for Add, Next, or Check Plex`;
+
+export function buildSystemPrompt(displayName?: string | null, provider?: string): string {
+  let prompt = SYSTEM_PROMPT;
+  if (provider === "telegram") {
+    prompt += TELEGRAM_ADDENDUM;
   }
-  return SYSTEM_PROMPT;
+  if (displayName && displayName.trim().length > 0) {
+    prompt += `\n\nThe user's name is ${displayName.trim()}.`;
+  }
+  return prompt;
 }

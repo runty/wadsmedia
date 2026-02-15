@@ -42,6 +42,10 @@ interface ProcessConversationParams {
   plex?: PlexClient;
   tautulli?: TautulliClient;
   messaging: MessagingProvider;
+  /** Optional Telegram provider for cross-provider admin notifications */
+  telegramMessaging?: MessagingProvider;
+  /** Provider name for format-aware prompts ('twilio' | 'telegram') */
+  providerName?: string;
   config: AppConfig;
   log: FastifyBaseLogger;
 }
@@ -76,9 +80,12 @@ export async function processConversation(params: ProcessConversationParams): Pr
     plex,
     tautulli,
     messaging,
+    telegramMessaging,
     config,
     log,
   } = params;
+
+  const providerName = params.providerName ?? messaging.providerName;
 
   try {
     // 1. Opportunistic cleanup of expired pending actions
@@ -113,6 +120,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
               displayName,
               replyAddress,
               messaging,
+              telegramMessaging,
               db,
             });
             resultText = `Done! ${typeof result === "object" ? JSON.stringify(result) : String(result)}`;
@@ -169,7 +177,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
     const history = getHistory(db, userId);
 
     // 5. Build LLM messages with sliding window
-    const llmMessages = buildLLMMessages(buildSystemPrompt(displayName), history, 20);
+    const llmMessages = buildLLMMessages(buildSystemPrompt(displayName, providerName), history, 20);
 
     // 6. Run tool call loop
     const result = await toolCallLoop({
@@ -190,6 +198,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
         displayName,
         replyAddress,
         messaging,
+        telegramMessaging,
         db,
       },
       log,
@@ -215,11 +224,17 @@ export async function processConversation(params: ProcessConversationParams): Pr
       savePendingAction(db, result.pendingConfirmation);
     }
 
-    // Send the reply to the user
-    // Attempt rich card send for search/discover results
-    // Rich card sending disabled — requires RCS brand approval
-    // TODO: Re-enable when RCS is set up
-    {
+    // Send the reply -- format depends on provider
+    if (providerName === "telegram") {
+      // Telegram: use HTML parse mode, no MMS pixel needed
+      log.info({ replyLength: result.reply.length }, "Sending reply via Telegram");
+      await messaging.send({
+        to: replyAddress,
+        body: result.reply,
+        parseMode: "HTML",
+      });
+    } else {
+      // SMS: existing behavior with MMS pixel for long messages
       const SMS_MAX = 300;
       const useMms = result.reply.length > SMS_MAX;
       log.info({ replyLength: result.reply.length, mms: useMms }, "Sending reply via messaging");
@@ -228,8 +243,8 @@ export async function processConversation(params: ProcessConversationParams): Pr
         body: result.reply,
         ...(useMms && config.MMS_PIXEL_URL ? { mediaUrl: [config.MMS_PIXEL_URL] } : {}),
       });
-      log.info("Reply sent");
     }
+    log.info("Reply sent");
   } catch (err) {
     log.error({ err, userId }, "Conversation processing error");
 
