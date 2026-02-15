@@ -82,9 +82,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DISC-01 | Phase 9 | Done |
 | DISC-02 | Phase 9 | Done |
 | DISC-03 | Phase 9 | Done |
-| PLEX-01 | Phase 11 | Pending |
-| PLEX-02 | Phase 11 | Pending |
-| PLEX-03 | Phase 11 | Pending |
+| PLEX-01 | Phase 11 | Done |
+| PLEX-02 | Phase 11 | Done |
+| PLEX-03 | Phase 11 | Done |
 | PLEX-04 | Phase 12 | Pending |
 | ADMN-01 | Phase 10 | Done |
 | ADMN-02 | Phase 10 | Done |

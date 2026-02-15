@@ -29,7 +29,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 - [x] **Phase 9: TMDB Discovery + Library Routing** - Intelligent media search and automatic library organization -- completed 2026-02-14
 - [x] **Phase 10: Permissions + User Tracking** - Role-based access control and per-user request accountability -- completed 2026-02-14
-- [ ] **Phase 11: Plex + Tautulli Integration** - Library awareness and watch history
+- [x] **Phase 11: Plex + Tautulli Integration** - Library awareness and watch history -- completed 2026-02-15
 - [ ] **Phase 12: Web Admin Dashboard** - Visual management interface for admins
 - [ ] **Phase 13: RCS Rich Messaging + Personality** - Visual search results and assistant character
 
@@ -126,6 +126,6 @@ Phases execute in numeric order: 9 -> 10 -> 11 -> 12 -> 13
 | 8. Status and Notifications | v1.0 | 2/2 | Complete | 2026-02-14 |
 | 9. TMDB Discovery + Library Routing | v2.0 | 3/3 | Complete | 2026-02-14 |
 | 10. Permissions + User Tracking | v2.0 | 1/1 | Complete | 2026-02-14 |
-| 11. Plex + Tautulli Integration | v2.0 | 0/2 | Not started | - |
+| 11. Plex + Tautulli Integration | v2.0 | 2/2 | Complete | 2026-02-15 |
 | 12. Web Admin Dashboard | v2.0 | 0/3 | Not started | - |
 | 13. RCS Rich Messaging + Personality | v2.0 | 0/2 | Not started | - |
