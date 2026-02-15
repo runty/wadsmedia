@@ -99,14 +99,16 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     const user = getUserById(fastify.db, id);
     if (!user) return reply.code(404).send({ error: "User not found" });
 
-    // Optionally fetch Tautulli/Plex users for linking
+    // Fetch Tautulli/Plex users for linking with three-state status tracking
     let plexUsers = null;
     let linkedPlexUser = null;
+    let tautulliStatus: "available" | "error" | "not_configured" = "not_configured";
 
     if (fastify.tautulli) {
       try {
         const tautulliUsers = await fastify.tautulli.getUsers();
         plexUsers = tautulliUsers;
+        tautulliStatus = "available";
         if (user.plexUserId) {
           const match = tautulliUsers.find(
             (u: { user_id: number; friendly_name?: string; username?: string }) =>
@@ -115,11 +117,11 @@ export default async function adminRoutes(fastify: FastifyInstance) {
           linkedPlexUser = match?.friendly_name || match?.username || `ID: ${user.plexUserId}`;
         }
       } catch {
-        // Tautulli unavailable -- omit plex linking section
+        tautulliStatus = "error";
       }
     }
 
-    return reply.viewAsync("pages/user-detail", { user, plexUsers, linkedPlexUser });
+    return reply.viewAsync("pages/user-detail", { user, plexUsers, linkedPlexUser, tautulliStatus });
   });
 
   // User detail API (htmx: returns row partial or edit form)
