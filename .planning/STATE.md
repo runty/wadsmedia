@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** v2.1 Telegram & Polish -- Phase 15 complete
+**Current focus:** v2.1 Telegram & Polish -- Phase 16 in progress
 
 ## Current Position
 
-Phase: 15 of 17 (Telegram DM Integration)
-Plan: 3 of 3 (complete)
-Status: Phase Complete
-Last activity: 2026-02-15 -- 15-03 complete (Provider-aware formatting and notifications)
+Phase: 16 of 17 (Telegram Group Chat)
+Plan: 1 of 2 (16-01 complete)
+Status: In Progress
+Last activity: 2026-02-15 -- 16-01 complete (Group conversation history)
 
 Progress: [█████████████████████████░░░░░░░] 3/4 phases
 
@@ -30,8 +30,11 @@ Progress: [███████████████████████
 **v2.1 Velocity (Phase 15):**
 - Plans: 3/3 | Execution time: ~2min (15-01), ~2min (15-02), ~3min (15-03)
 
+**v2.1 Velocity (Phase 16):**
+- Plans: 1/2 | Execution time: ~3min (16-01)
+
 **Combined:**
-- Total plans completed: 35 (across 15 phases)
+- Total plans completed: 36 (across 16 phases)
 - Total execution time: ~1.5 hours
 
 ## Accumulated Context
@@ -62,6 +65,10 @@ Recent decisions affecting current work:
 - 15-03: providerName derived from messaging.providerName with explicit param fallback
 - 15-03: Admin notifications prefer ADMIN_TELEGRAM_CHAT_ID via Telegram, fall back to ADMIN_PHONE via SMS
 - 15-03: telegramMessaging wired through both Twilio and Telegram webhook routes for cross-provider access
+- 16-01: User messages prefixed with [SenderName] for group attribution rather than separate metadata field
+- 16-01: getHistory filtered to groupChatId IS NULL to prevent group messages leaking into DM history
+- 16-01: buildSystemPrompt extended with opts parameter (isGroup, senderName) rather than separate function
+- 16-01: replyToMessageId passed through OutboundMessage to TelegramMessagingProvider reply_parameters
 
 ### Pending Todos
 
@@ -71,10 +78,10 @@ Recent decisions affecting current work:
 
 - RCS brand approval for homelab projects is uncertain; SMS/MMS fallback is functional alternative
 - Telegram Bot API rate limits (30 messages/second to different chats, 20 messages/minute in same group)
-- Group chat conversation history schema design needs resolution during Phase 16 planning
+- Group chat conversation history schema design resolved in 16-01 (groupChatId column approach)
 
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Completed 15-03-PLAN.md (Provider-aware formatting and notifications) -- Phase 15 complete
+Stopped at: Completed 16-01-PLAN.md (Group conversation history)
 Resume file: None
