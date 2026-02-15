@@ -99,10 +99,11 @@ Plans:
   2. SMS notifications are length-aware: truncated cleanly before carrier limits, with MMS fallback for longer content
   3. Failed notification deliveries are logged with error details, retried at least once, and persistent failures trigger an admin alert
   4. Notification send status (success/failure/retry) is recorded and visible in health checks or logs
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 20-01: TBD
+- [ ] 20-01-PLAN.md -- Provider-aware notification formatting (Telegram HTML, SMS length-aware truncation with MMS fallback)
+- [ ] 20-02-PLAN.md -- Delivery tracking with retry, structured logging, and admin failure alerting
 
 ### Phase 21: Admin Experience
 **Goal**: Admins can manage pending users directly from the web dashboard and all user management actions are auditable
@@ -143,5 +144,5 @@ Phases execute in numeric order: 18 -> 19 -> 20 -> 21
 | 17. Admin Dashboard UX Polish | v2.1 | 1/1 | Complete | 2026-02-15 |
 | 18. Conversation Reliability | v2.2 | Complete    | 2026-02-15 | - |
 | 19. Webhook & Server Resilience | v2.2 | Complete    | 2026-02-15 | - |
-| 20. Notification Polish | v2.2 | 0/? | Not started | - |
+| 20. Notification Polish | v2.2 | 0/2 | Not started | - |
 | 21. Admin Experience | v2.2 | 0/? | Not started | - |
