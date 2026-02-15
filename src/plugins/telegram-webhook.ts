@@ -122,6 +122,7 @@ export default fp(
                 plex: fastify.plex,
                 tautulli: fastify.tautulli,
                 messaging: fastify.telegramMessaging!,
+                telegramMessaging: fastify.telegramMessaging,
                 config: fastify.config,
                 log: request.log,
               });

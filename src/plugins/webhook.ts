@@ -65,6 +65,7 @@ export default fp(
               plex: fastify.plex,
               tautulli: fastify.tautulli,
               messaging: fastify.messaging,
+              telegramMessaging: fastify.telegramMessaging,
               config: fastify.config,
               log: request.log,
             }).catch((err) => {
