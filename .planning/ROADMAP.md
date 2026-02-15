@@ -104,10 +104,10 @@ Plans:
   1. User detail page is accessible via a clearly labeled link in the user list (not hidden behind "View Chat")
   2. Plex linking section is prominently displayed on the user detail page with clear instructions
   3. When Tautulli is unavailable, Plex linking section shows an explicit error state explaining why linking is unavailable (not silently hidden)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 17-01: TBD
+- [ ] 17-01-PLAN.md -- Rename user detail link and add three-state Plex section
 
 ## Progress
 
@@ -133,4 +133,4 @@ Phase 17 can execute after Phase 14 (independent of Telegram phases 15-16).
 | 14. Provider Generalization + SMS Polish | v2.1 | 3/3 | Complete | 2026-02-15 |
 | 15. Telegram DM Integration | v2.1 | 3/3 | Complete | 2026-02-15 |
 | 16. Telegram Group Chat | v2.1 | 2/2 | Complete | 2026-02-15 |
-| 17. Admin Dashboard UX Polish | v2.1 | 0/TBD | Not started | - |
+| 17. Admin Dashboard UX Polish | v2.1 | 0/1 | Not started | - |
