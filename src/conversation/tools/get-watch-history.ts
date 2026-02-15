@@ -1,4 +1,6 @@
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { users } from "../../db/schema.js";
 import { defineTool } from "../tools.js";
 
 export const getWatchHistoryTool = defineTool(
@@ -22,7 +24,21 @@ export const getWatchHistoryTool = defineTool(
       return { error: "Tautulli is not configured" };
     }
 
+    // Look up the user's linked Plex account for per-user filtering
+    let plexUserId: number | undefined;
+    if (context.db) {
+      const user = context.db
+        .select({ plexUserId: users.plexUserId })
+        .from(users)
+        .where(eq(users.id, context.userId))
+        .get();
+      if (user?.plexUserId) {
+        plexUserId = user.plexUserId;
+      }
+    }
+
     const history = await context.tautulli.getHistory({
+      userId: plexUserId,
       mediaType: args.mediaType,
       length: args.limit ?? 10,
     });

@@ -73,7 +73,7 @@ Plex library:
 
 Watch history:
 - Use get_watch_history when the user asks what they've been watching, their recent viewing, or wants to know recent activity.
-- Watch history currently shows global Plex activity across all users (per-user filtering will be available after Plex user linking).
+- Watch history shows the user's personal Plex watch activity when their account is linked to Plex. If their account is not linked, it shows global Plex activity across all users.
 - Keep watch history responses concise -- list the most recent items with title and when watched.
 - You can filter by media type (movie or episode) if the user specifies.
 
