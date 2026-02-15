@@ -11,8 +11,8 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 
 Phase: 14 of 17 (Provider Generalization + SMS Polish)
 Plan: 3 of 3
-Status: Completed 14-03 (User Schema Telegram Identity)
-Last activity: 2026-02-15 -- Completed 14-03 plan
+Status: Phase 14 complete (all plans: 14-01, 14-02, 14-03)
+Last activity: 2026-02-15 -- Completed 14-02 plan (consumer updates + SMS polish)
 
 Progress: [################################] 3/3 plans
 
@@ -25,7 +25,7 @@ Progress: [################################] 3/3 plans
 - Plans: 11 | Commits: 53 | Execution time: ~38min
 
 **v2.1 Velocity (Phase 14):**
-- Plans: 3 | Execution time: ~3min (14-01), ~3min (14-03)
+- Plans: 3 | Execution time: ~3min (14-01), ~2min (14-02), ~3min (14-03)
 
 **Combined:**
 - Total plans completed: 33 (across 14 phases)
@@ -47,6 +47,8 @@ Recent decisions affecting current work:
 - 14-01: MMS pixel URL moved to configurable MMS_PIXEL_URL env var
 - 14-03: Used type assertions for phone in SMS-only paths rather than refactoring all callers
 - 14-03: Kept phone-based update functions for backward compat; added ID-based alternatives for Telegram
+- 14-02: replyAddress replaces userPhone everywhere (provider-agnostic destination identifier)
+- 14-02: Notification plugin guards removed; messaging dependency declaration handles availability
 
 ### Pending Todos
 
@@ -61,5 +63,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Completed 14-01-PLAN.md and 14-03-PLAN.md
+Stopped at: Completed 14-02-PLAN.md (Phase 14 fully complete)
 Resume file: None
