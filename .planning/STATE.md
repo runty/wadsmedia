@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** v2.1 Telegram & Polish -- Phase 14 executing
+**Current focus:** v2.1 Telegram & Polish -- Phase 15 ready to plan
 
 ## Current Position
 
-Phase: 14 of 17 (Provider Generalization + SMS Polish)
-Plan: 3 of 3
-Status: Phase 14 complete (all plans: 14-01, 14-02, 14-03)
-Last activity: 2026-02-15 -- Completed 14-02 plan (consumer updates + SMS polish)
+Phase: 15 of 17 (Telegram DM Integration)
+Plan: --
+Status: Ready to plan
+Last activity: 2026-02-15 -- Phase 14 complete (3/3 plans, verification passed)
 
-Progress: [################################] 3/3 plans
+Progress: [████████░░░░░░░░░░░░░░░░░░░░░░░░] 1/4 phases
 
 ## Performance Metrics
 
@@ -63,5 +63,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Completed 14-02-PLAN.md (Phase 14 fully complete)
+Stopped at: Phase 14 complete, verification passed
 Resume file: None

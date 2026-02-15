@@ -18,8 +18,8 @@ Requirements for v2.1 Telegram & Polish milestone. Each maps to roadmap phases.
 
 ### SMS/MMS Polish
 
-- [ ] **SMS-01**: MMS pixel.png URL is configurable via environment variable (not hardcoded to wadsmedia.runty.net)
-- [ ] **SMS-02**: Dead splitForSms() code removed from conversation engine
+- [x] **SMS-01**: MMS pixel.png URL is configurable via environment variable (not hardcoded to wadsmedia.runty.net)
+- [x] **SMS-02**: Dead splitForSms() code removed from conversation engine
 
 ### Admin Dashboard UX
 
@@ -69,8 +69,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TELE-04 | Phase 15 | Pending |
 | TELE-05 | Phase 15 | Pending |
 | TELE-06 | Phase 15 | Pending |
-| SMS-01 | Phase 14 | Pending |
-| SMS-02 | Phase 14 | Pending |
+| SMS-01 | Phase 14 | Complete |
+| SMS-02 | Phase 14 | Complete |
 | ADMN-07 | Phase 17 | Pending |
 | ADMN-08 | Phase 17 | Pending |
 

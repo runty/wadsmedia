@@ -41,7 +41,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 
 **Milestone Goal:** Add Telegram as a second messaging channel (DMs + group chat with rich interactions) and polish SMS delivery and admin dashboard UX.
 
-- [ ] **Phase 14: Provider Generalization + SMS Polish** - Refactor messaging architecture to be provider-agnostic and clean up SMS tech debt
+- [x] **Phase 14: Provider Generalization + SMS Polish** (3/3 plans) -- completed 2026-02-15
 - [ ] **Phase 15: Telegram DM Integration** - Full Telegram DM experience with inline keyboards and poster images
 - [ ] **Phase 16: Telegram Group Chat** - Shared context group conversations with selective bot activation
 - [ ] **Phase 17: Admin Dashboard UX Polish** - Navigation clarity and Plex linking discoverability
@@ -60,9 +60,9 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 **Plans**: 3 plans
 
 Plans:
-- [ ] 14-01-PLAN.md -- Generalize MessagingProvider interface and update Twilio provider
-- [ ] 14-02-PLAN.md -- Update engine and all callers to use generalized interface
-- [ ] 14-03-PLAN.md -- Add Telegram identity columns to user schema
+- [x] 14-01-PLAN.md -- Generalize MessagingProvider interface and update Twilio provider
+- [x] 14-02-PLAN.md -- Update engine and all callers to use generalized interface
+- [x] 14-03-PLAN.md -- Add Telegram identity columns to user schema
 
 ### Phase 15: Telegram DM Integration
 **Goal**: Users can chat with the bot via Telegram DM with the same capabilities as SMS
@@ -130,7 +130,7 @@ Phase 17 can execute after Phase 14 (independent of Telegram phases 15-16).
 | 11. Plex + Tautulli Integration | v2.0 | 2/2 | Complete | 2026-02-15 |
 | 12. Web Admin Dashboard | v2.0 | 3/3 | Complete | 2026-02-15 |
 | 13. RCS Rich Messaging + Personality | v2.0 | 2/2 | Complete | 2026-02-15 |
-| 14. Provider Generalization + SMS Polish | v2.1 | 0/3 | Not started | - |
+| 14. Provider Generalization + SMS Polish | v2.1 | 3/3 | Complete | 2026-02-15 |
 | 15. Telegram DM Integration | v2.1 | 0/TBD | Not started | - |
 | 16. Telegram Group Chat | v2.1 | 0/TBD | Not started | - |
 | 17. Admin Dashboard UX Polish | v2.1 | 0/TBD | Not started | - |
