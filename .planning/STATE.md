@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-14)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** Phase 10 -- Permissions + User Tracking
+**Current focus:** Phase 11 -- Plex + Tautulli Integration
 
 ## Current Position
 
-Phase: 10 of 13 (Permissions + User Tracking) -- COMPLETE
-Plan: 1 of 1 in current phase
-Status: Phase Complete
-Last activity: 2026-02-14 -- 10-01 complete (permissions, tracking, admin notification)
+Phase: 11 of 13 (Plex + Tautulli Integration)
+Plan: 1 of 2 in current phase -- COMPLETE
+Status: In Progress
+Last activity: 2026-02-15 -- 11-01 complete (Plex client, library cache, check_plex_library tool)
 
-Progress: [########################......] 24/30 plans
+Progress: [#########################.....] 25/30 plans
 
 ## Performance Metrics
 
 **v1.0 Velocity:**
-- Total plans completed: 24
+- Total plans completed: 25
 - Average duration: 3min
-- Total execution time: 0.96 hours
+- Total execution time: 1.01 hours
 
 **By Phase:**
 
@@ -37,6 +37,7 @@ Progress: [########################......] 24/30 plans
 | 08-status-and-notifications | 2 | 4min | 2min |
 | 09-tmdb-discovery-library-routing | 3 | 14min | 5min |
 | 10-permissions-user-tracking | 1 | 4min | 4min |
+| 11-plex-tautulli-integration | 1 | 3min | 3min |
 
 ## Accumulated Context
 
@@ -59,6 +60,9 @@ Recent decisions affecting v2.0:
 - requiredRole on ToolDefinition with 'any' default: centralized permission gating without modifying existing tools
 - Admin notification fire-and-forget: add succeeds even if Twilio is down
 - media_tracking stores tmdbId/tvdbId; mediaType column disambiguates ID system
+- Plex GUID regex parsing for provider-agnostic cache keys (tmdb:ID, tvdb:ID, imdb:ID)
+- Async non-blocking cache load on startup with 15min periodic refresh
+- Tautulli config vars and ToolContext field pre-added in 11-01 to avoid config churn in 11-02
 
 ### Pending Todos
 
@@ -71,6 +75,6 @@ Recent decisions affecting v2.0:
 
 ## Session Continuity
 
-Last session: 2026-02-14
-Stopped at: Completed 10-01-PLAN.md (permissions, media tracking, admin notification -- Phase 10 complete)
+Last session: 2026-02-15
+Stopped at: Completed 11-01-PLAN.md (Plex client, library cache, check_plex_library tool)
 Resume file: None
