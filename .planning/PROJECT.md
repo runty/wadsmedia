@@ -45,7 +45,13 @@ Users can manage their media libraries through natural conversation -- text a me
 
 ### Active
 
-(No active requirements -- planning next milestone)
+- [ ] Telegram bot integration with DM and group chat support
+- [ ] Telegram inline keyboards for quick actions
+- [ ] Telegram poster images in search results
+- [ ] Telegram group chat with shared context and @mention detection
+- [ ] Telegram user identity resolution and WadsMedia user linking
+- [ ] Configurable MMS pixel URL (remove hardcoded URL)
+- [ ] Admin dashboard UX improvements for Plex user linking discoverability
 
 ### Out of Scope
 
@@ -56,6 +62,17 @@ Users can manage their media libraries through natural conversation -- text a me
 - Voice interface -- text messaging is the sweet spot
 - Per-user request quotas -- whitelisted users are trusted
 - OAuth/SSO for web dashboard -- simple auth sufficient for admin-only interface
+
+## Current Milestone: v2.1 Telegram & Polish
+
+**Goal:** Add Telegram as a second messaging channel (DMs + group chat with rich interactions) and polish SMS delivery and admin dashboard UX.
+
+**Target features:**
+- Telegram bot with DM and group chat support
+- Inline keyboards and poster images in Telegram
+- Group chat with shared context, @mention + obvious request detection
+- SMS/MMS cleanup (configurable pixel URL, dead code removal)
+- Admin dashboard UX fixes (Plex linking discoverability)
 
 ## Context
 
@@ -108,4 +125,4 @@ Known issues from live testing:
 | RCS rich cards via Content Templates | Poster images, quick-reply buttons | ⚠️ Revisit -- requires brand approval, currently disabled |
 
 ---
-*Last updated: 2026-02-15 after v2.0 milestone complete*
+*Last updated: 2026-02-15 after v2.1 milestone started*

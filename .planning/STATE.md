@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** Planning next milestone
+**Current focus:** v2.1 Telegram & Polish -- defining requirements
 
 ## Current Position
 
-Phase: 13 of 13 (all complete)
-Plan: N/A
-Status: v2.0 milestone shipped
-Last activity: 2026-02-15 -- v2.0 milestone archived
+Phase: Not started (defining requirements)
+Plan: --
+Status: Defining requirements
+Last activity: 2026-02-15 -- Milestone v2.1 started
 
-Progress: [################################] 32/32 plans (v1.0 + v2.0)
+Progress: [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0/0 plans
 
 ## Performance Metrics
 
@@ -23,8 +23,6 @@ Progress: [################################] 32/32 plans (v1.0 + v2.0)
 
 **v2.0 Velocity (Phases 9-13):**
 - Plans: 11 | Commits: 53 | Execution time: ~38min
-- Lines: +52,796 / -1,454
-- Codebase: 6,137 LOC TypeScript (80 files)
 
 **Combined:**
 - Total plans completed: 32 (across 13 phases)
@@ -39,15 +37,14 @@ Decisions archived in PROJECT.md Key Decisions table.
 ### Pending Todos
 
 - Start RCS brand onboarding with Twilio (blocks rich card delivery)
-- Make pixel.png URL configurable (currently hardcoded to wadsmedia.runty.net)
-- Clean up dead `splitForSms()` function in engine.ts
 
 ### Blockers/Concerns
 
 - RCS brand approval for homelab projects is uncertain; SMS/MMS fallback is functional alternative
+- Telegram Bot API rate limits (30 messages/second to different chats, 20 messages/minute in same group)
 
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: v2.0 milestone archived
+Stopped at: Defining v2.1 requirements
 Resume file: None
