@@ -10,12 +10,23 @@ export interface InboundMessage {
   buttonText: string | null;
 }
 
+export interface InlineButton {
+  text: string;           // Button label displayed to user
+  callbackData: string;   // Callback data sent on tap (64 bytes max)
+}
+
 export interface OutboundMessage {
   to: string;
   /** Plain text message body */
   body?: string;
   /** Media URLs to attach (forces MMS on Twilio) */
   mediaUrl?: string[];
+  /** Inline keyboard buttons (rows of buttons) */
+  inlineKeyboard?: InlineButton[][];
+  /** Photo URL to send with sendPhoto (Telegram) */
+  photoUrl?: string;
+  /** Parse mode for message formatting (Telegram: 'HTML') */
+  parseMode?: 'HTML';
 }
 
 export interface SendResult {
