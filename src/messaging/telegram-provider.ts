@@ -1,5 +1,5 @@
-import { Api, InlineKeyboard } from "grammy";
 import type { Update, WebhookInfo } from "@grammyjs/types";
+import { Api, InlineKeyboard } from "grammy";
 import type {
   InboundMessage,
   MessagingProvider,
