@@ -1,5 +1,6 @@
 import formbody from "@fastify/formbody";
 import Fastify from "fastify";
+import adminPlugin from "./admin/admin.plugin.js";
 import type { AppConfig } from "./config.js";
 import bravePlugin from "./plugins/brave.js";
 import conversationPlugin from "./plugins/conversation.js";
@@ -54,6 +55,7 @@ export async function buildServer(config: AppConfig) {
   await fastify.register(userResolverPlugin);
   await fastify.register(webhookPlugin);
   await fastify.register(notificationsPlugin);
+  await fastify.register(adminPlugin);
 
   return fastify;
 }

@@ -26,6 +26,10 @@ COPY --from=builder /app/package.json ./
 # Copy Drizzle migration files (source files, not compiled output)
 COPY drizzle/ ./drizzle/
 
+# Copy admin dashboard templates and static assets
+COPY admin-views/ ./admin-views/
+COPY admin-assets/ ./admin-assets/
+
 ENV NODE_ENV=production
 VOLUME ["/data"]
 EXPOSE 3000
