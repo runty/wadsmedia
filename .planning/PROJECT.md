@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A Docker-based conversational gateway that lets users manage their Sonarr and Radarr media servers through natural language text messages. Users text the app via Twilio RCS/SMS, an LLM interprets the intent, and the app executes the appropriate API calls -- searching for shows/movies, adding them to wanted lists, removing media, checking download progress, viewing upcoming schedules, and receiving proactive notifications when downloads complete.
+A Docker-based conversational media assistant that lets users manage their Sonarr, Radarr, and Plex media libraries through natural language text messages. Users text the app via Twilio SMS/MMS, an LLM interprets the intent, and the app executes the appropriate actions -- discovering media via TMDB and web search, checking Plex for existing content, adding shows/movies with smart library routing (anime/Asian-language auto-detection), checking download progress, viewing upcoming schedules, browsing watch history via Tautulli, and receiving proactive notifications. An admin web dashboard provides user management, chat history viewing, Plex user linking, and system health monitoring.
 
 ## Core Value
 
@@ -27,36 +27,25 @@ Users can manage their media libraries through natural conversation -- text a me
 - ✓ Sonarr API integration -- v1.0
 - ✓ Radarr API integration -- v1.0
 - ✓ Docker deployment with environment variable configuration -- v1.0
+- ✓ Smart discovery via TMDB API with structured search (actor, network, genre, year) and web search fallback for vague queries -- v2.0
+- ✓ Plex integration to check if media already exists in user's library (seasons/episodes for TV) -- v2.0
+- ✓ Tautulli integration for watch history awareness and user activity tracking -- v2.0
+- ✓ Default to 1080p quality profile, only change when user explicitly requests different quality -- v2.0
+- ✓ Smart library routing for Sonarr: auto-detect anime from metadata, route to anime folder vs TV folder -- v2.0
+- ✓ Smart library routing for Radarr: auto-detect Asian-language movies, route to CMovies folder vs Movies folder -- v2.0
+- ✓ Role-based permissions: non-admins can search, add, view status/upcoming, but cannot remove media -- v2.0
+- ✓ Admin notification when non-admin user adds a show or movie -- v2.0
+- ✓ Per-user media tracking: record which user added which shows/movies -- v2.0
+- ✓ Web admin dashboard with user management and chat history viewer -- v2.0
+- ✓ Plex user linking in web admin interface -- v2.0
+- ✓ Dashboard stats: request counts, recent activity, system health -- v2.0
+- ✓ RCS rich cards with posters for search results -- v2.0
+- ✓ RCS suggested reply buttons for quick actions ("Add this", "Next result") -- v2.0
+- ✓ Fun, edgy, slightly spicy assistant personality with emojis -- v2.0
 
 ### Active
 
-- [ ] Smart discovery via TMDB API with structured search (actor, network, genre, year) and web search fallback for vague queries
-- [ ] Plex integration to check if media already exists in user's library (seasons/episodes for TV)
-- [ ] Tautulli integration for watch history awareness and user activity tracking
-- [ ] Default to 1080p quality profile, only change when user explicitly requests different quality
-- [ ] Smart library routing for Sonarr: auto-detect anime from metadata, route to anime folder vs TV folder
-- [ ] Smart library routing for Radarr: auto-detect Asian-language movies, route to CMovies folder vs Movies folder
-- [ ] Role-based permissions: non-admins can search, add, view status/upcoming, but cannot remove media
-- [ ] Admin notification when non-admin user adds a show or movie
-- [ ] Per-user media tracking: record which user added which shows/movies
-- [ ] Web admin dashboard with user management and chat history viewer
-- [ ] Plex user linking in web admin interface
-- [ ] Dashboard stats: request counts, recent activity, system health
-- [ ] RCS rich cards with posters for search results
-- [ ] RCS suggested reply buttons for quick actions ("Add this", "Next result")
-- [ ] Fun, edgy, slightly spicy assistant personality with emojis
-
-## Current Milestone: v2.0 Smart Discovery & Admin
-
-**Goal:** Transform WadsMedia from a basic command proxy into an intelligent media assistant with TMDB/Plex awareness, smart library routing, role-based access, a web admin dashboard, and rich RCS messaging.
-
-**Target features:**
-- Smart media discovery (TMDB + web search fallback)
-- Plex/Tautulli integration (library checks + watch history)
-- Intelligent library routing (anime/Asian-language auto-detection)
-- Role-based permissions with admin notifications
-- Web admin dashboard with user management and stats
-- RCS rich messaging with cards and suggested replies
+(No active requirements -- planning next milestone)
 
 ### Out of Scope
 
@@ -70,13 +59,20 @@ Users can manage their media libraries through natural conversation -- text a me
 
 ## Context
 
-Shipped v1.0 with 3,134 LOC TypeScript across 47 source files.
+Shipped v2.0 with 6,137 LOC TypeScript across 80 source files.
 
-Tech stack: Node.js 22, TypeScript (strict ESM), Fastify 5, SQLite via better-sqlite3 + Drizzle ORM, OpenAI SDK v6, Twilio SDK v5, Zod 4, Biome 2.3, Docker multi-stage build.
+Tech stack: Node.js 22, TypeScript (strict ESM), Fastify 5, SQLite via better-sqlite3 + Drizzle ORM, OpenAI SDK v6, Twilio SDK v5, Zod 4, Biome 2.3, Eta templates, htmx 2.0, Docker multi-stage build.
 
-Architecture: Twilio webhook -> user resolution -> onboarding or LLM conversation engine -> tool call loop -> Sonarr/Radarr API clients. Proactive notifications via Sonarr/Radarr webhook receivers with template-based SMS dispatch.
+Architecture: Twilio webhook -> user resolution -> onboarding or LLM conversation engine -> tool call loop -> media API clients (Sonarr/Radarr/TMDB/Plex/Tautulli/Brave Search). Proactive notifications via Sonarr/Radarr webhook receivers with template-based SMS dispatch. Admin dashboard via Fastify plugin with session-based auth and Eta/htmx UI.
 
-Key patterns: fire-and-forget webhook response (avoids Twilio 15s timeout), sliding window conversation history (last 20 messages with atomic tool call pairs), destructive action confirmation via pending actions table, graceful degradation when media servers unavailable.
+14 LLM tools: search_series, search_movies, add_series, add_movie, remove_series, remove_movie, get_download_queue, get_upcoming_episodes, get_upcoming_movies, discover_media, web_search, check_plex_library, get_watch_history, get_calendar.
+
+Key patterns: fire-and-forget webhook response (avoids Twilio 15s timeout), sliding window conversation history (last 20 messages with atomic tool call pairs), destructive action confirmation via pending actions table, graceful degradation when media servers unavailable, O(1) Plex library cache with GUID-indexed lookups, smart library routing via pure functions, MMS for long messages (>300 chars).
+
+Known issues from live testing:
+- RCS rich cards require brand approval (disabled, SMS/MMS fallback active)
+- LLM sometimes guesses wrong media type (movie vs show) -- mitigated with type-agnostic Plex fallback search
+- Hardcoded pixel.png URL for MMS forcing should be made configurable
 
 ## Constraints
 
@@ -101,6 +97,15 @@ Key patterns: fire-and-forget webhook response (avoids Twilio 15s timeout), slid
 | Zod v4 native toJSONSchema() | Tool parameter schemas without external dependency | ✓ Good -- draft-7 target works across providers |
 | Sliding window (20 messages) with atomic tool pairs | Bounded context cost while preserving tool call integrity | ✓ Good |
 | Destructive action confirmation via DB | Pending actions with 5-min expiry, yes/no detection | ✓ Good -- simple state machine |
+| Zero-dependency API clients (TMDB/Plex/Tautulli/Brave) | Native fetch() keeps bundle small, follows apiRequest pattern | ✓ Good -- consistent pattern across all clients |
+| Tool consolidation under 15 | Compound tools (discover_media) keep LLM context clean | ✓ Good -- 14 tools total, no proliferation |
+| Permission enforcement at execution layer | requiredRole on ToolDefinition, not system prompt guidance | ✓ Good -- code-level guarantee |
+| Pure routing functions for library routing | No API calls in routing logic, maximizes testability | ✓ Good -- easily unit tested |
+| Plex GUID-indexed in-memory cache | O(1) lookups by TMDB/TVDB/IMDB ID with 15min refresh | ✓ Good -- fast, reliable |
+| Admin dashboard opt-in via env vars | ADMIN_SESSION_SECRET + ADMIN_PASSWORD, skips if not set | ✓ Good -- zero overhead when disabled |
+| Eta + htmx for admin UI | Server-rendered, no build step, lightweight | ✓ Good -- simple and functional |
+| MMS for long messages via pixel.png | Transparent pixel forces MMS mode for messages >300 chars | ⚠️ Revisit -- hardcoded URL, should be configurable |
+| RCS rich cards via Content Templates | Poster images, quick-reply buttons | ⚠️ Revisit -- requires brand approval, currently disabled |
 
 ---
-*Last updated: 2026-02-14 after v2.0 milestone started*
+*Last updated: 2026-02-15 after v2.0 milestone complete*

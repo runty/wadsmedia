@@ -79,7 +79,7 @@ Each task was committed atomically:
 
 1. **Task 1: Brave Search client and web_search tool with full wiring** - `c409829` (feat)
 
-**Plan metadata:** [pending] (docs: complete plan)
+**Plan metadata:** `42b72dc` (docs: complete plan)
 
 ## Files Created/Modified
 - `src/media/brave/brave.schemas.ts` - Zod schemas for Brave Search API response (BraveSearchResultSchema, BraveSearchResponseSchema)
