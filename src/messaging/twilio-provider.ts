@@ -1,30 +1,60 @@
 import twilio from "twilio";
-import type { InboundMessage, MessagingProvider, OutboundMessage, SendResult } from "./types.js";
+import type {
+  InboundMessage,
+  MessagingProvider,
+  OutboundMessage,
+  SendResult,
+  WebhookValidationParams,
+} from "./types.js";
 
 const { twiml, validateRequest } = twilio;
 const { MessagingResponse } = twiml;
 
+/** Twilio-specific outbound message fields for rich card sends (Content Templates). */
+export interface TwilioOutboundMessage extends OutboundMessage {
+  /** Content Template SID for rich card sends (mutually exclusive with body) */
+  contentSid?: string;
+  /** JSON string of template variables: {"1": "val", "2": "val", ...} */
+  contentVariables?: string;
+}
+
 export class TwilioMessagingProvider implements MessagingProvider {
+  readonly providerName = "twilio" as const;
+
   private client: ReturnType<typeof twilio>;
   private authToken: string;
+  private fromNumber: string;
+  private messagingServiceSid?: string;
 
-  constructor(accountSid: string, authToken: string) {
+  constructor(
+    accountSid: string,
+    authToken: string,
+    fromNumber: string,
+    messagingServiceSid?: string,
+  ) {
     this.client = twilio(accountSid, authToken);
     this.authToken = authToken;
+    this.fromNumber = fromNumber;
+    this.messagingServiceSid = messagingServiceSid;
   }
 
   async send(message: OutboundMessage): Promise<SendResult> {
-    if (message.contentSid) {
-      // Rich card via Content Template
+    const fromOrService = this.messagingServiceSid
+      ? { messagingServiceSid: this.messagingServiceSid }
+      : { from: this.fromNumber };
+
+    // Check for Twilio-specific rich card fields
+    const twilioMsg = message as TwilioOutboundMessage;
+    if (twilioMsg.contentSid) {
       const result = await this.client.messages.create({
-        contentSid: message.contentSid,
-        ...(message.contentVariables ? { contentVariables: message.contentVariables } : {}),
+        contentSid: twilioMsg.contentSid,
+        ...(twilioMsg.contentVariables
+          ? { contentVariables: twilioMsg.contentVariables }
+          : {}),
         to: message.to,
-        ...(message.messagingServiceSid
-          ? { messagingServiceSid: message.messagingServiceSid }
-          : { from: message.from }),
+        ...fromOrService,
       });
-      return { sid: result.sid, status: result.status };
+      return { providerMessageId: result.sid, status: result.status };
     }
 
     // Plain text (or MMS with media)
@@ -32,41 +62,36 @@ export class TwilioMessagingProvider implements MessagingProvider {
       body: message.body ?? "",
       to: message.to,
       ...(message.mediaUrl?.length ? { mediaUrl: message.mediaUrl } : {}),
-      ...(message.messagingServiceSid
-        ? { messagingServiceSid: message.messagingServiceSid }
-        : { from: message.from }),
+      ...fromOrService,
     });
-    return { sid: result.sid, status: result.status };
+    return { providerMessageId: result.sid, status: result.status };
   }
 
-  validateWebhook(params: {
-    signature: string;
-    url: string;
-    body: Record<string, string>;
-  }): boolean {
-    return validateRequest(this.authToken, params.signature, params.url, params.body);
+  validateWebhook(params: WebhookValidationParams): boolean {
+    const signature = params.headers["x-twilio-signature"];
+    if (typeof signature !== "string") return false;
+    const body = params.body as Record<string, string>;
+    return validateRequest(this.authToken, signature, params.url, body);
   }
 
-  parseInbound(body: Record<string, string>): InboundMessage {
+  parseInbound(body: unknown): InboundMessage {
+    const b = body as Record<string, string>;
     return {
-      messageSid: body.MessageSid ?? "",
-      from: body.From ?? "",
-      to: body.To ?? "",
-      body: body.Body ?? "",
-      numMedia: Number.parseInt(body.NumMedia ?? "0", 10),
-      buttonPayload: body.ButtonPayload ?? null,
-      buttonText: body.ButtonText ?? null,
+      providerMessageId: b.MessageSid ?? "",
+      from: b.From ?? "",
+      to: b.To ?? "",
+      body: b.Body ?? "",
+      numMedia: Number.parseInt(b.NumMedia ?? "0", 10),
+      buttonPayload: b.ButtonPayload ?? null,
+      buttonText: b.ButtonText ?? null,
     };
   }
 
-  formatReply(text: string): string {
+  formatWebhookResponse(text?: string): string {
     const response = new MessagingResponse();
-    response.message(text);
-    return response.toString();
-  }
-
-  formatEmptyReply(): string {
-    const response = new MessagingResponse();
+    if (text) {
+      response.message(text);
+    }
     return response.toString();
   }
 }

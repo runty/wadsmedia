@@ -34,7 +34,6 @@ export async function notifyAllActiveUsers(
       await messaging.send({
         to: user.phone,
         body: message,
-        from: config.TWILIO_PHONE_NUMBER,
       });
     } catch (err) {
       log.error({ err, phone: user.phone }, "Failed to send notification");

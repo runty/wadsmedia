@@ -132,7 +132,6 @@ export async function processConversation(params: ProcessConversationParams): Pr
           await messaging.send({
             to: userPhone,
             body: resultText,
-            from: config.TWILIO_PHONE_NUMBER,
           });
         } else {
           // Tool no longer registered -- clear and inform
@@ -143,7 +142,6 @@ export async function processConversation(params: ProcessConversationParams): Pr
           await messaging.send({
             to: userPhone,
             body: errorText,
-            from: config.TWILIO_PHONE_NUMBER,
           });
         }
         return;
@@ -157,7 +155,6 @@ export async function processConversation(params: ProcessConversationParams): Pr
         await messaging.send({
           to: userPhone,
           body: cancelText,
-          from: config.TWILIO_PHONE_NUMBER,
         });
         return;
       }
@@ -230,8 +227,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
       await messaging.send({
         to: userPhone,
         body: result.reply,
-        from: config.TWILIO_PHONE_NUMBER,
-        ...(useMms ? { mediaUrl: [`https://wadsmedia.runty.net/admin/assets/pixel.png`] } : {}),
+        ...(useMms && config.MMS_PIXEL_URL ? { mediaUrl: [config.MMS_PIXEL_URL] } : {}),
       });
       log.info("Reply sent");
     }
@@ -243,7 +239,6 @@ export async function processConversation(params: ProcessConversationParams): Pr
       await messaging.send({
         to: userPhone,
         body: "Sorry, something went wrong. Please try again.",
-        from: config.TWILIO_PHONE_NUMBER,
       });
     } catch (sendErr) {
       log.error({ err: sendErr }, "Failed to send fallback error message");

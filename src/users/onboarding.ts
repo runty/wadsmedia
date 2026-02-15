@@ -62,7 +62,6 @@ export async function handleOnboarding(params: {
         await messaging.send({
           to: config.ADMIN_PHONE,
           body: `New user request: ${trimmedName} (${userPhone}). Add their number to PHONE_WHITELIST to approve.`,
-          from: config.TWILIO_PHONE_NUMBER,
         });
 
         log.info({ phone: userPhone, name: trimmedName }, "New user onboarding: admin notified");

@@ -15,6 +15,13 @@ const envSchema = z.object({
   TWILIO_PHONE_NUMBER: z.string().min(1).optional(),
   TWILIO_MESSAGING_SERVICE_SID: z.string().min(1).optional(),
 
+  // MMS pixel URL (for forcing MMS mode on long messages)
+  MMS_PIXEL_URL: z.string().url().optional(),
+
+  // Telegram (optional, for Phase 15+)
+  TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
+  TELEGRAM_WEBHOOK_SECRET: z.string().min(1).optional(),
+
   // LLM (optional in Phase 1, required starting Phase 5)
   LLM_API_KEY: z.string().min(1).optional(),
   LLM_BASE_URL: z.string().url().optional(),

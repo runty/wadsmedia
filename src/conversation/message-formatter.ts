@@ -1,16 +1,15 @@
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
-import type { OutboundMessage } from "../messaging/types.js";
+import type { TwilioOutboundMessage } from "../messaging/twilio-provider.js";
 import { ensureSearchResultTemplate } from "../messaging/content-templates.js";
 
 interface RichCardContext {
   accountSid: string;
   authToken: string;
   messagingServiceSid?: string;
-  phoneNumber?: string;
 }
 
 interface RichCardResult {
-  outboundMessage: OutboundMessage;
+  outboundMessage: TwilioOutboundMessage;
   textFallback: string; // The LLM's original text reply (for history)
 }
 
@@ -56,6 +55,9 @@ export function extractLatestSearchResult(
 /**
  * Attempt to format the most recent search/discover result as a rich card.
  * Returns null if no rich card is appropriate (no search results, no template config, etc).
+ *
+ * Note: This uses Twilio-specific Content Templates (TwilioOutboundMessage).
+ * Rich card sending is currently disabled (requires RCS brand approval).
  */
 export async function formatAsRichCard(
   messagesConsumed: ChatCompletionMessageParam[],
@@ -89,14 +91,11 @@ export async function formatAsRichCard(
     variables["4"] = searchResult.posterUrl;
   }
 
-  // 4. Build the OutboundMessage
-  const outboundMessage: OutboundMessage = {
+  // 4. Build the TwilioOutboundMessage (Twilio-specific rich card fields)
+  const outboundMessage: TwilioOutboundMessage = {
     to,
     contentSid,
     contentVariables: JSON.stringify(variables),
-    ...(richContext.messagingServiceSid
-      ? { messagingServiceSid: richContext.messagingServiceSid }
-      : { from: richContext.phoneNumber }),
   };
 
   return { outboundMessage, textFallback: textReply };

@@ -132,7 +132,6 @@ export const addMovieTool = defineTool(
         .send({
           to: context.config.ADMIN_PHONE,
           body: `${who} added movie: ${added.title} (${added.year ?? "N/A"}) [${routingReason}]`,
-          from: context.config.TWILIO_PHONE_NUMBER,
         })
         .catch(() => {}); // Fire-and-forget: do not fail the add on notification error
     }

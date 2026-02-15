@@ -132,7 +132,6 @@ export const addSeriesTool = defineTool(
         .send({
           to: context.config.ADMIN_PHONE,
           body: `${who} added series: ${added.title} (${added.year ?? "N/A"}) [${routingReason}]`,
-          from: context.config.TWILIO_PHONE_NUMBER,
         })
         .catch(() => {}); // Fire-and-forget
     }
