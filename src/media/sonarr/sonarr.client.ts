@@ -138,4 +138,14 @@ export class SonarrClient {
   async getRootFolders(): Promise<RootFolder[]> {
     return this.request("rootfolder", z.array(RootFolderSchema));
   }
+
+  /** Check if the Sonarr server is reachable and responding. */
+  async healthCheck(): Promise<boolean> {
+    try {
+      await this.request("system/status", z.object({}).passthrough(), { timeoutMs: 5_000 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }

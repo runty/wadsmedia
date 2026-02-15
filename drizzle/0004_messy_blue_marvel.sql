@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `plex_user_id` integer;

@@ -43,6 +43,10 @@ const envSchema = z.object({
   // Notifications (optional, for webhook security)
   NOTIFICATION_SECRET: z.string().min(1).optional(),
 
+  // Admin dashboard (optional, dashboard is opt-in)
+  ADMIN_SESSION_SECRET: z.string().min(32).optional(),
+  ADMIN_PASSWORD: z.string().min(1).optional(),
+
   // Library routing hints
   SONARR_ANIME_ROOT_FOLDER_HINT: z.string().default("anime"),
   RADARR_CMOVIES_ROOT_FOLDER_HINT: z.string().default("cmovies"),
