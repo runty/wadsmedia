@@ -84,10 +84,11 @@ Plans:
   1. After a server restart or downtime, Telegram webhook is automatically re-registered without manual intervention
   2. Health endpoint returns structured status for webhook connectivity, LLM reachability, and recent error rates
   3. If Telegram webhook registration fails, the system retries with backoff and logs the failure clearly
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 19-01: TBD
+- [ ] 19-01-PLAN.md -- Webhook auto-recovery with retry and exponential backoff
+- [ ] 19-02-PLAN.md -- Structured health endpoint with webhook, LLM, and error rate checks
 
 ### Phase 20: Notification Polish
 **Goal**: Proactive notifications look good on every provider and delivery failures are tracked and retried
@@ -141,6 +142,6 @@ Phases execute in numeric order: 18 -> 19 -> 20 -> 21
 | 16. Telegram Group Chat | v2.1 | 2/2 | Complete | 2026-02-15 |
 | 17. Admin Dashboard UX Polish | v2.1 | 1/1 | Complete | 2026-02-15 |
 | 18. Conversation Reliability | v2.2 | Complete    | 2026-02-15 | - |
-| 19. Webhook & Server Resilience | v2.2 | 0/? | Not started | - |
+| 19. Webhook & Server Resilience | v2.2 | 0/2 | Not started | - |
 | 20. Notification Polish | v2.2 | 0/? | Not started | - |
 | 21. Admin Experience | v2.2 | 0/? | Not started | - |
