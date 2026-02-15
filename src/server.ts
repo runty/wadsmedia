@@ -10,6 +10,7 @@ import notificationsPlugin from "./plugins/notifications.js";
 import plexPlugin from "./plugins/plex.js";
 import radarrPlugin from "./plugins/radarr.js";
 import sonarrPlugin from "./plugins/sonarr.js";
+import tautulliPlugin from "./plugins/tautulli.js";
 import tmdbPlugin from "./plugins/tmdb.js";
 import userResolverPlugin from "./plugins/user-resolver.js";
 import webhookPlugin from "./plugins/webhook.js";
@@ -46,6 +47,7 @@ export async function buildServer(config: AppConfig) {
   await fastify.register(tmdbPlugin);
   await fastify.register(bravePlugin);
   await fastify.register(plexPlugin);
+  await fastify.register(tautulliPlugin);
   await fastify.register(conversationPlugin);
   await fastify.register(formbody);
   await fastify.register(messagingPlugin);

@@ -71,6 +71,12 @@ Plex library:
 - If the user asks "do I have X?" or "what seasons of X do I have?", use check_plex_library.
 - For movies, report whether it exists. For shows, list available seasons and episode counts.
 
+Watch history:
+- Use get_watch_history when the user asks what they've been watching, their recent viewing, or wants to know recent activity.
+- Watch history currently shows global Plex activity across all users (per-user filtering will be available after Plex user linking).
+- Keep watch history responses concise -- list the most recent items with title and when watched.
+- You can filter by media type (movie or episode) if the user specifies.
+
 Download status:
 - Use get_download_queue to check what is currently downloading when the user asks about downloads, queue, progress, or status.
 - Show download progress as a percentage when available.

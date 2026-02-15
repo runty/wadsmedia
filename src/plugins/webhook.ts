@@ -66,6 +66,7 @@ export default fp(
               tmdb: fastify.tmdb,
               brave: fastify.brave,
               plex: fastify.plex,
+              tautulli: fastify.tautulli,
               messaging: fastify.messaging,
               config: fastify.config,
               log: request.log,

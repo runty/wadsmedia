@@ -41,8 +41,7 @@ export interface ToolContext {
   tmdb?: import("../media/tmdb/tmdb.client.js").TmdbClient;
   brave?: import("../media/brave/brave.client.js").BraveSearchClient;
   plex?: import("../media/plex/plex.client.js").PlexClient;
-  // tautulli will be added by Plan 11-02 when the module is created
-  tautulli?: unknown;
+  tautulli?: import("../media/tautulli/tautulli.client.js").TautulliClient;
   config?: import("../config.js").AppConfig;
   userId: number;
   isAdmin: boolean;

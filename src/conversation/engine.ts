@@ -8,6 +8,7 @@ import type { BraveSearchClient } from "../media/brave/brave.client.js";
 import type { PlexClient } from "../media/plex/plex.client.js";
 import type { RadarrClient } from "../media/radarr/radarr.client.js";
 import type { SonarrClient } from "../media/sonarr/sonarr.client.js";
+import type { TautulliClient } from "../media/tautulli/tautulli.client.js";
 import type { TmdbClient } from "../media/tmdb/tmdb.client.js";
 import type { MessagingProvider } from "../messaging/types.js";
 import {
@@ -39,6 +40,7 @@ interface ProcessConversationParams {
   tmdb?: TmdbClient;
   brave?: BraveSearchClient;
   plex?: PlexClient;
+  tautulli?: TautulliClient;
   messaging: MessagingProvider;
   config: AppConfig;
   log: FastifyBaseLogger;
@@ -72,6 +74,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
     tmdb,
     brave,
     plex,
+    tautulli,
     messaging,
     config,
     log,
@@ -103,6 +106,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
               tmdb,
               brave,
               plex,
+              tautulli,
               config,
               userId,
               isAdmin,
@@ -182,6 +186,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
         tmdb,
         brave,
         plex,
+        tautulli,
         config,
         userId,
         isAdmin,

@@ -10,6 +10,7 @@ import {
   getDownloadQueueTool,
   getUpcomingEpisodesTool,
   getUpcomingMoviesTool,
+  getWatchHistoryTool,
   removeMovieTool,
   removeSeriesTool,
   searchMoviesTool,
@@ -51,6 +52,7 @@ export default fp(
     registry.register(discoverMediaTool);
     registry.register(webSearchTool);
     registry.register(checkPlexLibraryTool);
+    registry.register(getWatchHistoryTool);
 
     fastify.decorate("llm", client);
     fastify.decorate("toolRegistry", registry);

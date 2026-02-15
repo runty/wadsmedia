@@ -7,6 +7,7 @@ export {
   getUpcomingEpisodesTool,
   getUpcomingMoviesTool,
 } from "./get-upcoming.js";
+export { getWatchHistoryTool } from "./get-watch-history.js";
 export { removeMovieTool } from "./remove-movie.js";
 export { removeSeriesTool } from "./remove-series.js";
 export { searchMoviesTool } from "./search-movies.js";
