@@ -73,11 +73,11 @@ Plans:
   1. When a user searches for media that already exists in their Plex library, they are told before being offered the option to add it
   2. User can ask about a TV show and see which seasons and episodes are available in Plex (e.g., "You have seasons 1-4, missing season 5")
   3. User can ask "what have I been watching" and get their personal watch history from Tautulli (requires Plex user linking from Phase 12 for per-user history; falls back to global history until linked)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 11-01: Plex API client and library cache
-- [ ] 11-02: Tautulli client and watch history tool
+- [ ] 11-01-PLAN.md -- Plex client, library cache, and check_plex_library tool (wave 1)
+- [ ] 11-02-PLAN.md -- Tautulli client and get_watch_history tool (wave 2, depends on 11-01)
 
 ### Phase 12: Web Admin Dashboard
 **Goal**: Admin can manage users, view chat history, see system stats, and link Plex accounts through a web interface
