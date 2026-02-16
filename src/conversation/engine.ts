@@ -68,15 +68,74 @@ export function withConversationLock<T>(lockKey: string, fn: () => Promise<T>): 
 export { conversationLocks };
 
 /**
- * Convert markdown bold/italic to HTML for Telegram.
- * Handles **bold**, *italic*, and `code` patterns that LLMs commonly produce
- * despite being told to use HTML.
+ * Re-align columns inside a pre block by splitting each line on 2+ spaces,
+ * then padding each column to the max width found in that column.
  */
-function markdownToHtml(text: string): string {
-  return text
-    .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
-    .replace(/(?<![*])\*([^*]+?)\*(?![*])/g, "<i>$1</i>")
-    .replace(/`([^`]+)`/g, "<code>$1</code>");
+function realignPreBlock(content: string): string {
+  const lines = content.split("\n").filter((l) => l.trim().length > 0);
+  if (lines.length < 2) return content;
+
+  // Split each line into columns on runs of 2+ spaces
+  const rows = lines.map((line) => line.trim().split(/\s{2,}/));
+
+  // Find max column count and max width per column
+  const colCount = Math.max(...rows.map((r) => r.length));
+  const colWidths: number[] = new Array(colCount).fill(0) as number[];
+  for (const row of rows) {
+    for (let i = 0; i < row.length; i++) {
+      colWidths[i] = Math.max(colWidths[i]!, row[i]!.length);
+    }
+  }
+
+  // Rebuild lines with aligned columns (last column not padded)
+  return rows
+    .map((row) =>
+      row.map((cell, i) => (i < row.length - 1 ? cell.padEnd(colWidths[i]!) : cell)).join("  "),
+    )
+    .join("\n");
+}
+
+/**
+ * Format a plain-text LLM reply for Telegram HTML.
+ * 1. Convert ```code blocks``` to <pre> tags, strip bold, re-align columns.
+ * 2. Convert markdown bold/italic/inline code.
+ * 3. Bold show/movie titles on list lines as a fallback.
+ */
+function formatForTelegram(text: string): string {
+  // First: convert triple-backtick code blocks to <pre> (before other transforms).
+  // Strip **bold** markers and re-align columns inside pre blocks.
+  let result = text.replace(/```(?:\w*\n)?([\s\S]*?)```/g, (_match, inner: string) => {
+    const cleaned = inner.replace(/\*\*(.+?)\*\*/g, "$1");
+    return "<pre>" + realignPreBlock(cleaned) + "</pre>";
+  });
+
+  // Convert markdown bold/italic/inline code (only outside <pre> blocks)
+  result = result.replace(
+    /(<pre>[\s\S]*?<\/pre>)|(\*\*(.+?)\*\*)|(?<![*])(\*([^*]+?)\*)(?![*])|(`([^`]+)`)/g,
+    (match, pre, bold, boldInner, italic, italicInner, code, codeInner) => {
+      if (pre) return pre; // leave <pre> blocks untouched
+      if (bold) return `<b>${boldInner}</b>`;
+      if (italic) return `<i>${italicInner}</i>`;
+      if (code) return `<code>${codeInner}</code>`;
+      return match;
+    },
+  );
+
+  // Fallback: bold titles on list lines that are NOT inside <pre> blocks.
+  // Split on <pre> boundaries, only transform outside segments.
+  const parts = result.split(/(<pre>[\s\S]*?<\/pre>)/g);
+  result = parts.map((part) => {
+    if (part.startsWith("<pre>")) return part;
+    return part.replace(
+      /^(?!•)(.+?)(\s+S\d+E\d+|\s+\(\d{4}\)\s*[-–—])/gm,
+      (match, title, rest) => {
+        if (title.includes("<b>")) return match;
+        return `<b>${title.trim()}</b>${rest}`;
+      },
+    );
+  }).join("");
+
+  return result;
 }
 
 type DB = BetterSQLite3Database<typeof schema>;
@@ -324,7 +383,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
       // Send the reply -- format depends on provider
       if (providerName === "telegram") {
         // Telegram: convert any leftover markdown to HTML, attach poster if available
-        const htmlReply = markdownToHtml(result.reply);
+        const htmlReply = formatForTelegram(result.reply);
         // Only scan messages from the current turn (not history) to avoid stale posters
         const currentTurnMessages = result.messagesConsumed.slice(newStartIndex);
         const searchResult = extractLatestSearchResult(currentTurnMessages);
@@ -341,14 +400,26 @@ export async function processConversation(params: ProcessConversationParams): Pr
           replyToMessageId,
         });
       } else {
-        // SMS: existing behavior with MMS pixel for long messages
+        // SMS: send poster as MMS media if available, otherwise use pixel hack for long messages
+        const currentTurnMessages = result.messagesConsumed.slice(newStartIndex);
+        const searchResult = extractLatestSearchResult(currentTurnMessages);
+        const posterUrl = searchResult?.posterUrl;
         const SMS_MAX = 300;
         const useMms = result.reply.length > SMS_MAX;
-        log.info({ replyLength: result.reply.length, mms: useMms }, "Sending reply via messaging");
+        const mediaUrl: string[] = [];
+        if (posterUrl) {
+          mediaUrl.push(posterUrl);
+        } else if (useMms && config.MMS_PIXEL_URL) {
+          mediaUrl.push(config.MMS_PIXEL_URL);
+        }
+        log.info(
+          { replyLength: result.reply.length, mms: useMms, hasPoster: !!posterUrl },
+          "Sending reply via messaging",
+        );
         await messaging.send({
           to: replyAddress,
           body: result.reply,
-          ...(useMms && config.MMS_PIXEL_URL ? { mediaUrl: [config.MMS_PIXEL_URL] } : {}),
+          ...(mediaUrl.length > 0 ? { mediaUrl } : {}),
         });
       }
       log.info("Reply sent");
