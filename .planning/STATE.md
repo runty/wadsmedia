@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** Phase 20 complete (Notification Polish)
+**Current focus:** Phase 21 complete (Admin Experience)
 
 ## Current Position
 
-Phase: 20 of 21 (Notification Polish)
-Plan: 2 of 2 in current phase (complete)
-Status: Phase 20 complete
-Last activity: 2026-02-16 -- Completed 20-02 delivery tracking with retry and admin alerting
+Phase: 21 of 21 (Admin Experience)
+Plan: 1 of 1 in current phase (complete)
+Status: Phase 21 complete -- v2.2 milestone complete
+Last activity: 2026-02-16 -- Completed 21-01 pending user approval/blocking and audit log
 
-Progress: [====================] 95% (20/21 phases complete)
+Progress: [====================] 100% (21/21 phases complete)
 
 ## Performance Metrics
 
@@ -27,11 +27,11 @@ Progress: [====================] 95% (20/21 phases complete)
 **v2.1 Velocity (Phases 14-17):**
 - Plans: 9 | Execution time: ~22min
 
-**v2.2 Velocity (Phases 18-20):**
-- Plans: 6 | Execution time: ~14min
+**v2.2 Velocity (Phases 18-21):**
+- Plans: 7 | Execution time: ~17min
 
 **Combined:**
-- Total plans completed: 45 (across 20 phases)
+- Total plans completed: 46 (across 21 phases)
 - Total execution time: ~2.0 hours
 
 ## Accumulated Context
@@ -53,6 +53,9 @@ Recent decisions affecting current work:
 - 20-02: Single retry (2 attempts max) balances reliability vs latency for notification delivery
 - 20-02: Admin alert channel resolved once at plugin registration (Telegram preferred, SMS fallback)
 - 20-02: Fire-and-forget admin alert with .catch isolation prevents alert failures from affecting dispatch
+- 21-01: Audit log uses left join for current displayName alongside snapshot targetDisplayName at action time
+- 21-01: Approve/block endpoints validate pending status; return 400 if already active/blocked
+- 21-01: Admin identity from session (always "admin") in single-admin model; audit log records this per action
 
 ### Pending Todos
 
@@ -67,5 +70,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Completed 20-02-PLAN.md (delivery tracking with retry and admin alerting)
+Stopped at: Completed 21-01-PLAN.md (pending user approval/blocking and audit log)
 Resume file: None
