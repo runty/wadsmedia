@@ -50,6 +50,13 @@
       "when": 1771178484717,
       "tag": "0006_hard_redwing",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1771201204660,
+      "tag": "0007_wise_glorian",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,7 @@
 import { asc, count, desc, eq, gte } from "drizzle-orm";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import type * as schema from "../db/schema.js";
-import { mediaTracking, messages, users } from "../db/schema.js";
+import { adminAuditLog, mediaTracking, messages, users } from "../db/schema.js";
 
 type DB = BetterSQLite3Database<typeof schema>;
 
@@ -119,4 +119,58 @@ export function setPlexUserId(db: DB, userId: number, plexUserId: number | null)
     .where(eq(users.id, userId))
     .returning()
     .get();
+}
+
+/** Insert an audit log entry for admin user management actions. */
+export function insertAuditLog(
+  db: DB,
+  entry: {
+    adminIdentity: string;
+    action: "approve" | "block" | "remove";
+    targetUserId: number;
+    targetDisplayName?: string | null;
+    details?: string;
+  },
+) {
+  return db
+    .insert(adminAuditLog)
+    .values({
+      adminIdentity: entry.adminIdentity,
+      action: entry.action,
+      targetUserId: entry.targetUserId,
+      targetDisplayName: entry.targetDisplayName ?? null,
+      details: entry.details ?? null,
+    })
+    .returning()
+    .get();
+}
+
+/** Get recent audit log entries ordered by newest first. */
+export function getRecentAuditLogs(db: DB, limit = 50) {
+  return db
+    .select({
+      id: adminAuditLog.id,
+      adminIdentity: adminAuditLog.adminIdentity,
+      action: adminAuditLog.action,
+      targetUserId: adminAuditLog.targetUserId,
+      targetDisplayName: adminAuditLog.targetDisplayName,
+      details: adminAuditLog.details,
+      createdAt: adminAuditLog.createdAt,
+      currentDisplayName: users.displayName,
+    })
+    .from(adminAuditLog)
+    .leftJoin(users, eq(adminAuditLog.targetUserId, users.id))
+    .orderBy(desc(adminAuditLog.createdAt))
+    .limit(limit)
+    .all();
+}
+
+/** Get users with "pending" status, ordered by creation date (oldest first). */
+export function getPendingUsers(db: DB) {
+  return db
+    .select()
+    .from(users)
+    .where(eq(users.status, "pending"))
+    .orderBy(asc(users.createdAt))
+    .all();
 }

@@ -3,9 +3,11 @@ import { loginHandler, logoutHandler, requireAuth } from "./admin.auth.js";
 import {
   getAllUsers,
   getMediaTrackingStats,
+  getRecentAuditLogs,
   getRecentMediaAdditions,
   getUserById,
   getUserMessages,
+  insertAuditLog,
   setPlexUserId,
   softDeleteUser,
   updateUser,
@@ -166,10 +168,84 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     if (!existing) return reply.code(404).send({ error: "User not found" });
 
     const deleted = softDeleteUser(fastify.db, id);
+
+    const adminIdentity = request.session.get("adminUserId") || "admin";
+    insertAuditLog(fastify.db, {
+      adminIdentity,
+      action: "remove",
+      targetUserId: id,
+      targetDisplayName: existing.displayName,
+    });
+
     if (request.headers["hx-request"] === "true") {
       return reply.viewAsync("partials/user-row", { user: deleted });
     }
     return reply.send(deleted);
+  });
+
+  // Approve pending user (htmx: returns updated row with active status)
+  fastify.post<IdParams>("/api/users/:id/approve", { ...authOpts }, async (request, reply) => {
+    const id = Number(request.params.id);
+    const existing = getUserById(fastify.db, id);
+    if (!existing) return reply.code(404).send({ error: "User not found" });
+    if (existing.status !== "pending") {
+      return reply.code(400).send({ error: `User is already ${existing.status}` });
+    }
+
+    const updated = updateUser(fastify.db, id, { status: "active" });
+
+    const adminIdentity = request.session.get("adminUserId") || "admin";
+    insertAuditLog(fastify.db, {
+      adminIdentity,
+      action: "approve",
+      targetUserId: id,
+      targetDisplayName: existing.displayName,
+    });
+
+    if (request.headers["hx-request"] === "true") {
+      return reply.viewAsync("partials/user-row", { user: updated });
+    }
+    return reply.send(updated);
+  });
+
+  // Block pending user (htmx: returns updated row with blocked status)
+  fastify.post<IdParams>("/api/users/:id/block", { ...authOpts }, async (request, reply) => {
+    const id = Number(request.params.id);
+    const existing = getUserById(fastify.db, id);
+    if (!existing) return reply.code(404).send({ error: "User not found" });
+    if (existing.status !== "pending") {
+      return reply.code(400).send({ error: `User is already ${existing.status}` });
+    }
+
+    const updated = updateUser(fastify.db, id, { status: "blocked" });
+
+    const adminIdentity = request.session.get("adminUserId") || "admin";
+    insertAuditLog(fastify.db, {
+      adminIdentity,
+      action: "block",
+      targetUserId: id,
+      targetDisplayName: existing.displayName,
+    });
+
+    if (request.headers["hx-request"] === "true") {
+      return reply.viewAsync("partials/user-row", { user: updated });
+    }
+    return reply.send(updated);
+  });
+
+  // Audit log page (full page)
+  fastify.get("/audit-log", { ...authOpts }, async (_request, reply) => {
+    const logs = getRecentAuditLogs(fastify.db);
+    return reply.viewAsync("pages/audit-log", { logs });
+  });
+
+  // Audit log API (htmx partial for auto-refresh)
+  fastify.get("/api/audit-log", { ...authOpts }, async (request, reply) => {
+    const logs = getRecentAuditLogs(fastify.db);
+    if (request.headers["hx-request"] === "true") {
+      return reply.viewAsync("partials/audit-log-table", { logs });
+    }
+    return reply.send(logs);
   });
 
   // User messages (chat history, htmx partial)

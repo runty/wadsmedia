@@ -63,6 +63,21 @@ export const pendingActions = sqliteTable("pending_actions", {
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
 });
 
+// Phase 21: Admin audit log for user management actions
+export const adminAuditLog = sqliteTable("admin_audit_log", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  adminIdentity: text("admin_identity").notNull(),
+  action: text("action", { enum: ["approve", "block", "remove"] }).notNull(),
+  targetUserId: integer("target_user_id")
+    .notNull()
+    .references(() => users.id),
+  targetDisplayName: text("target_display_name"),
+  details: text("details"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 // Phase 10: Per-user media addition tracking
 export const mediaTracking = sqliteTable("media_tracking", {
   id: integer("id").primaryKey({ autoIncrement: true }),
