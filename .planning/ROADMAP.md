@@ -57,7 +57,7 @@ Full details: [milestones/v2.1-ROADMAP.md](milestones/v2.1-ROADMAP.md)
 - [x] **Phase 18: Conversation Reliability** - Eliminate orphaned messages, verify deferred persistence, optimize context window for better LLM responses (completed 2026-02-15)
 - [x] **Phase 19: Webhook & Server Resilience** - Auto-recover Telegram webhook after downtime, expose structured health checks (completed 2026-02-15)
 - [x] **Phase 20: Notification Polish** - Improve formatting per provider, add delivery tracking with retries and failure alerting (completed 2026-02-16)
-- [ ] **Phase 21: Admin Experience** - Dashboard user approval buttons, audit log for user management actions
+- [x] **Phase 21: Admin Experience** - Dashboard user approval buttons, audit log for user management actions (completed 2026-02-16)
 
 ## Phase Details
 
@@ -113,7 +113,7 @@ Plans:
   1. Pending users appear in the web dashboard with approve and block buttons that work without page reload
   2. Every user management action (approval, block, removal) is recorded in an audit log with timestamp, admin identity, and action taken
   3. Audit log is viewable in the admin dashboard, showing recent user management history
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 21-01-PLAN.md -- Pending user approve/block buttons, audit log schema, and audit log dashboard page
@@ -145,4 +145,4 @@ Phases execute in numeric order: 18 -> 19 -> 20 -> 21
 | 18. Conversation Reliability | v2.2 | Complete    | 2026-02-15 | - |
 | 19. Webhook & Server Resilience | v2.2 | Complete    | 2026-02-15 | - |
 | 20. Notification Polish | v2.2 | Complete    | 2026-02-16 | - |
-| 21. Admin Experience | v2.2 | 0/1 | Not started | - |
+| 21. Admin Experience | v2.2 | Complete    | 2026-02-16 | - |
