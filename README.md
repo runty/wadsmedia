@@ -14,7 +14,7 @@ WadsMedia connects your phone to your media servers via an LLM-powered conversat
 - **Discovery** -- Find media by genre, actor, year, or language via TMDB. Library status shown for each result.
 - **Plex integration** -- Check what's in your Plex library, view watch history via Tautulli.
 - **Web search** -- Describe a movie vaguely ("that one where the guy relives the same day") and the bot finds it.
-- **Proactive notifications** -- Get notified automatically when downloads finish or new episodes are grabbed.
+- **Proactive notifications** -- Optionally get notified when downloads finish or new episodes are grabbed (requires Sonarr/Radarr webhook setup -- see [Setting Up Proactive Notifications](#setting-up-proactive-notifications)).
 - **Conversational context** -- Say "add that one" or "the second one" and the app understands what you mean.
 - **User management** -- Admin approve/block users, whitelist phone numbers, per-user conversation history.
 - **Admin dashboard** -- Web-based admin panel for user management and audit logs.
