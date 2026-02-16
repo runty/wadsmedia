@@ -56,7 +56,7 @@ Full details: [milestones/v2.1-ROADMAP.md](milestones/v2.1-ROADMAP.md)
 
 - [x] **Phase 18: Conversation Reliability** - Eliminate orphaned messages, verify deferred persistence, optimize context window for better LLM responses (completed 2026-02-15)
 - [x] **Phase 19: Webhook & Server Resilience** - Auto-recover Telegram webhook after downtime, expose structured health checks (completed 2026-02-15)
-- [ ] **Phase 20: Notification Polish** - Improve formatting per provider, add delivery tracking with retries and failure alerting
+- [x] **Phase 20: Notification Polish** - Improve formatting per provider, add delivery tracking with retries and failure alerting (completed 2026-02-16)
 - [ ] **Phase 21: Admin Experience** - Dashboard user approval buttons, audit log for user management actions
 
 ## Phase Details
@@ -99,7 +99,7 @@ Plans:
   2. SMS notifications are length-aware: truncated cleanly before carrier limits, with MMS fallback for longer content
   3. Failed notification deliveries are logged with error details, retried at least once, and persistent failures trigger an admin alert
   4. Notification send status (success/failure/retry) is recorded and visible in health checks or logs
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 20-01-PLAN.md -- Provider-aware notification formatting (Telegram HTML, SMS length-aware truncation with MMS fallback)
@@ -144,5 +144,5 @@ Phases execute in numeric order: 18 -> 19 -> 20 -> 21
 | 17. Admin Dashboard UX Polish | v2.1 | 1/1 | Complete | 2026-02-15 |
 | 18. Conversation Reliability | v2.2 | Complete    | 2026-02-15 | - |
 | 19. Webhook & Server Resilience | v2.2 | Complete    | 2026-02-15 | - |
-| 20. Notification Polish | v2.2 | 0/2 | Not started | - |
+| 20. Notification Polish | v2.2 | Complete    | 2026-02-16 | - |
 | 21. Admin Experience | v2.2 | 0/? | Not started | - |
