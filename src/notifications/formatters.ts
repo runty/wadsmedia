@@ -7,7 +7,9 @@ export interface FormattedNotification {
   plain: string;
 }
 
-export function formatSonarrNotification(payload: SonarrWebhookPayload): FormattedNotification | null {
+export function formatSonarrNotification(
+  payload: SonarrWebhookPayload,
+): FormattedNotification | null {
   switch (payload.eventType) {
     case "Download": {
       const series = payload.series?.title ?? "Unknown Show";
@@ -37,7 +39,9 @@ export function formatSonarrNotification(payload: SonarrWebhookPayload): Formatt
   }
 }
 
-export function formatRadarrNotification(payload: RadarrWebhookPayload): FormattedNotification | null {
+export function formatRadarrNotification(
+  payload: RadarrWebhookPayload,
+): FormattedNotification | null {
   switch (payload.eventType) {
     case "Download": {
       const title = payload.movie?.title ?? "Unknown Movie";

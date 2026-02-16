@@ -23,15 +23,15 @@ export default fp(
     // POST /webhook/sonarr -- receives Sonarr event notifications
     fastify.post("/webhook/sonarr", { preHandler: [validateToken] }, async (request, reply) => {
       const payload = request.body as SonarrWebhookPayload;
-      const message = formatSonarrNotification(payload);
+      const notification = formatSonarrNotification(payload);
 
-      if (message) {
+      if (notification) {
         // Fire-and-forget: don't block the webhook response
         notifyAllActiveUsers(
           fastify.db,
           fastify.messaging,
           fastify.config,
-          message,
+          notification,
           request.log,
           fastify.telegramMessaging,
         ).catch((err) => request.log.error({ err }, "Sonarr notification dispatch failed"));
@@ -43,14 +43,14 @@ export default fp(
     // POST /webhook/radarr -- receives Radarr event notifications
     fastify.post("/webhook/radarr", { preHandler: [validateToken] }, async (request, reply) => {
       const payload = request.body as RadarrWebhookPayload;
-      const message = formatRadarrNotification(payload);
+      const notification = formatRadarrNotification(payload);
 
-      if (message) {
+      if (notification) {
         notifyAllActiveUsers(
           fastify.db,
           fastify.messaging,
           fastify.config,
-          message,
+          notification,
           request.log,
           fastify.telegramMessaging,
         ).catch((err) => request.log.error({ err }, "Radarr notification dispatch failed"));
