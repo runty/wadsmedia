@@ -270,6 +270,7 @@ export async function processConversation(params: ProcessConversationParams): Pr
           })
         : buildSystemPrompt(displayName, providerName);
       const llmMessages = buildLLMMessages(systemPrompt, history, 20);
+      const newStartIndex = llmMessages.length; // capture before tool loop mutates the array
 
       // 6. Run tool call loop
       const result = await toolCallLoop({
@@ -306,10 +307,6 @@ export async function processConversation(params: ProcessConversationParams): Pr
       } else {
         saveMessage(db, { userId, role: "user", content: userContent });
       }
-      const historyLength = history.length;
-      // system prompt is at index 0, then history messages (including user msg), then LLM messages
-      const newStartIndex = 1 + historyLength; // skip system + history (which includes user msg)
-
       for (let i = newStartIndex; i < result.messagesConsumed.length; i++) {
         const msg = result.messagesConsumed[i] as ChatCompletionMessageParam;
         if (isGroupChat) {

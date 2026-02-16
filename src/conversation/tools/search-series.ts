@@ -3,7 +3,7 @@ import { defineTool } from "../tools.js";
 
 export const searchSeriesTool = defineTool(
   "search_series",
-  "Search for TV shows by title. Returns matching shows with title, year, network, seasons, overview, and whether they are already in the user's library. Use when the user wants to find, look up, or search for a TV show, series, or program.",
+  "Search for TV shows by title via Sonarr. Returns matching shows with title, year, network, seasons, overview, and whether they are already monitored in Sonarr (inSonarr). Use when the user wants to find, look up, or search for a TV show, series, or program.",
   z.object({ query: z.string().describe("The TV show title to search for") }),
   "safe",
   async (args, context) => {
@@ -35,7 +35,7 @@ export const searchSeriesTool = defineTool(
           series.overview && series.overview.length > 150
             ? `${series.overview.slice(0, 150)}...`
             : series.overview,
-        inLibrary: !!librarySerie,
+        inSonarr: !!librarySerie,
         libraryId: librarySerie?.id ?? null,
         status: series.status,
         posterUrl: posterImage?.remoteUrl ?? null,

@@ -3,7 +3,7 @@ import { defineTool } from "../tools.js";
 
 export const searchMoviesTool = defineTool(
   "search_movies",
-  "Search for movies by title. Returns matching movies with title, year, overview, and whether they are already in the user's library. Use when the user wants to find, look up, or search for a movie.",
+  "Search for movies by title via Radarr. Returns matching movies with title, year, overview, and whether they are already monitored in Radarr (inRadarr). Use when the user wants to find, look up, or search for a movie.",
   z.object({ query: z.string().describe("The movie title to search for") }),
   "safe",
   async (args, context) => {
@@ -33,7 +33,7 @@ export const searchMoviesTool = defineTool(
           movie.overview && movie.overview.length > 150
             ? `${movie.overview.slice(0, 150)}...`
             : movie.overview,
-        inLibrary: !!libraryMovie,
+        inRadarr: !!libraryMovie,
         libraryId: libraryMovie?.id ?? null,
         status: movie.status,
         studio: movie.studio ?? null,
