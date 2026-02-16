@@ -1,0 +1,38 @@
+<% if (it.logs && it.logs.length > 0) { %>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Admin</th>
+          <th>Action</th>
+          <th>User</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% it.logs.forEach(log => { %>
+          <tr>
+            <td><%= log.createdAt ? new Date(log.createdAt).toLocaleString() : "-" %></td>
+            <td><%= log.adminIdentity %></td>
+            <td>
+              <% if (log.action === "approve") { %>
+                <span class="badge badge-active">approve</span>
+              <% } else if (log.action === "block") { %>
+                <span class="badge badge-blocked">block</span>
+              <% } else if (log.action === "remove") { %>
+                <span class="badge badge-blocked">remove</span>
+              <% } else { %>
+                <span class="badge"><%= log.action %></span>
+              <% } %>
+            </td>
+            <td><%= log.targetDisplayName || ("User " + log.targetUserId) %></td>
+            <td><%= log.details || "-" %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } else { %>
+  <div class="empty-state"><p>No audit log entries yet.</p></div>
+<% } %>

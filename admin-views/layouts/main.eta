@@ -14,6 +14,7 @@
       <ul class="sidebar-nav">
         <li><a href="/admin" <% if (it.page === "dashboard") { %>class="active"<% } %>>Dashboard</a></li>
         <li><a href="/admin/users" <% if (it.page === "users") { %>class="active"<% } %>>Users</a></li>
+        <li><a href="/admin/audit-log" <% if (it.page === "audit-log") { %>class="active"<% } %>>Audit Log</a></li>
       </ul>
       <div class="sidebar-footer">
         <form method="POST" action="/admin/logout">

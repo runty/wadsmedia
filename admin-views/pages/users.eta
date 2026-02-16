@@ -5,12 +5,17 @@
   <p>Manage all registered users</p>
 </div>
 
+<% const pendingCount = it.users ? it.users.filter(u => u.status === "pending").length : 0; %>
+<% if (pendingCount > 0) { %>
+  <div class="pending-count"><%= pendingCount %> pending user<%= pendingCount !== 1 ? "s" : "" %> awaiting review</div>
+<% } %>
+
 <div class="table-container">
   <table>
     <thead>
       <tr>
         <th>Name</th>
-        <th>Phone</th>
+        <th>Contact</th>
         <th>Status</th>
         <th>Admin</th>
         <th>Actions</th>

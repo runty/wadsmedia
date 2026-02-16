@@ -1,0 +1,13 @@
+<% layout("/layouts/main", { title: "Audit Log", page: "audit-log" }) %>
+
+<div class="page-header">
+  <h1>Audit Log</h1>
+  <p>Recent user management actions</p>
+</div>
+
+<div id="audit-log-container"
+     hx-get="/admin/api/audit-log"
+     hx-trigger="every 30s"
+     hx-swap="innerHTML">
+  <%~ include("/partials/audit-log-table", { logs: it.logs }) %>
+</div>
