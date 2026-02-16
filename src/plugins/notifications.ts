@@ -8,6 +8,17 @@ export default fp(
   async (fastify: FastifyInstance) => {
     const notificationSecret = fastify.config.NOTIFICATION_SECRET;
 
+    // Determine admin alert channel (Telegram preferred, SMS fallback)
+    const adminTelegramChatId = fastify.config.ADMIN_TELEGRAM_CHAT_ID;
+    const adminMessaging =
+      adminTelegramChatId && fastify.telegramMessaging
+        ? fastify.telegramMessaging
+        : fastify.messaging;
+    const adminAddress =
+      adminTelegramChatId && fastify.telegramMessaging
+        ? adminTelegramChatId
+        : fastify.config.ADMIN_PHONE;
+
     // Token validation preHandler
     const validateToken = async (request: FastifyRequest, reply: FastifyReply) => {
       if (notificationSecret) {
@@ -34,6 +45,8 @@ export default fp(
           notification,
           request.log,
           fastify.telegramMessaging,
+          adminMessaging,
+          adminAddress,
         ).catch((err) => request.log.error({ err }, "Sonarr notification dispatch failed"));
       }
 
@@ -53,6 +66,8 @@ export default fp(
           notification,
           request.log,
           fastify.telegramMessaging,
+          adminMessaging,
+          adminAddress,
         ).catch((err) => request.log.error({ err }, "Radarr notification dispatch failed"));
       }
 
