@@ -1,9 +1,15 @@
 import { z } from "zod";
 import { defineTool } from "../tools.js";
 
+/** Format a Date as YYYY-MM-DD in the local timezone (avoids UTC date-shift). */
+function localYMD(d: Date): string {
+  const tz = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return d.toLocaleDateString("en-CA", { timeZone: tz }); // en-CA → YYYY-MM-DD
+}
+
 export const getUpcomingEpisodesTool = defineTool(
   "get_upcoming_episodes",
-  "Get upcoming TV episodes airing soon. Shows series name, episode title, season/episode numbers, and air date. Use when the user asks about upcoming episodes, what's airing, TV schedule, or 'what's on'.",
+  "Get upcoming TV episodes airing soon from shows ALREADY in Sonarr (already scheduled for automatic download). Shows series name, episode title, season/episode numbers, air date, and whether the file has been downloaded yet. Use when the user asks about upcoming episodes, what's airing, TV schedule, what's on the schedule, or 'what's on'. These are NOT suggestions to add -- they are already being tracked and will download automatically.",
   z.object({
     days: z.number().min(1).max(30).optional().describe("Number of days to look ahead (default 7)"),
   }),
@@ -14,8 +20,8 @@ export const getUpcomingEpisodesTool = defineTool(
     }
 
     const days = args.days ?? 7;
-    const start = new Date().toISOString().slice(0, 10);
-    const end = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const start = localYMD(new Date());
+    const end = localYMD(new Date(Date.now() + days * 24 * 60 * 60 * 1000));
 
     const [episodes, seriesList] = await Promise.all([
       context.sonarr.getCalendar(start, end),
@@ -59,7 +65,7 @@ export const getUpcomingEpisodesTool = defineTool(
 
 export const getUpcomingMoviesTool = defineTool(
   "get_upcoming_movies",
-  "Get upcoming movie releases (theatrical, digital, or physical). Shows title, year, release dates, and status. Use when the user asks about upcoming movies, new releases, or movie schedules.",
+  "Get upcoming digital movie releases for movies ALREADY in Radarr (already being monitored for automatic download). Shows title, year, digital release date, and status. Use when the user asks about upcoming movies, new releases, or movie schedules. These are NOT suggestions to add -- they are already being tracked.",
   z.object({
     days: z
       .number()
@@ -75,8 +81,8 @@ export const getUpcomingMoviesTool = defineTool(
     }
 
     const days = args.days ?? 30;
-    const start = new Date().toISOString().slice(0, 10);
-    const end = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const start = localYMD(new Date());
+    const end = localYMD(new Date(Date.now() + days * 24 * 60 * 60 * 1000));
 
     const movies = await context.radarr.getUpcoming(start, end);
 
@@ -84,18 +90,35 @@ export const getUpcomingMoviesTool = defineTool(
       return { movies: [], message: "No upcoming movies" };
     }
 
-    const results = movies.map((movie) => ({
-      title: movie.title,
-      year: movie.year,
-      inCinemas: movie.inCinemas ?? null,
-      physicalRelease: movie.physicalRelease ?? null,
-      digitalRelease: movie.digitalRelease ?? null,
-      status: movie.status,
-      overview:
-        movie.overview && movie.overview.length > 100
-          ? `${movie.overview.slice(0, 100)}...`
-          : movie.overview,
-    }));
+    const tz = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const fmtDate = (iso: string | null | undefined): string | null => {
+      if (!iso) return null;
+      return new Date(iso).toLocaleDateString("en-US", {
+        timeZone: tz,
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    };
+
+    const today = start; // YYYY-MM-DD local
+    const results = movies
+      .filter((movie) => movie.digitalRelease && movie.digitalRelease.slice(0, 10) >= today)
+      .map((movie) => ({
+        title: movie.title,
+        year: movie.year,
+        digitalRelease: fmtDate(movie.digitalRelease),
+        status: movie.status,
+        overview:
+          movie.overview && movie.overview.length > 100
+            ? `${movie.overview.slice(0, 100)}...`
+            : movie.overview,
+      }));
+
+    if (results.length === 0) {
+      return { movies: [], message: "No upcoming digital releases" };
+    }
 
     return { movies: results };
   },
