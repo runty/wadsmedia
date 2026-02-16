@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Users can manage their media libraries through natural conversation -- text a message, get things done, no UI to learn.
-**Current focus:** Phase 20 in progress (Notification Polish)
+**Current focus:** Phase 20 complete (Notification Polish)
 
 ## Current Position
 
 Phase: 20 of 21 (Notification Polish)
-Plan: 1 of 2 in current phase
-Status: Executing
-Last activity: 2026-02-15 -- Completed 20-01 notification formatter polish
+Plan: 2 of 2 in current phase (complete)
+Status: Phase 20 complete
+Last activity: 2026-02-16 -- Completed 20-02 delivery tracking with retry and admin alerting
 
-Progress: [===================.] 95% (19/21 phases complete, 20-01 done)
+Progress: [====================] 95% (20/21 phases complete)
 
 ## Performance Metrics
 
@@ -28,11 +28,11 @@ Progress: [===================.] 95% (19/21 phases complete, 20-01 done)
 - Plans: 9 | Execution time: ~22min
 
 **v2.2 Velocity (Phases 18-20):**
-- Plans: 5 | Execution time: ~12min
+- Plans: 6 | Execution time: ~14min
 
 **Combined:**
-- Total plans completed: 44 (across 20 phases)
-- Total execution time: ~1.9 hours
+- Total plans completed: 45 (across 20 phases)
+- Total execution time: ~2.0 hours
 
 ## Accumulated Context
 
@@ -50,6 +50,9 @@ Recent decisions affecting current work:
 - 19-02: Non-configured services report not_configured without degrading overall health status
 - 20-01: FormattedNotification dual-format pattern returns { html, plain } from single formatter call
 - 20-01: SMS truncation at word boundary (last space before 157 chars) with MMS fallback when MMS_PIXEL_URL configured
+- 20-02: Single retry (2 attempts max) balances reliability vs latency for notification delivery
+- 20-02: Admin alert channel resolved once at plugin registration (Telegram preferred, SMS fallback)
+- 20-02: Fire-and-forget admin alert with .catch isolation prevents alert failures from affecting dispatch
 
 ### Pending Todos
 
@@ -63,6 +66,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-15
-Stopped at: Completed 20-01-PLAN.md (notification formatter polish)
+Last session: 2026-02-16
+Stopped at: Completed 20-02-PLAN.md (delivery tracking with retry and admin alerting)
 Resume file: None
