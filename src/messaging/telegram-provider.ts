@@ -32,7 +32,7 @@ export class TelegramMessagingProvider implements MessagingProvider {
     if (message.photoUrl) {
       // Photo message with optional caption and inline keyboard
       const caption = message.body
-        ? message.body.slice(0, 1024) // Telegram caption limit
+        ? safeHtmlTruncate(message.body, 1024) // Telegram caption limit
         : undefined;
       const result = await this.api.sendPhoto(chatId, message.photoUrl, {
         caption,
@@ -152,4 +152,45 @@ export class TelegramMessagingProvider implements MessagingProvider {
     }
     return keyboard;
   }
+}
+
+/**
+ * Truncate an HTML string to `limit` characters without breaking tags.
+ * Removes any partial tag at the truncation boundary, then closes
+ * any tags that were opened but never closed.
+ */
+function safeHtmlTruncate(html: string, limit: number): string {
+  if (html.length <= limit) return html;
+
+  let truncated = html.slice(0, limit);
+
+  // Remove any partial tag at the end (e.g. "<b" or "<pre class=")
+  const lastOpen = truncated.lastIndexOf("<");
+  if (lastOpen !== -1 && !truncated.slice(lastOpen).includes(">")) {
+    truncated = truncated.slice(0, lastOpen);
+  }
+
+  // Find all open and close tags, then close any still-open ones
+  const openTags: string[] = [];
+  const tagRe = /<\/?([a-z][a-z0-9]*)\b[^>]*\/?>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = tagRe.exec(truncated)) !== null) {
+    const fullTag = match[0];
+    const tagName = match[1]!.toLowerCase();
+    if (fullTag.startsWith("</")) {
+      // Closing tag — pop the most recent matching open tag
+      const idx = openTags.lastIndexOf(tagName);
+      if (idx !== -1) openTags.splice(idx, 1);
+    } else if (!fullTag.endsWith("/>")) {
+      // Opening tag (not self-closing)
+      openTags.push(tagName);
+    }
+  }
+
+  // Close open tags in reverse order
+  for (let i = openTags.length - 1; i >= 0; i--) {
+    truncated += `</${openTags[i]}>`;
+  }
+
+  return truncated;
 }
